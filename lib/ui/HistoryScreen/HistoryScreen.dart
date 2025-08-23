@@ -262,14 +262,6 @@ class _HistoryScreenState extends State<HistoryScreen>
                   backgroundColor: statusColor.withOpacity(0.1),
                   child: Icon(icon, color: statusColor, size: 28),
                 ),
-                title: Text(
-                  item.locationDescription,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
                 subtitle: Text(
                   '${item.formattedDate} - ${item.formattedTime} • ${item.status}',
                   style: TextStyle(

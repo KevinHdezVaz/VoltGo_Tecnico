@@ -150,15 +150,24 @@ class AuthService {
     request.fields['phone'] = phone;
     request.fields['user_type'] = 'technician';
     request.fields['base_location'] = baseLocation;
-    request.fields['services_offered'] = jsonEncode(servicesOffered);
+
+    // ▼▼▼ LÍNEA INCORRECTA ELIMINADA ▼▼▼
+    // request.fields['services_offered'] = jsonEncode(servicesOffered);
+
+    // ▼▼▼ SOLUCIÓN: AÑADE CADA SERVICIO EN UN BUCLE ▼▼▼
+    for (int i = 0; i < servicesOffered.length; i++) {
+      request.fields['services_offered[$i]'] = servicesOffered[i];
+    }
 
     if (licenseNumber != null && licenseNumber.isNotEmpty) {
-      request.fields['licenseNumber'] = licenseNumber;
+      // CORRECCIÓN DE NOMBRE DE CAMPO: debe coincidir con el backend
+      request.fields['license_number'] = licenseNumber;
     }
 
     if (idDocument != null) {
+      // CORRECCIÓN DE NOMBRE DE CAMPO: debe coincidir con el backend
       request.files.add(
-        await http.MultipartFile.fromPath('idDocument', idDocument.path),
+        await http.MultipartFile.fromPath('id_document', idDocument.path),
       );
     }
 
@@ -169,10 +178,13 @@ class AuthService {
       if (response.statusCode == 201) {
         return RegisterResponse.fromJson(jsonDecode(response.body));
       } else {
+        // Esto te dará un error más claro en la consola
+        developer.log('Error en el registro: ${response.body}');
         throw Exception('Error en el registro: ${response.body}');
       }
     } catch (e) {
       developer.log('❌ Excepción en registerTechnician: $e');
+      // Devuelve el error para que la UI lo muestre
       return RegisterResponse(success: false, error: 'Error de conexión: $e');
     }
   }

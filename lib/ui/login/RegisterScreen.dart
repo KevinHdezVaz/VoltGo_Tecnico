@@ -380,7 +380,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Foto de ID o certificación',
+          'Foto de ID o certificación (AUN NO FUNCIONA, DEJAR ESTE CAMPO VACIO)',
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,

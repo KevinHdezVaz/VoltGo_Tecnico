@@ -245,12 +245,12 @@ class _LoginScreenState extends State<LoginScreen>
       child: Column(
         children: [
           Image.asset(
-            'assets/images/logoapp.jpg', // Asegúrate de tener esta imagen en tus assets
-            height: 120, // Ajusta el tamaño según tu logo
+            'assets/images/logoapp.jpeg',
+            height: 120,
           ),
           const SizedBox(height: 16),
           const Text(
-            'Bienvenido',
+            'Bienvenido Tecnico.',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -268,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen>
       children: [
         _buildTextField(
           label: 'Correo electrónico',
-          hint: 'Ingresa tu cuenta',
+          hint: 'Ingresa tu correo electronico.',
           controller: _emailController, // <-- Usa el nuevo nombre
         ),
         const SizedBox(height: 20),
@@ -307,7 +307,10 @@ class _LoginScreenState extends State<LoginScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('¿No tienes una cuenta? ',
-                style: TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.black,
+                    fontWeight: FontWeight.bold)),
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -318,7 +321,9 @@ class _LoginScreenState extends State<LoginScreen>
               },
               child: const Text('Créala aquí.',
                   style: TextStyle(
-                      color: AppColors.brandBlue, fontWeight: FontWeight.bold)),
+                      color: AppColors.brandBlue,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold)),
             ),
           ],
         ),

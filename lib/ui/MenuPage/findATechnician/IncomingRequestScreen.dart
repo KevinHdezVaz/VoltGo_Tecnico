@@ -177,13 +177,6 @@ class _IncomingRequestDialogState extends State<IncomingRequestDialog>
                                         color: AppColors.textPrimary,
                                       ),
                                     ),
-                                    subtitle: Text(
-                                      widget.serviceRequest.locationDescription,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
                                   ),
                                 ],
                               ),

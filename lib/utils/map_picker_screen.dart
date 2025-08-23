@@ -108,18 +108,58 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               });
             },
             myLocationEnabled: true,
-            myLocationButtonEnabled: true,
+            // Controles nativos desactivados
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
           ),
+
+          // =======================================================
+          // NUEVOS BOTONES PERSONALIZADOS
+          // =======================================================
+          Positioned(
+            top: 16.0,
+            right: 16.0,
+            child: Column(
+              children: [
+                FloatingActionButton.small(
+                  heroTag: "btn_gps",
+                  onPressed: _centerMapOnUserLocation,
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.gps_fixed, color: Colors.black54),
+                ),
+                const SizedBox(height: 16),
+                FloatingActionButton.small(
+                  heroTag: "btn_zoom_in",
+                  onPressed: () {
+                    _mapController?.animateCamera(CameraUpdate.zoomIn());
+                  },
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.add, color: Colors.black54),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: "btn_zoom_out",
+                  onPressed: () {
+                    _mapController?.animateCamera(CameraUpdate.zoomOut());
+                  },
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.remove, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          // =======================================================
+
           // Pin/Marcador en el centro
           const Icon(Icons.location_pin, size: 50, color: Colors.red),
 
           // Botón de confirmar en la parte inferior
           Positioned(
-            // Posicionamos el botón con márgenes a los lados para que se centre y se estire
             bottom: 40,
             left: 24,
             right: 24,
             child: ElevatedButton.icon(
+              // ... (tu botón de confirmar se queda igual)
               icon: _isLoading
                   ? const SizedBox.shrink()
                   : const Icon(Icons.check, color: Colors.white),
@@ -133,28 +173,18 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   ? null
                   : _onConfirmLocation,
               style: ElevatedButton.styleFrom(
-                // 1. Color de fondo y de texto/ícono
-                backgroundColor:
-                    AppColors.brandBlue, // Un color fuerte de tu marca
-                foregroundColor: Colors.white, // Color para el texto y el ícono
-
-                // 2. Sombra más pronunciada para dar efecto de elevación
+                backgroundColor: AppColors.brandBlue,
+                foregroundColor: Colors.white,
                 elevation: 8,
-
-                // 3. Texto más legible
                 textStyle: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
-
-                // 4. Padding y forma (ya los tenías, se mantienen)
                 padding:
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-
-                // 5. Tamaño mínimo para asegurar que no sea demasiado pequeño
                 minimumSize: const Size(double.infinity, 50),
               ),
             ),
