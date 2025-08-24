@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:Voltgo_app/data/models/BarChartDataModel.dart';
 import 'package:Voltgo_app/data/models/dashboard/DashboardDetailModel.dart';
 import 'package:Voltgo_app/data/services/DashboardService.dart';
-import 'package:Voltgo_app/ui/MenuPage/auditoria/CustomDatePickerDialog.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:Voltgo_app/utils/pdf_report_generator.dart';
 import 'package:Voltgo_app/utils/AnimatedTruckProgress.dart';
@@ -54,24 +53,6 @@ class _DataVisualizationDetailState extends State<DataVisualizationDetail>
         dataType: widget.dataType,
       );
     });
-  }
-
-  Future<void> _showCustomDatePicker(BuildContext context) async {
-    final DateTime? pickedDate = await showModalBottomSheet<DateTime>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return DatePickerBottomSheet(initialDate: _selectedDate);
-      },
-    );
-
-    if (pickedDate != null && pickedDate != _selectedDate) {
-      setState(() {
-        _selectedDate = pickedDate;
-        _fetchDetails();
-      });
-    }
   }
 
   Future<void> _generatePdfReport(DashboardDetailData data) async {
@@ -210,27 +191,24 @@ class _DataVisualizationDetailState extends State<DataVisualizationDetail>
   }
 
   Widget _buildDatePicker(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showCustomDatePicker(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12.0),
-            border: Border.all(color: Colors.grey),
-            boxShadow: [
-              BoxShadow(blurRadius: 5, color: Colors.black.withOpacity(0.05))
-            ]),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
-            const SizedBox(width: 12),
-            const Text('Cuándo', style: TextStyle(fontWeight: FontWeight.bold)),
-            const Spacer(),
-            Text(DateFormat('dd / MM / yy', 'es_ES').format(_selectedDate),
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border.all(color: Colors.grey),
+          boxShadow: [
+            BoxShadow(blurRadius: 5, color: Colors.black.withOpacity(0.05))
+          ]),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
+          const SizedBox(width: 12),
+          const Text('Cuándo', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Spacer(),
+          Text(DateFormat('dd / MM / yy', 'es_ES').format(_selectedDate),
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

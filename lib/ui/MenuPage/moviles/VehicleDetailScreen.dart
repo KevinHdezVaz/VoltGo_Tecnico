@@ -4,8 +4,6 @@ import 'package:geocoding/geocoding.dart';
 import 'package:Voltgo_app/data/models/vehicles/VehicleAccesories.dart';
 import 'package:Voltgo_app/data/models/vehicles/VehicleDetail.dart';
 import 'package:Voltgo_app/data/services/vehicles_service.dart';
-import 'package:Voltgo_app/ui/MenuPage/auditoria/AuditDetailsScreen.dart';
-import 'package:Voltgo_app/ui/MenuPage/auditoria/AuditoriaScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/moviles/EditMobileScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/moviles/MobilesScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/moviles/SecurityActionsScreen.dart';
@@ -134,11 +132,6 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen>
 
         if (mounted) {
           if (widget.originScreen == 'audit') {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const AuditoriaScreen()),
-              (route) => false,
-            );
           } else {
             Navigator.pushAndRemoveUntil(
               context,
@@ -472,27 +465,11 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen>
       children: [
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) =>
-                        AuditDetailsScreen(plate: widget.plate)),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              side: const BorderSide(color: AppColors.primary, width: 1.5),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0)),
-            ),
-            child: const Text('Auditoría',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16)),
-          ),
+          child: const Text('Auditoría',
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16)),
         ),
         const SizedBox(height: 12),
         SizedBox(

@@ -1609,15 +1609,23 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.brandBlue],
-              ),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.primary, // Color de fondo (puedes cambiarlo)
+              borderRadius: BorderRadius.circular(
+                  12), // Radio de las esquinas redondeadas
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-            child: Icon(Icons.electric_bolt, color: AppColors.accent, size: 24),
+            padding: EdgeInsets.all(8), // Espaciado interno
+            child: Image.asset(
+              'assets/images/logoAppVoltgo.png',
+              height: 30,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

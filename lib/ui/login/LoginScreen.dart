@@ -244,9 +244,24 @@ class _LoginScreenState extends State<LoginScreen>
     return Center(
       child: Column(
         children: [
-          Image.asset(
-            'assets/images/logoapp.jpeg',
-            height: 120,
+          // Contenedor con fondo redondeado para la imagen
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.primary, // Color de fondo
+              borderRadius: BorderRadius.circular(20), // Esquinas redondeadas
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(16), // Espacio interno
+            child: Image.asset(
+              'assets/images/logoAppVoltgo.png',
+              height: 120,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(

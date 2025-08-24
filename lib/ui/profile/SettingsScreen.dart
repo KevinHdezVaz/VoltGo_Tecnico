@@ -16,12 +16,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen>
     with SingleTickerProviderStateMixin {
   bool _notificationsEnabled = true;
-
   late Future<UserModel?> _userFuture;
-
   bool _darkModeEnabled = false;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+
+  // ✅ NUEVA VARIABLE: Para controlar el estado de logout
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -42,6 +43,144 @@ class _SettingsScreenState extends State<SettingsScreen>
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  // ✅ MÉTODO MEJORADO: Logout con indicador de carga
+  Future<void> _handleLogout() async {
+    // Mostrar diálogo de confirmación primero
+    final shouldLogout = await _showLogoutConfirmationDialog();
+    if (!shouldLogout) return;
+
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    try {
+      HapticFeedback.mediumImpact();
+
+      // Simular un pequeño delay para mostrar el indicador
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Realizar el logout
+      await AuthService.logout();
+
+      if (mounted) {
+        // Pequeño delay adicional para suavizar la transición
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      // Manejar errores de logout
+      if (mounted) {
+        setState(() {
+          _isLoggingOut = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Error al cerrar sesión. Inténtalo nuevamente.',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // ✅ NUEVO MÉTODO: Diálogo de confirmación
+  Future<bool> _showLogoutConfirmationDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: true,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.logout,
+                      color: AppColors.error,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Cerrar Sesión',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: const Text(
+                '¿Estás seguro de que quieres cerrar sesión?',
+                style: TextStyle(fontSize: 16),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text(
+                    'Cerrar Sesión',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 
   @override
@@ -151,18 +290,24 @@ class _SettingsScreenState extends State<SettingsScreen>
 
             const Divider(height: 32, color: AppColors.gray300),
             const SizedBox(height: 24),
-            // Logout Button
+            // ✅ LOGOUT BUTTON MEJORADO
             _buildLogoutButton(),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Navigate to edit profile or primary action
-          HapticFeedback.lightImpact();
-        },
-        backgroundColor: AppColors.accent,
-        child: const Icon(Icons.edit, color: AppColors.textOnPrimary),
+        onPressed: _isLoggingOut
+            ? null
+            : () {
+                // TODO: Navigate to edit profile or primary action
+                HapticFeedback.lightImpact();
+              },
+        backgroundColor: _isLoggingOut ? AppColors.disabled : AppColors.accent,
+        child: Icon(
+          Icons.edit,
+          color:
+              _isLoggingOut ? AppColors.textSecondary : AppColors.textOnPrimary,
+        ),
         elevation: 4,
         tooltip: 'Editar Perfil',
       ),
@@ -224,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       padding: const EdgeInsets.only(bottom: 12.0, top: 16.0),
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.textSecondary,
           fontWeight: FontWeight.w700,
           fontSize: 14,
@@ -275,7 +420,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     color: AppColors.textPrimary,
                   ),
                 ),
-                trailing: Icon(
+                trailing: const Icon(
                   Icons.chevron_right,
                   color: AppColors.textSecondary,
                   size: 24,
@@ -338,22 +483,13 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
+  // ✅ WIDGET MEJORADO: Botón de logout con indicador de carga
   Widget _buildLogoutButton() {
     return GestureDetector(
-      onTapDown: (_) => _animationController.forward(),
-      onTapUp: (_) => _animationController.reverse(),
-      onTapCancel: () => _animationController.reverse(),
-      onTap: () async {
-        HapticFeedback.mediumImpact();
-        await AuthService.logout();
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (Route<dynamic> route) => false,
-          );
-        }
-      },
+      onTapDown: _isLoggingOut ? null : (_) => _animationController.forward(),
+      onTapUp: _isLoggingOut ? null : (_) => _animationController.reverse(),
+      onTapCancel: _isLoggingOut ? null : () => _animationController.reverse(),
+      onTap: _isLoggingOut ? null : _handleLogout,
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Card(
@@ -367,22 +503,57 @@ class _SettingsScreenState extends State<SettingsScreen>
             borderRadius: BorderRadius.circular(12),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
-                border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                color: _isLoggingOut
+                    ? AppColors.error.withOpacity(0.05)
+                    : AppColors.error.withOpacity(0.1),
+                border: Border.all(
+                  color: _isLoggingOut
+                      ? AppColors.error.withOpacity(0.2)
+                      : AppColors.error.withOpacity(0.3),
+                ),
               ),
               child: ListTile(
+                enabled: !_isLoggingOut,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 50,
+                  vertical: 8,
                 ),
-                leading: Icon(Icons.logout, color: AppColors.error, size: 28),
+                leading: _isLoggingOut
+                    ? SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.error.withOpacity(0.7),
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.logout,
+                        color: AppColors.error,
+                        size: 28,
+                      ),
                 title: Text(
-                  'Cerrar Sesión',
+                  _isLoggingOut ? 'Cerrando Sesión...' : 'Cerrar Sesión',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.error,
+                    color: _isLoggingOut
+                        ? AppColors.error.withOpacity(0.7)
+                        : AppColors.error,
                   ),
                 ),
+                // ✅ TEXTO ADICIONAL cuando está cargando
+                subtitle: _isLoggingOut
+                    ? Text(
+                        'Por favor espera...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary.withOpacity(0.7),
+                        ),
+                      )
+                    : null,
               ),
             ),
           ),

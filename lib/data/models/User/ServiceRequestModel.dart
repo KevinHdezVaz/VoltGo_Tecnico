@@ -217,6 +217,10 @@ class ServiceRequestModel {
           ? '\$${double.parse(json['base_cost'].toString()).toStringAsFixed(2)}'
           : null,
     );
+  } // ✅ NUEVO MÉTODO: Para verificar si el chat está disponible
+  bool canChat() {
+    // Solo puede chatear cuando el servicio está activo (aceptado hasta completado)
+    return ['accepted', 'en_route', 'on_site', 'charging'].contains(status);
   }
 
   Map<String, dynamic> toJson() {

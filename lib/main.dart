@@ -16,7 +16,6 @@ import 'package:Voltgo_app/ui/login/LoginScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/DashboardScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/dashboard/CombinedDashboardScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/moviles/MobilesScreen.dart';
-import 'package:Voltgo_app/ui/MenuPage/auditoria/AuditoriaScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/notifications/NotificationsScreen.dart';
 import 'package:Voltgo_app/ui/profile/SettingsScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -119,8 +118,6 @@ class MyApp extends StatelessWidget {
                 builder: (_) => const CombinedDashboardScreen());
           case '/mobiles':
             return MaterialPageRoute(builder: (_) => MobilesScreen());
-          case '/auditoria':
-            return MaterialPageRoute(builder: (_) => AuditoriaScreen());
           case '/notifications':
             return MaterialPageRoute(
                 builder: (_) => const NotificationsScreen());

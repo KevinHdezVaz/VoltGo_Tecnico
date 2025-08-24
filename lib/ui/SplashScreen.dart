@@ -1,3 +1,5 @@
+import 'package:Voltgo_app/ui/MenuPage/dashboard/CombinedDashboardScreen.dart';
+import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -53,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF008C95),
+      backgroundColor: AppColors.primary,
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
@@ -72,8 +74,8 @@ class _SplashScreenState extends State<SplashScreen>
               child: Container(
                 padding: const EdgeInsets.all(30),
                 child: Image.asset(
-                  'assets/images/logoapp.jpeg',
-                  width: 300,
+                  'assets/images/logoAppVoltgo.png',
+                  width: 400,
                 ),
               ),
             ),

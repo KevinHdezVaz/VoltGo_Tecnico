@@ -80,23 +80,20 @@ flutter:
     # - assets/images/splash_background.png
     # - assets.images/backbtn.png
     
-# --- INICIO DE LA CORRECCIÓN ---
-# Añade esta sección completa al final de tu archivo.
-# Asegúrate de que no esté dentro de la sección 'flutter:'.
 flutter_native_splash:
-  # El color de fondo es un respaldo, pero la imagen lo cubrirá todo.
-  color: "#008C95"
-  
-  # Usamos 'background_image' para la imagen de pantalla completa.
-  background_image: assets/images/inicio.png
+  color: "#19478A"
+  background_image: "assets/images/inicio.png"
 
-  # Para Android 12 y superior, el sistema fuerza un ícono central.
-  # No soporta imágenes de fondo, así que aquí mantenemos el logo central.
   android_12:
-    color: "#008C95"
-    image: assets/images/logoApp.png # Tu logo para el centro
+    image: "assets/images/logoAppVoltgo.png"
+    icon_background_color: "#19478A"
 
-  # Cómo se ajusta la imagen en plataformas que lo soportan.
-  android_gravity: fill
-  ios_content_mode: scaleAspectFill
-# --- FIN DE LA CORRECCIÓN ---
+  # --- INICIO DEL CAMBIO ---
+  # 'center' muestra la imagen completa en el medio sin estirarla.
+  # El color de fondo (#19478A) rellenará los espacios vacíos.
+  android_gravity: center
+
+  # 'scaleAspectFit' asegura que toda la imagen quepa en la pantalla.
+  # El color de fondo rellenará los espacios vacíos.
+  ios_content_mode: scaleAspectFit
+  # --- FIN DEL CAMBIO ---
