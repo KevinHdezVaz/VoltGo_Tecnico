@@ -1,9 +1,11 @@
 // ✅ PANTALLA DE HISTORIAL DE CHATS
 // Archivo: lib/ui/chat/ChatHistoryScreen.dart
- 
+
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/models/chat/ChatHistoryItem.dart';
 import 'package:Voltgo_app/data/services/ChatService.dart';
+import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
+import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -82,27 +84,31 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
   void _openChat(ChatHistoryItem chatItem) {
     HapticFeedback.lightImpact();
 
-    // Crear un ServiceRequestModel básico para la navegación
+    // Crear ServiceRequestModel para la navegación
     final serviceRequest = ServiceRequestModel(
       id: chatItem.serviceId,
       userId: chatItem.userType == 'user' ? 0 : chatItem.otherParticipant.id,
       status: chatItem.serviceStatus,
-      requestLat: 0.0, // No necesario para el chat
-      requestLng: 0.0, // No necesario para el chat
+      requestLat: 0.0,
+      requestLng: 0.0,
       requestedAt: chatItem.serviceDate,
-      technician: chatItem.userType == 'user'
-          ? TechnicianData(
+      user: chatItem.userType == 'technician'
+          ? UserModel(
               id: chatItem.otherParticipant.id,
               name: chatItem.otherParticipant.name,
-              email: chatItem.otherParticipant.email,
+              email: chatItem.otherParticipant.email ?? '',
+              userType: 'user',
             )
           : null,
-      user: chatItem.userType == 'technician'
-          ? UserData(
+      technician: chatItem.userType == 'user'
+          ? TechnicianModel(
               id: chatItem.otherParticipant.id,
               name: chatItem.otherParticipant.name,
-              email: chatItem.otherParticipant.email,
+              email: chatItem.otherParticipant.email ?? '',
             )
+          : null,
+      clientName: chatItem.userType == 'technician'
+          ? chatItem.otherParticipant.name
           : null,
     );
 

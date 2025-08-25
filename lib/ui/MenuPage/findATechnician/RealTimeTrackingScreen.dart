@@ -3,6 +3,8 @@
 
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
+import 'package:Voltgo_app/data/services/ServiceRequestService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +14,7 @@ import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/services/TechnicianService.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RealTimeTrackingScreen extends StatefulWidget {
   final ServiceRequestModel serviceRequest;
@@ -34,7 +37,11 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   Timer? _locationTimer;
   Timer? _routeTimer;
 
+  ServiceRequestModel? _currentRequest;
+
   // Ubicaciones
+  ServiceRequestModel? _activeServiceRequest;
+
   LatLng? _currentLocation;
   late LatLng _destinationLocation;
 
@@ -59,10 +66,16 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   @override
   void initState() {
     super.initState();
+
+    // ✅ CORREGIDO: Inicializar _currentRequest con los datos del widget
+    _currentRequest = widget.serviceRequest;
+    _activeServiceRequest = widget.serviceRequest;
+
     _destinationLocation = LatLng(
       widget.serviceRequest.requestLat,
       widget.serviceRequest.requestLng,
     );
+
     _initializeAnimations();
     _initializeTracking();
   }
@@ -592,7 +605,6 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
               ),
               const SizedBox(height: 16),
 
-              // Información del cliente
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -620,7 +632,8 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.serviceRequest.user?.name ?? 'Cliente',
+                            widget.serviceRequest.user?.name ??
+                                'Cliente', // ✅ widget.serviceRequest
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -636,18 +649,125 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => _callClient(),
-                      icon: Icon(Icons.phone, color: AppColors.success),
-                    ),
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // ✅ BOTONES SEPARADOS - CORREGIDO
+              _buildActionButtons(),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        // Botón de llamar
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _callClient(),
+            icon: Icon(Icons.phone, size: 18),
+            label:
+                Text('Llamar', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.success,
+              side: BorderSide(color: AppColors.success),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 12),
+
+        // Botón de mensaje
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _openChat,
+            icon: Icon(Icons.message, size: 18),
+            label:
+                Text('Mensaje', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.info,
+              side: BorderSide(color: AppColors.info),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+// ✅ MÉTODOS CORREGIDOS EN RealTimeTrackingScreen
+
+  void _refreshServiceData() async {
+    try {
+      // ✅ CORREGIDO: Usar widget.serviceRequest que SÍ tiene datos
+      final updatedRequest = await ServiceRequestService.getRequestStatus(
+          widget.serviceRequest.id);
+      setState(() {
+        // Actualizar las variables internas si las necesitas
+        _currentRequest = updatedRequest;
+        _activeServiceRequest = updatedRequest;
+      });
+    } catch (e) {
+      print('Error refreshing service data: $e');
+    }
+  }
+
+  void _openChat() async {
+    // ✅ CORREGIDO: Usar widget.serviceRequest en lugar de _currentRequest
+    // widget.serviceRequest SIEMPRE tiene datos porque se pasa desde la pantalla anterior
+
+    HapticFeedback.lightImpact();
+
+    print('🔍 Abriendo chat para servicio: ${widget.serviceRequest.id}');
+    print('📱 Usuario: ${widget.serviceRequest.user?.name ?? 'Desconocido'}');
+
+    // Navegar a la pantalla de chat
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ServiceChatScreen(
+          serviceRequest: widget.serviceRequest, // ✅ USAR widget.serviceRequest
+          userType: 'technician',
+        ),
+      ),
+    );
+  }
+
+// ✅ Función corregida y habilitada para llamar
+  void _callClient() async {
+    // La función ahora es 'async'
+    final clientPhone = widget.serviceRequest.user?.phone;
+
+    if (clientPhone != null && clientPhone.isNotEmpty) {
+      // Prepara el URI para la llamada usando el esquema 'tel:'
+      final Uri phoneUri = Uri(scheme: 'tel', path: clientPhone);
+
+      try {
+        // Intenta abrir la app de teléfono con el número
+        if (await canLaunchUrl(phoneUri)) {
+          await launchUrl(phoneUri);
+        } else {
+          // Si no se puede, muestra un error
+          _showErrorSnackbar('No se pudo abrir la aplicación de teléfono');
+        }
+      } catch (e) {
+        _showErrorSnackbar('Error al intentar llamar: $e');
+      }
+    } else {
+      _showErrorSnackbar('No hay número de teléfono disponible');
+    }
   }
 
   Widget _buildLoadingOverlay() {
@@ -676,11 +796,6 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
         ),
       ),
     );
-  }
-
-  void _callClient() {
-    // Implementar llamada al cliente
-    _showErrorSnackbar('Función de llamada próximamente');
   }
 
   void _showErrorSnackbar(String message) {

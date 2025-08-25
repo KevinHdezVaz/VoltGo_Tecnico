@@ -33,10 +33,10 @@ class ServiceRequestService {
     }
   }
 
-  /// Obtiene el estado actual de una solicitud de servicio.
+  // ✅ CORREGIDO: getRequestStatus usando la ruta correcta
   static Future<ServiceRequestModel> getRequestStatus(int requestId) async {
-    // NOTA: Necesitarás crear esta ruta en tu backend
-    final url = Uri.parse('${Constants.baseUrl}/service/request/$requestId');
+    final url =
+        Uri.parse('${Constants.baseUrl}/service/request/$requestId/status');
     final token = await TokenStorage.getToken();
     if (token == null) throw Exception('Token no encontrado');
 
@@ -45,13 +45,25 @@ class ServiceRequestService {
       'Authorization': 'Bearer $token',
     };
 
-    final response = await http.get(url, headers: headers);
+    try {
+      print('🚀 Getting status for request: $requestId');
+      final response = await http.get(url, headers: headers);
 
-    if (response.statusCode == 200) {
-      return ServiceRequestModel.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception(
-          'Error al obtener estado de la solicitud: ${response.body}');
+      print('📡 Get status response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        return ServiceRequestModel.fromJson(jsonData);
+      } else {
+        final errorData = response.body.isNotEmpty
+            ? jsonDecode(response.body)
+            : {'message': 'Error al obtener estado'};
+        throw Exception(
+            errorData['message'] ?? 'Error al obtener estado de la solicitud');
+      }
+    } catch (e) {
+      print('❌ Error in getRequestStatus: $e');
+      rethrow;
     }
   }
 }

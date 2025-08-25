@@ -9,12 +9,14 @@ class UserModel {
   final String name;
   final String email;
   final String userType;
+  final String? phone;
 
   UserModel({
     required this.id,
     required this.name,
     required this.email,
     required this.userType,
+    this.phone,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class UserModel {
       name: json['name'] ?? 'Cliente Desconocido',
       email: json['email'] ?? '',
       userType: json['user_type'] ?? 'user',
+      phone: json['phone'] ?? 'phone',
     );
   }
 
@@ -32,6 +35,50 @@ class UserModel {
       'name': name,
       'email': email,
       'user_type': userType,
+      'phone': phone,
+    };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Modelo para VehicleDetails (NUEVA CLASE)
+// -----------------------------------------------------------------------------
+class VehicleDetails {
+  final String make;
+  final String model;
+  final String year;
+  final String connectorType;
+  final String plate;
+  final String color;
+
+  VehicleDetails({
+    required this.make,
+    required this.model,
+    required this.year,
+    required this.connectorType,
+    required this.plate,
+    required this.color,
+  });
+
+  factory VehicleDetails.fromJson(Map<String, dynamic> json) {
+    return VehicleDetails(
+      make: json['make']?.toString() ?? '',
+      model: json['model']?.toString() ?? '',
+      year: json['year']?.toString() ?? '',
+      connectorType: json['connector_type']?.toString() ?? '',
+      plate: json['plate']?.toString() ?? '',
+      color: json['color']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'make': make,
+      'model': model,
+      'year': year,
+      'connector_type': connectorType,
+      'plate': plate,
+      'color': color,
     };
   }
 }
@@ -79,7 +126,8 @@ class TechnicianProfile {
   final double? currentLat;
   final double? currentLng;
   final double? averageRating;
-  final String? vehicleDetails;
+  final VehicleDetails?
+      vehicleDetails; // ✅ CORREGIDO: Cambiado de String? a VehicleDetails?
   final List<String>? availableConnectors;
 
   TechnicianProfile({
@@ -88,7 +136,7 @@ class TechnicianProfile {
     this.currentLat,
     this.currentLng,
     this.averageRating,
-    this.vehicleDetails,
+    this.vehicleDetails, // ✅ CORREGIDO
     this.availableConnectors,
   });
 
@@ -120,7 +168,9 @@ class TechnicianProfile {
       averageRating: json['average_rating'] != null
           ? double.parse(json['average_rating'].toString())
           : null,
-      vehicleDetails: json['vehicle_details'],
+      vehicleDetails: json['vehicle_details'] != null // ✅ CORREGIDO
+          ? VehicleDetails.fromJson(json['vehicle_details'])
+          : null,
       availableConnectors: connectors,
     );
   }
@@ -132,13 +182,13 @@ class TechnicianProfile {
       'current_lat': currentLat,
       'current_lng': currentLng,
       'average_rating': averageRating,
-      'vehicle_details': vehicleDetails,
+      'vehicle_details': vehicleDetails?.toJson(), // ✅ CORREGIDO
       'available_connectors': availableConnectors,
     };
   }
 }
 
-// ✅ CORRECCIONES PARA ServiceRequestModel
+// ✅ ServiceRequestModel CORREGIDO
 class ServiceRequestModel {
   final int id;
   final int userId;
@@ -154,7 +204,7 @@ class ServiceRequestModel {
   final UserModel? user;
   final TechnicianModel? technician;
 
-  // ✅ NUEVAS PROPIEDADES para la UI del técnico
+  // ✅ PROPIEDADES para la UI del técnico
   final String? clientName;
   final String? formattedDistance;
   final String? formattedEarnings;
@@ -173,7 +223,6 @@ class ServiceRequestModel {
     this.completedAt,
     this.user,
     this.technician,
-    // ✅ NUEVOS parámetros opcionales
     this.clientName,
     this.formattedDistance,
     this.formattedEarnings,
@@ -210,16 +259,16 @@ class ServiceRequestModel {
       technician: json['technician'] != null
           ? TechnicianModel.fromJson(json['technician'])
           : null,
-      // ✅ MANEJAR propiedades del técnico desde respuestas de check-for-requests
       clientName: json['user_name'],
       formattedDistance: json['distance'],
       formattedEarnings: json['base_cost'] != null
           ? '\$${double.parse(json['base_cost'].toString()).toStringAsFixed(2)}'
           : null,
     );
-  } // ✅ NUEVO MÉTODO: Para verificar si el chat está disponible
+  }
+
+  // ✅ MÉTODO: Para verificar si el chat está disponible
   bool canChat() {
-    // Solo puede chatear cuando el servicio está activo (aceptado hasta completado)
     return ['accepted', 'en_route', 'on_site', 'charging'].contains(status);
   }
 
@@ -289,13 +338,6 @@ class ServiceRequestModel {
     return DateFormat('EEEE, d \'de\' MMMM', 'es_ES').format(requestedAt);
   }
 
-  // ✅ GETTERS que evitan conflictos con las propiedades
-  double get distanceKm {
-    // Calcular distancia si es necesario o usar un valor por defecto
-    return 0.0;
-  }
-
-  double get estimatedEarnings {
-    return estimatedCost ?? 5.0;
-  }
+  double get distanceKm => 0.0;
+  double get estimatedEarnings => estimatedCost ?? 5.0;
 }

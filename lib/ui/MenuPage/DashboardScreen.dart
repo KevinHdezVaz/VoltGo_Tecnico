@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/services/EarningsService.dart';
+import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
+import 'package:Voltgo_app/data/services/ServiceRequestService.dart';
 import 'package:Voltgo_app/data/services/TechnicianService.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/IncomingRequestScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/RealTimeTrackingScreen.dart';
@@ -26,16 +28,20 @@ class DriverDashboardScreen extends StatefulWidget {
 class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   late final DashboardLogic _logic;
   bool _isLoading = true;
+  ServiceRequestModel? _activeRequest;
+
   DriverStatus _driverStatus = DriverStatus.offline;
   final Location _location = Location();
   StreamSubscription<LocationData>? _locationSubscription;
   Timer? _requestCheckTimer;
+
   Timer?
       _statusCheckTimer; // NUEVO: Timer para verificar el estado de la solicitud actual
   bool _isDialogShowing = false;
   ServiceRequestModel? _currentRequest;
   Timer? _locationUpdateTimer;
   Map<String, dynamic>? _earningsSummary;
+
   List<int> _unavailableRequestIds = [];
   String? _lastActiveServiceStatus;
   ServiceRequestModel? _activeServiceRequest;
@@ -44,6 +50,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   void initState() {
     super.initState();
     _logic = DashboardLogic();
+
     _initializeApp();
   }
 
@@ -422,16 +429,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             },
           ),
           const SizedBox(height: 12),
-          _buildCompactNavigationOption(
-            icon: Icons.auto_awesome,
-            title: 'Automático',
-            subtitle: 'Mejor app disponible',
-            color: Colors.green,
-            onTap: () async {
-              Navigator.pop(context);
-              await _launchBestNavigationApp(lat, lng, clientName);
-            },
-          ),
         ],
 
         const SizedBox(height: 20),
@@ -608,18 +605,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 ),
 
                 const SizedBox(height: 12),
-
-                // Automático (mejor app disponible)
-                _buildNavigationOption(
-                  icon: Icons.auto_awesome,
-                  title: 'Automático',
-                  subtitle: 'Abrir la mejor app de navegación disponible',
-                  color: Colors.green,
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await _launchBestNavigationApp(lat, lng, clientName);
-                  },
-                ),
               ],
             ),
           ),
@@ -1835,6 +1820,48 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
+  void _refreshServiceData() async {
+    try {
+      // ✅ CORREGIDO: Usar _currentRequest en lugar de _activeRequest
+      if (_currentRequest != null) {
+        final updatedRequest =
+            await ServiceRequestService.getRequestStatus(_currentRequest!.id);
+        setState(() {
+          _currentRequest = updatedRequest; // ✅ Actualizar _currentRequest
+          // También actualizar _activeServiceRequest si es necesario
+          _activeServiceRequest = updatedRequest;
+        });
+      }
+    } catch (e) {
+      print('Error refreshing service data: $e');
+    }
+  }
+
+  void _openChat() async {
+    // ✅ CORREGIDO: Usar _currentRequest (que tiene los datos del servicio activo)
+    // en lugar de _activeRequest
+    if (_currentRequest == null) {
+      _showErrorSnackbar('No hay servicio activo');
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+
+    print('🔍 Abriendo chat para servicio: ${_currentRequest!.id}');
+    print('📱 Usuario: ${_currentRequest!.user?.name ?? 'Desconocido'}');
+
+    // Navegar a la pantalla de chat
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ServiceChatScreen(
+          serviceRequest: _currentRequest!, // ✅ USAR _currentRequest
+          userType: 'technician', // ✅ CORRECTO: 'technician' para técnicos
+        ),
+      ),
+    );
+  }
+
 // Widget auxiliar para estadísticas compactas
   Widget _buildCompactStat({
     required IconData icon,
@@ -2075,40 +2102,28 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // ✅ BOTONES ACTUALIZADOS CON SEGUIMIENTO EN TIEMPO REAL
+            // --- ✅ SECCIÓN DE BOTONES MODIFICADA ---
             if (enRuta) ...[
-              // Cuando está en ruta, mostrar botón de seguimiento
+              // Fila con seguimiento y acciones de comunicación (llamada y chat)
               Row(
+                // Añade esta línea para alinear todo a la derecha
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // Botón de Seguimiento en Tiempo Real - PROMINENTE
-                  Expanded(
-                    flex: 3,
-                    child: ElevatedButton.icon(
-                      icon: Icon(
-                        Icons.my_location,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        'SEGUIMIENTO EN TIEMPO REAL',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      onPressed: () => _openRealTimeTracking(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.brandBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                  // El SizedBox inicial ya no es necesario aquí
+                  // const SizedBox(width: 8),
+
+                  // NUEVO: Botón de Chat (icono)
+                  OutlinedButton(
+                    onPressed: _openChat,
+                    style: OutlinedButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                      side: BorderSide(color: AppColors.info),
                     ),
+                    child: Icon(Icons.chat, color: AppColors.info, size: 18),
                   ),
-                  const SizedBox(width: 8),
-                  // Botón de Llamada
+
+                  // Botón de Llamada (icono)
                   OutlinedButton(
                     onPressed: _callClient,
                     style: OutlinedButton.styleFrom(
@@ -2122,26 +2137,25 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // Botón secundario para navegación externa
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: Icon(Icons.navigation, size: 16),
-                      label: Text(
-                        'Abrir en Maps',
-                        style: GoogleFonts.inter(fontSize: 12),
-                      ),
-                      onPressed: _showNavigationOptions,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
+
+              // Botón para navegación externa
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.navigation, size: 16),
+                  label: Text(
+                    'Abrir en Maps',
+                    style: GoogleFonts.inter(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: _showNavigationOptions,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                ],
+                ),
               ),
             ] else ...[
               // Cuando está en servicio, mostrar botones normales
@@ -2166,6 +2180,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
+
                   // Botón de Llamada
                   OutlinedButton(
                     onPressed: _callClient,
@@ -2180,6 +2195,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 ],
               ),
             ],
+            // --- FIN DE LA SECCIÓN MODIFICADA ---
 
             const SizedBox(height: 12),
 
@@ -2187,15 +2203,19 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                icon: Icon(mainButtonIcon, size: 18),
+                icon: Icon(
+                  Icons.my_location,
+                  size: 18,
+                  color: Colors.white,
+                ),
                 label: Text(
-                  mainButtonText,
+                  "SEGUIMIENTO EN TIEMPO REAL",
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                onPressed: _updateServiceStatus,
+                onPressed: _openRealTimeTracking,
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor:
@@ -2236,11 +2256,37 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
-  // ✅ MÉTODO PARA LLAMAR AL CLIENTE
   void _callClient() async {
-    // Aquí puedes implementar la lógica de llamada
-    // Por ejemplo: launchUrl(Uri.parse('tel:${_currentRequest?.user?.phone}'));
-    _showErrorSnackbar('Función de llamada próximamente');
+    // Ensure there is an active request
+    if (_currentRequest == null || _currentRequest!.user == null) {
+      _showErrorSnackbar('No hay información del cliente disponible');
+      return;
+    }
+
+    // Get the client's phone number
+    final clientPhone = _currentRequest!.user!.phone?.toString();
+
+    // Check if the phone number is valid
+    if (clientPhone == null || clientPhone.isEmpty) {
+      _showErrorSnackbar('No hay número de teléfono disponible');
+      return;
+    }
+
+    // Prepare the URI for the phone call using the 'tel:' scheme
+    final Uri phoneUri = Uri(scheme: 'tel', path: clientPhone);
+
+    try {
+      // Check if the phone call can be launched
+      if (await canLaunchUrl(phoneUri)) {
+        await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
+        print('✅ Llamada iniciada al cliente: $clientPhone');
+      } else {
+        _showErrorSnackbar('No se pudo abrir la aplicación de teléfono');
+      }
+    } catch (e) {
+      print('❌ Error al intentar llamar: $e');
+      _showErrorSnackbar('Error al intentar llamar: $e');
+    }
   }
 
   void _showErrorSnackbar(String message) {

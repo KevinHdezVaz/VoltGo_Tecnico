@@ -1,11 +1,12 @@
-// ✅ MODELO PARA EL HISTORIAL DE CHATS
-import 'package:Voltgo_app/data/models/User/UserDetail.dart';
+// ✅ MODELO PARA HISTORIAL DE CHATS
+// Archivo: lib/data/models/chat/ChatHistoryItem.dart
+
 import 'package:Voltgo_app/data/models/chat/ChatMessage.dart';
 
 class ChatHistoryItem {
   final int serviceId;
   final String serviceStatus;
-  final UserData otherParticipant;
+  final ParticipantData otherParticipant;
   final ChatMessage? lastMessage;
   final int unreadCount;
   final String userType;
@@ -27,7 +28,8 @@ class ChatHistoryItem {
     return ChatHistoryItem(
       serviceId: json['service_id'] ?? 0,
       serviceStatus: json['service_status'] ?? 'unknown',
-      otherParticipant: UserData.fromJson(json['other_participant'] ?? {}),
+      otherParticipant:
+          ParticipantData.fromJson(json['other_participant'] ?? {}),
       lastMessage: json['last_message'] != null
           ? ChatMessage.fromJson(json['last_message'])
           : null,
@@ -74,5 +76,34 @@ class ChatHistoryItem {
     } else {
       return 'Ahora';
     }
+  }
+}
+
+// ✅ CLASE PARA DATOS DEL PARTICIPANTE
+class ParticipantData {
+  final int id;
+  final String name;
+  final String? email;
+
+  ParticipantData({
+    required this.id,
+    required this.name,
+    this.email,
+  });
+
+  factory ParticipantData.fromJson(Map<String, dynamic> json) {
+    return ParticipantData(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? 'Usuario',
+      email: json['email'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+    };
   }
 }

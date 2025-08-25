@@ -1,4 +1,5 @@
 import 'package:Voltgo_app/data/models/User/UserModel.dart';
+import 'package:Voltgo_app/data/services/ChatHistoryScreen.dart';
 import 'package:Voltgo_app/data/services/auth_api_service.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
@@ -257,6 +258,16 @@ class _SettingsScreenState extends State<SettingsScreen>
               title: 'Seguridad y Contraseña',
               onTap: () {
                 // TODO: Navigate to security screen
+              },
+            ),
+            _buildSettingsItem(
+              icon: Icons.directions_car_outlined,
+              title: 'Mensajes',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const ChatHistoryScreen()),
+                );
               },
             ),
             _buildSettingsItem(
