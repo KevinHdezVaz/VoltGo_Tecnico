@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
 import 'package:Voltgo_app/data/services/ServiceRequestService.dart';
+import 'package:Voltgo_app/ui/MenuPage/findATechnician/ServiceWorkScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -378,12 +379,14 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   }
 
   void _markServiceAsOnSite() {
-    // Aquí puedes actualizar el estado del servicio a "on_site"
-    // y regresar a la pantalla anterior
-    if (widget.onServiceComplete != null) {
-      widget.onServiceComplete!();
-    }
-    Navigator.of(context).pop();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => ServiceWorkScreen(
+          serviceRequest: widget.serviceRequest,
+          onServiceComplete: null, // Ya no necesitas callback
+        ),
+      ),
+    );
   }
 
   @override

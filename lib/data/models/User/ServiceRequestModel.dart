@@ -168,11 +168,29 @@ class TechnicianProfile {
       averageRating: json['average_rating'] != null
           ? double.parse(json['average_rating'].toString())
           : null,
-      vehicleDetails: json['vehicle_details'] != null // ✅ CORREGIDO
-          ? VehicleDetails.fromJson(json['vehicle_details'])
+      // ✅ SOLUCIÓN: En TechnicianProfile.fromJson, cambiar esta línea:
+      vehicleDetails: json['vehicle_details'] != null
+          ? _parseVehicleDetails(json['vehicle_details'])
           : null,
       availableConnectors: connectors,
     );
+  }
+
+  static VehicleDetails? _parseVehicleDetails(dynamic vehicleData) {
+    try {
+      if (vehicleData is String) {
+        // Si viene como string JSON, decodificar primero
+        final decoded = jsonDecode(vehicleData);
+        return VehicleDetails.fromJson(decoded);
+      } else if (vehicleData is Map<String, dynamic>) {
+        // Si ya viene como Map, usar directamente
+        return VehicleDetails.fromJson(vehicleData);
+      }
+      return null;
+    } catch (e) {
+      print('Error parsing vehicle details: $e');
+      return null;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -238,7 +256,9 @@ class ServiceRequestModel {
     return ServiceRequestModel(
       id: json['id'],
       userId: json['user_id'],
-      technicianId: json['technician_id'],
+      technicianId: json['technician_id'] is String
+          ? int.tryParse(json['technician_id'])
+          : json['technician_id'],
       status: json['status'],
       requestLat: double.parse(json['request_lat'].toString()),
       requestLng: double.parse(json['request_lng'].toString()),

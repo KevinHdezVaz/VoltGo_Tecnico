@@ -6,6 +6,7 @@ import 'package:Voltgo_app/data/services/ServiceRequestService.dart';
 import 'package:Voltgo_app/data/services/TechnicianService.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/IncomingRequestScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/RealTimeTrackingScreen.dart';
+import 'package:Voltgo_app/ui/MenuPage/findATechnician/ServiceWorkScreen.dart';
 import 'package:Voltgo_app/utils/VehicleRegistrationDialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +30,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   late final DashboardLogic _logic;
   bool _isLoading = true;
   ServiceRequestModel? _activeRequest;
+  bool _hasActiveService = false;
 
   DriverStatus _driverStatus = DriverStatus.offline;
   final Location _location = Location();
@@ -51,6 +53,31 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     super.initState();
     _logic = DashboardLogic();
 
+    Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (_hasActiveService) {
+        final expirationData = await TechnicianService.checkServiceExpiration();
+        if (expirationData != null &&
+            expirationData['time_info']?['expired'] == true) {
+          // ✅ CANCELAR INMEDIATAMENTE EN EL BACKEND
+          await TechnicianService.forceReleaseExpiredService();
+
+          if (mounted) {
+            // Verificar antes de setState
+            setState(() {
+              _hasActiveService = false;
+              _activeRequest = null;
+            });
+          }
+          setState(() {
+            _hasActiveService = false;
+            _activeRequest = null;
+          });
+          _showServiceExpiredDialog();
+          timer.cancel();
+        }
+      }
+    });
+
     _initializeApp();
   }
 
@@ -60,10 +87,34 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     _stopLocationTracking();
     _stopRequestChecker();
     _unavailableRequestIds.clear();
-    _stopActiveServiceMonitoring(); // ✅ NUEVO
+    _stopActiveServiceMonitoring();
+    _stopStatusChecker();
 
-    _stopStatusChecker(); // NUEVO: Detener el timer de verificación de estado
+    // Cancelar cualquier timer adicional que puedas tener
+    _requestCheckTimer?.cancel();
+    _statusCheckTimer?.cancel();
+    _locationUpdateTimer?.cancel();
+
     super.dispose();
+  }
+
+// Y agregar este método
+  void _showServiceExpiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('Servicio Expirado'),
+        content: Text(
+            'Tu servicio ha sido cancelado automáticamente después de 1 hora.'),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Entendido'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _initializeApp() async {
@@ -133,12 +184,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     }
   }
 
-// ✅ NUEVO: Método para verificar servicio activo al iniciar
   Future<void> _checkForActiveService() async {
     try {
       print("🔍 Verificando si hay servicio activo al iniciar...");
 
-      // ✅ LLAMAR AL NUEVO ENDPOINT DE SERVICIOS ACTIVOS
       final response = await TechnicianService.getActiveService();
 
       if (response != null && response['has_active_service'] == true) {
@@ -147,43 +196,64 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         print(
             "🎯 Servicio activo encontrado: ${serviceData['id']} - ${serviceData['status']}");
 
-        // ✅ RECREAR ServiceRequestModel desde los datos del servidor
         final activeService = ServiceRequestModel.fromJson(serviceData);
 
         setState(() {
           _activeServiceRequest = activeService;
           _currentRequest = activeService;
           _lastActiveServiceStatus = activeService.status;
-
-          // ✅ ESTABLECER EL ESTADO DE UI CORRECTO BASADO EN EL STATUS
-          switch (activeService.status) {
-            case 'accepted':
-            case 'en_route':
-              _driverStatus = DriverStatus.enRouteToUser;
-              break;
-            case 'on_site':
-            case 'charging':
-              _driverStatus = DriverStatus.onService;
-              break;
-            default:
-              // Para cualquier otro estado, mantener online
-              _driverStatus = DriverStatus.online;
-          }
         });
 
-        // ✅ INICIAR MONITOREO DEL SERVICIO ACTIVO
+        // ✅ REDIRIGIR SEGÚN EL ESTADO DEL SERVICIO
+        if (activeService.status == 'on_site' ||
+            activeService.status == 'charging') {
+          // Si está en el sitio o cargando, ir directo a ServiceWorkScreen
+          print(
+              "🏠 Servicio en sitio/cargando - navegando a ServiceWorkScreen");
+
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => ServiceWorkScreen(
+                serviceRequest: activeService,
+                onServiceComplete: () {
+                  // ✅ VERIFICAR mounted ANTES DE setState
+                  if (mounted) {
+                    setState(() {
+                      _driverStatus = DriverStatus.online;
+                      _activeServiceRequest = null;
+                      _currentRequest = null;
+                      _lastActiveServiceStatus = null;
+                    });
+                    _loadEarnings(); // Recargar ganancias
+                  }
+                },
+              ),
+            ),
+          );
+
+          return; // Salir temprano para evitar establecer estados de UI
+        } else {
+          // Para otros estados (accepted, en_route), mostrar dashboard normal
+          setState(() {
+            switch (activeService.status) {
+              case 'accepted':
+              case 'en_route':
+                _driverStatus = DriverStatus.enRouteToUser;
+                break;
+              default:
+                _driverStatus = DriverStatus.online;
+            }
+          });
+        }
+
         _startActiveServiceMonitoring();
-
         print("✅ Servicio activo restaurado: ${activeService.status}");
-
-        // ✅ NO INICIAR BÚSQUEDA DE NUEVAS SOLICITUDES si hay servicio activo
-        return; // Salir temprano para evitar conflictos
+        return;
       } else {
         print("ℹ️ No hay servicio activo al iniciar");
       }
     } catch (e) {
       print("❌ Error verificando servicio activo: $e");
-      // No es crítico, continuar con el flujo normal
     }
   }
 
@@ -1452,16 +1522,25 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       if (_driverStatus == DriverStatus.enRouteToUser) {
         _driverStatus = DriverStatus.onService;
       } else if (_driverStatus == DriverStatus.onService) {
+        // ✅ LIMPIAR COMPLETAMENTE EL ESTADO AL COMPLETAR SERVICIO
         _driverStatus = DriverStatus.online;
         _activeServiceRequest = null;
         _currentRequest = null;
         _lastActiveServiceStatus = null;
+        _hasActiveService =
+            false; // ✅ IMPORTANTE: Limpiar esta variable también
 
-        // ✅ PARAR monitoreo al completar servicio
+        // ✅ DETENER monitoreo al completar servicio
         _stopActiveServiceMonitoring();
+
+        // ✅ REINICIAR búsqueda de nuevas solicitudes
+        _startRequestChecker();
 
         // Recargar ganancias después de completar un servicio
         _loadEarnings();
+
+        // Mostrar mensaje de éxito
+        _showSuccessSnackbar('¡Servicio completado exitosamente!');
       }
     });
   }
@@ -1500,8 +1579,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             },
             markers: _logic.markers,
             myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
+            myLocationButtonEnabled: true,
+            zoomControlsEnabled: true,
             padding: EdgeInsets.only(
               top: headerHeight + topPanelHeight + 16,
               bottom: _driverStatus == DriverStatus.offline ||

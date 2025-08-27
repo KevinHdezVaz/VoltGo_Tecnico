@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:http/http.dart' as http;
 import 'package:Voltgo_app/utils/TokenStorage.dart';
 import 'package:Voltgo_app/utils/constants.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TechnicianService {
@@ -53,6 +55,332 @@ class TechnicianService {
     } catch (e) {
       print('❌ Error obteniendo estado del servidor: $e');
       return await getLocalStatus();
+    }
+  }
+
+  static Future<bool> saveServiceDetails({
+    required int serviceId,
+    int? initialBatteryLevel,
+    int? chargeTimeMinutes,
+    String? serviceNotes,
+    List<File>? photos,
+    List<String>? photoTypes,
+  }) async {
+    final url = Uri.parse(
+        '${Constants.baseUrl}/technician/service/$serviceId/save-details');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) {
+      throw Exception('Token no encontrado');
+    }
+
+    try {
+      // Primero subir fotos si las hay
+      bool photosUploaded = true;
+      if (photos != null && photos.isNotEmpty && photoTypes != null) {
+        photosUploaded = await uploadServicePhotos(
+          serviceId: serviceId,
+          photos: photos,
+          photoTypes: photoTypes,
+        );
+      }
+
+      if (!photosUploaded) {
+        throw Exception('Error al subir fotos');
+      }
+
+      // Luego guardar los detalles del servicio
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      final body = jsonEncode({
+        'initial_battery_level': initialBatteryLevel,
+        'charge_time_minutes': chargeTimeMinutes,
+        'service_notes': serviceNotes,
+        'service_completed_at': DateTime.now().toIso8601String(),
+      });
+
+      final response = await http.post(url, headers: headers, body: body);
+
+      print('💾 Save details response: ${response.statusCode}');
+      print('💾 Save details body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✅ Detalles del servicio guardados exitosamente');
+        return true;
+      } else {
+        throw Exception('Error del servidor: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error guardando detalles: $e');
+      rethrow;
+    }
+  }
+
+  static Future<bool> saveServiceProgress({
+    required int serviceId,
+    required bool serviceStarted,
+    DateTime? serviceStartTime,
+    String? initialBatteryLevel,
+    String? chargeTimeMinutes,
+    String? serviceNotes,
+    List<String>? photosTaken,
+  }) async {
+    final url = Uri.parse(
+        '${Constants.baseUrl}/technician/service/$serviceId/save-progress');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) return false;
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final body = jsonEncode({
+      'service_started': serviceStarted,
+      'service_start_time': serviceStartTime?.toIso8601String(),
+      'initial_battery_level': initialBatteryLevel,
+      'charge_time_minutes': chargeTimeMinutes,
+      'service_notes': serviceNotes,
+      'photos_taken': photosTaken ?? [],
+    });
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error saving service progress: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> uploadServicePhotos({
+    required int serviceId,
+    required List<File> photos,
+    required List<String> photoTypes, // ['vehicle', 'before', 'after']
+  }) async {
+    final url = Uri.parse(
+        '${Constants.baseUrl}/technician/service/$serviceId/upload-photos');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) {
+      throw Exception('Token no encontrado');
+    }
+
+    try {
+      var request = http.MultipartRequest('POST', url);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      // Agregar fotos al request
+      for (int i = 0; i < photos.length; i++) {
+        var file = await http.MultipartFile.fromPath(
+          '${photoTypes[i]}_photo',
+          photos[i].path,
+          contentType: MediaType('image', 'jpeg'),
+        );
+        request.files.add(file);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('📸 Upload photos response: ${response.statusCode}');
+      print('📸 Upload photos body: ${response.body}');
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Error uploading photos: $e');
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getServiceProgress(int serviceId) async {
+    final url = Uri.parse(
+        '${Constants.baseUrl}/technician/service/$serviceId/progress');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) return null;
+
+    final headers = {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      print('🔍 Getting service progress for ID: $serviceId'); // ✅ AGREGAR
+      final response = await http.get(url, headers: headers);
+      print('📡 Progress response: ${response.statusCode}'); // ✅ AGREGAR
+      print('📡 Progress body: ${response.body}'); // ✅ AGREGAR
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ Progress data parsed: $data'); // ✅ AGREGAR
+        return data;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error getting service progress: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> forceReleaseExpiredService() async {
+    final url =
+        Uri.parse('${Constants.baseUrl}/technician/service/force-release');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) return false;
+
+    final headers = {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      final response = await http.get(url, headers: headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['cancelled'] == true;
+      }
+    } catch (e) {
+      print('Error releasing expired service: $e');
+    }
+
+    return false;
+  }
+
+  static Future<Map<String, dynamic>?> checkServiceExpiration() async {
+    final url =
+        Uri.parse('${Constants.baseUrl}/technician/service/expiration-check');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) {
+      print('❌ Token no encontrado para checkServiceExpiration');
+      return null;
+    }
+
+    final headers = {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      print('🕐 Verificando expiración del servicio activo...');
+      final response = await http.get(url, headers: headers);
+      print('📡 Expiration check response: ${response.statusCode}');
+      print('📡 Expiration check body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ Datos de expiración obtenidos');
+        return data;
+      } else if (response.statusCode == 404) {
+        print('ℹ️ No hay servicio activo para verificar expiración');
+        return {'has_active_service': false};
+      } else {
+        print('❌ Error verificando expiración: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Exception en checkServiceExpiration: $e');
+      return null;
+    }
+  }
+
+  // ✅ NUEVO: Actualizar estado del servicio
+  static Future<bool> updateServiceStatus(int serviceId, String status,
+      {String? notes}) async {
+    final url = Uri.parse(
+        '${Constants.baseUrl}/technician/service/$serviceId/update-status');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) {
+      throw Exception('Token no encontrado');
+    }
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final body = jsonEncode({
+      'status': status,
+      if (notes != null) 'notes': notes,
+    });
+
+    try {
+      print('🔄 Actualizando estado del servicio a: $status');
+      final response = await http.post(url, headers: headers, body: body);
+      print('📡 Update status response: ${response.statusCode}');
+      print('📡 Update status body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✅ Estado del servicio actualizado exitosamente');
+        return true;
+      } else if (response.statusCode == 423) {
+        final errorData = jsonDecode(response.body);
+        throw Exception('Servicio expirado: ${errorData['message']}');
+      } else {
+        final errorData = response.body.isNotEmpty
+            ? jsonDecode(response.body)
+            : {'message': 'Error desconocido'};
+        throw Exception('Error al actualizar estado: ${errorData['message']}');
+      }
+    } catch (e) {
+      print('❌ Error en updateServiceStatus: $e');
+      rethrow;
+    }
+  }
+
+  // ✅ NUEVO: Cancelar servicio por el técnico
+  static Future<Map<String, dynamic>> cancelService(
+      int serviceId, String reason,
+      {String? detailedReason}) async {
+    final url =
+        Uri.parse('${Constants.baseUrl}/technician/service/$serviceId/cancel');
+    final token = await TokenStorage.getToken();
+
+    if (token == null) {
+      throw Exception('Token no encontrado');
+    }
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    final body = jsonEncode({
+      'reason': reason,
+      if (detailedReason != null) 'detailed_reason': detailedReason,
+    });
+
+    try {
+      print('🚫 Cancelando servicio por técnico...');
+      final response = await http.post(url, headers: headers, body: body);
+      print('📡 Cancel service response: ${response.statusCode}');
+      print('📡 Cancel service body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ Servicio cancelado por técnico');
+        return data;
+      } else {
+        final errorData = response.body.isNotEmpty
+            ? jsonDecode(response.body)
+            : {'message': 'Error desconocido'};
+        throw Exception('Error al cancelar servicio: ${errorData['message']}');
+      }
+    } catch (e) {
+      print('❌ Error en cancelService: $e');
+      rethrow;
     }
   }
 
@@ -410,7 +738,6 @@ class TechnicianService {
     }
   }
 
-// ✅ NUEVO: Obtener servicio activo del técnico
   static Future<Map<String, dynamic>?> getActiveService() async {
     final url = Uri.parse('${Constants.baseUrl}/technician/active-service');
     final token = await TokenStorage.getToken();
@@ -426,15 +753,36 @@ class TechnicianService {
     };
 
     try {
-      print('🌐 Obteniendo servicio activo: $url');
+      print('🌐 Obteniendo servicio activo del técnico...');
       final response = await http.get(url, headers: headers);
-
       print('📡 Active service response: ${response.statusCode}');
-      print('📡 Active service body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print('✅ Servicio activo encontrado');
+
+        // Agregar información de tiempo si hay servicio activo
+        if (data['has_active_service'] == true &&
+            data['active_service'] != null) {
+          final service = data['active_service'];
+          final acceptedAt = service['accepted_at'];
+
+          if (acceptedAt != null) {
+            final acceptedTime = DateTime.parse(acceptedAt);
+            final now = DateTime.now();
+            final minutesElapsed = now.difference(acceptedTime).inMinutes;
+
+            data['time_info'] = {
+              'minutes_elapsed': minutesElapsed,
+              'hours_elapsed': (minutesElapsed / 60).floor(),
+              'accepted_at': acceptedAt,
+              'is_approaching_limit': minutesElapsed >= 45,
+              'is_near_expiration': minutesElapsed >= 55,
+              'expired': minutesElapsed >= 60,
+            };
+          }
+        }
+
         return data;
       } else if (response.statusCode == 404) {
         print('ℹ️ No hay servicio activo');

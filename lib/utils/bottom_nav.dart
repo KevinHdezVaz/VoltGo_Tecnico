@@ -1,3 +1,4 @@
+import 'package:Voltgo_app/data/services/ChatHistoryScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Voltgo_app/ui/HistoryScreen/HistoryScreen.dart';
@@ -23,7 +24,7 @@ class _BottomNavBarState extends State<BottomNavBar>
     const DriverDashboardScreen(),
     const EarningsScreen(),
     const HistoryScreen(),
-    const Placeholder(), // Placeholder for Chat page
+    const ChatHistoryScreen(), // Placeholder for Chat page
     const SettingsScreen(),
   ];
 

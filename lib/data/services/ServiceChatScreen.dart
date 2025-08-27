@@ -4,6 +4,7 @@
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/models/chat/ChatMessage.dart';
 import 'package:Voltgo_app/data/services/ChatService.dart';
+import 'package:Voltgo_app/ui/MenuPage/Chats/ServiceChatScreenRealTime.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +29,7 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
+  final ChatPolling _chatPolling = ChatPolling(); // AGREGAR ESTO
 
   bool _isLoading = true;
   bool _isSending = false;
@@ -43,6 +45,8 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
   void initState() {
     super.initState();
     _initializeAnimations();
+    _startPolling();
+
     _initializeChat();
   }
 
@@ -66,32 +70,37 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
       _isLoading = true;
       _error = null;
     });
-
     try {
-      // Determinar el nombre del otro participante y mi ID
+      // ✅ LÓGICA CORREGIDA
       if (widget.userType == 'technician') {
+        _otherParticipantName = widget.serviceRequest.user?.name ?? 'Cliente';
+
+        // ✅ MÚLTIPLES FUENTES PARA OBTENER EL ID DEL TÉCNICO
+        _currentUserId = widget.serviceRequest.technicianId ??
+            widget.serviceRequest.technician?.id ??
+            0;
+
+        print('🔍 DEBUG: technicianId=${widget.serviceRequest.technicianId}');
+        print(
+            '🔍 DEBUG: technician.id=${widget.serviceRequest.technician?.id}');
+        print('🔍 DEBUG: _currentUserId final=$_currentUserId');
+      } else {
         _otherParticipantName =
             widget.serviceRequest.technician?.name ?? 'Técnico';
         _currentUserId = widget.serviceRequest.userId;
-      } else {
-        _otherParticipantName = widget.serviceRequest.user?.name ?? 'Cliente';
-        _currentUserId = widget.serviceRequest.technicianId ?? 0;
       }
 
-      // Cargar historial de mensajes
+      // Resto del código igual...
       final messages =
           await ChatService.getChatHistory(widget.serviceRequest.id);
-
       setState(() {
         _messages.clear();
         _messages.addAll(messages);
         _isLoading = false;
       });
 
-      // Animar entrada y hacer scroll al final
       _slideController.forward();
       _scrollToBottom();
-
       print('✅ Chat inicializado: ${_messages.length} mensajes');
     } catch (e) {
       setState(() {
@@ -156,6 +165,18 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
     }
   }
 
+  void _startPolling() {
+    _chatPolling.startPolling(widget.serviceRequest.id, (newMessages) {
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _messages.addAll(newMessages);
+        });
+        _scrollToBottom();
+      }
+    });
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -173,6 +194,8 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
     _messageController.dispose();
     _scrollController.dispose();
     _slideController.dispose();
+    _chatPolling.stopPolling(); // AGREGAR ESTA LÍNEA
+
     super.dispose();
   }
 
@@ -453,6 +476,12 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
 
   Widget _buildMessageBubble(ChatMessage message, bool showAvatar) {
     final isMyMessage = message.senderId == _currentUserId;
+
+    print('📨 Message ID: ${message.id}');
+    print('📨 Sender ID: ${message.senderId}');
+    print('📨 Current User ID: $_currentUserId');
+    print('📨 Is my message: $isMyMessage');
+    print('---');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
