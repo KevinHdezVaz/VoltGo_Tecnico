@@ -11,7 +11,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+
+  flutter_localizations:
+    sdk: flutter
+   
   # Iconos de estilo iOS
   cupertino_icons: ^1.0.8
 
@@ -54,6 +57,7 @@ dependencies:
   image_picker: ^1.0.7  
   flutter_image_compress: ^2.4.0
   vibration: ^1.8.1
+ 
   intl_phone_field: ^3.2.0
 
 dev_dependencies:

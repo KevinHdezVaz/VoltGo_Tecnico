@@ -4,6 +4,7 @@ import 'package:Voltgo_app/data/services/EarningsService.dart';
 import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
 import 'package:Voltgo_app/data/services/ServiceRequestService.dart';
 import 'package:Voltgo_app/data/services/TechnicianService.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/IncomingRequestScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/RealTimeTrackingScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/ServiceWorkScreen.dart';
@@ -98,19 +99,18 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     super.dispose();
   }
 
-// Y agregar este método
   void _showServiceExpiredDialog() {
+    final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Servicio Expirado'),
-        content: Text(
-            'Tu servicio ha sido cancelado automáticamente después de 1 hora.'),
+        title: Text(localizations.serviceExpired),
+        content: Text(localizations.serviceAutoCancelledAfterHour),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Entendido'),
+            child: Text(localizations.understood),
           ),
         ],
       ),
@@ -940,6 +940,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
 // ✅ CORREGIR _buildIncomingRequestPanel para usar las propiedades correctas
   Widget _buildIncomingRequestPanel() {
+    final localizations = AppLocalizations.of(context);
+
     if (_currentRequest == null) {
       return const SizedBox.shrink();
     }
@@ -957,8 +959,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('NUEVA SOLICITUD DE RECARGA',
-                  style: TextStyle(
+              Text(localizations.newChargeRequest,
+                  style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 16)),
@@ -969,17 +971,18 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   style: const TextStyle(
                       fontSize: 28, fontWeight: FontWeight.bold)),
 
-              // ✅ USAR getter seguro para nombre del cliente
-              Text('Cliente: ${_currentRequest!.clientNameDisplay}',
-                  style: const TextStyle(fontSize: 16, color: Colors.grey)),
-
-              // ✅ USAR getter seguro para ganancias
               Text(
-                  'Ganancia estimada: ${_currentRequest!.formattedEarningsDisplay}',
-                  style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600)),
+                '${localizations.client}: ${_currentRequest!.clientNameDisplay}',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              Text(
+                '${localizations.estimatedEarnings}: ${_currentRequest!.formattedEarningsDisplay}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
 
               const SizedBox(height: 16),
               const LinearProgressIndicator(),
@@ -993,7 +996,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       onPressed: () => _rejectRequest(_currentRequest!.id),
                       style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.grey[800]),
-                      child: const Text('Rechazar'),
+                      child: Text(localizations.reject),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -1004,7 +1007,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                       ),
-                      child: const Text('Aceptar'),
+                      child: Text(localizations.accept),
                     ),
                   ),
                 ],
@@ -1117,6 +1120,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }
 
   void _acceptRequest(int requestId) async {
+    final localizations = AppLocalizations.of(context);
+
     setState(() {
       _driverStatus = DriverStatus.enRouteToUser;
       _isDialogShowing = false;
@@ -1125,7 +1130,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     try {
       final success = await TechnicianService.acceptRequest(requestId);
       if (success) {
-        _showSuccessSnackbar('¡Solicitud aceptada! Dirígete al cliente.');
+        _showSuccessSnackbar(localizations.requestAccepted);
 
         // ✅ NUEVO: Establecer servicio activo y empezar monitoreo
         _activeServiceRequest = _currentRequest;
@@ -1137,12 +1142,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     } catch (e) {
       print("❌ Error aceptando solicitud: $e");
 
-      String errorMessage = 'Error al aceptar la solicitud';
+      String errorMessage = localizations.errorAcceptingRequest;
       if (e.toString().contains('ya no está disponible')) {
-        errorMessage = 'Esta solicitud ya fue tomada por otro técnico';
+        errorMessage = localizations.requestTakenByAnother;
         _unavailableRequestIds.add(requestId);
       } else if (e.toString().contains('No tienes autorización')) {
-        errorMessage = 'No tienes autorización para esta solicitud';
+        errorMessage = localizations.noAuthorizationForRequest;
         _unavailableRequestIds.add(requestId);
       }
 
@@ -1621,31 +1626,34 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
+  // Modified _getStatusTitle method
   String _getStatusTitle() {
+    final localizations = AppLocalizations.of(context);
     switch (_driverStatus) {
       case DriverStatus.offline:
-        return 'VoltGo Técnico';
+        return localizations.voltgoTechnician;
       case DriverStatus.online:
-        return 'Buscando solicitudes';
+        return localizations.searchingRequests;
       case DriverStatus.incomingRequest:
-        return 'Nueva solicitud';
+        return localizations.newRequest;
       case DriverStatus.enRouteToUser:
-        return 'En ruta al cliente';
+        return localizations.enRouteToClient;
       case DriverStatus.onService:
-        return 'Servicio en curso';
+        return localizations.serviceInProgress;
     }
   }
 
   String _getStatusSubtitle() {
+    final localizations = AppLocalizations.of(context);
     switch (_driverStatus) {
       case DriverStatus.online:
-        return 'Esperando nuevas solicitudes';
+        return localizations.waitingForRequests;
       case DriverStatus.incomingRequest:
-        return 'Revisando solicitud entrante';
+        return localizations.reviewingIncomingRequest;
       case DriverStatus.enRouteToUser:
-        return 'Dirígete a la ubicación del cliente';
+        return localizations.headToClientLocation;
       case DriverStatus.onService:
-        return 'Cargando el vehículo del cliente';
+        return localizations.chargingClientVehicle;
       default:
         return '';
     }

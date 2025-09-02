@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/utils/map_picker_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -20,60 +20,61 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
-  // --- Controladores para todos los campos ---
+  // --- Controllers remain the same ---
   final _nameController = TextEditingController();
-  final _phoneController =
-      TextEditingController(); // Controlador para el número
-
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  //final _phoneController = TextEditingController(); // Para el número sin LADA
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _baseLocationController = TextEditingController();
+  final _otherServiceController = TextEditingController();
+  final _licenseController = TextEditingController();
 
-  // --- Variables de estado ---
-  String? _fullPhoneNumber; // Para guardar LADA + NÚMERO
+  // --- State variables ---
+  String? _fullPhoneNumber;
   final Set<String> _selectedServices = {};
-
-  final List<String> _availableServices = [
-    // <-- MODIFICADO
-    'Jump Start',
-    'EV Charging',
-    'Tire Change',
-    'Lockout',
-    'Fuel Delivery',
-    'Otro' // <-- NUEVO
-  ];
-
-  bool _showOtherServiceField = false; // <-- NUEVO
-
+  bool _showOtherServiceField = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isButtonEnabled = false;
   bool _isLoading = false;
   late AnimationController _animationController;
-  final _otherServiceController = TextEditingController(); // <-- NUEVO
-  final _licenseController = TextEditingController(); // <-- NUEVO
+  File? _pickedIdFile;
+  bool _isPickingFile = false;
 
-  File? _pickedIdFile; // <-- NUEVO: Para guardar el archivo seleccionado
-  bool _isPickingFile = false; // <-- NUEVO: Para estado de carga del picker
+  // Dynamic services list (will be populated in initState)
+  List<String> _availableServices = [];
 
-  // En _RegisterScreenState
   @override
   void initState() {
     super.initState();
-    // Añadimos listeners a todos los controladores para actualizar el estado del botón
+    // Initialize listeners
     _nameController.addListener(_updateButtonState);
     _emailController.addListener(_updateButtonState);
     _phoneController.addListener(_updateButtonState);
     _passwordController.addListener(_updateButtonState);
     _confirmPasswordController.addListener(_updateButtonState);
     _baseLocationController.addListener(_updateButtonState);
-    _otherServiceController.addListener(_updateButtonState); // <-- NUEVO
-    _licenseController.addListener(_updateButtonState); // <-- NUEVO
+    _otherServiceController.addListener(_updateButtonState);
+    _licenseController.addListener(_updateButtonState);
 
     _animationController =
         AnimationController(vsync: this, duration: const Duration(seconds: 4));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize services list with localized strings
+    final localizations = AppLocalizations.of(context);
+    _availableServices = [
+      localizations.jumpStart,
+      localizations.evCharging,
+      localizations.tireChange,
+      localizations.lockout,
+      localizations.fuelDelivery,
+      localizations.other,
+    ];
   }
 
   @override
@@ -84,19 +85,18 @@ class _RegisterScreenState extends State<RegisterScreen>
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _baseLocationController.dispose();
-    _otherServiceController.dispose(); // <-- NUEVO
-    _licenseController.dispose(); // <-- NUEVO
-
+    _otherServiceController.dispose();
+    _licenseController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
-  // En _RegisterScreenState
   void _updateButtonState() {
-    // Verificamos si "Otro" está seleccionado y si el campo de texto está lleno
-    final otherServiceValid = !_selectedServices.contains('Otro') ||
-        (_selectedServices.contains('Otro') &&
-            _otherServiceController.text.trim().isNotEmpty);
+    final localizations = AppLocalizations.of(context);
+    final otherServiceValid =
+        !_selectedServices.contains(localizations.other) ||
+            (_selectedServices.contains(localizations.other) &&
+                _otherServiceController.text.trim().isNotEmpty);
 
     setState(() {
       _isButtonEnabled = _nameController.text.trim().isNotEmpty &&
@@ -105,11 +105,9 @@ class _RegisterScreenState extends State<RegisterScreen>
           _fullPhoneNumber!.isNotEmpty &&
           _passwordController.text.trim().isNotEmpty &&
           _confirmPasswordController.text.trim().isNotEmpty &&
-          _baseLocationController.text
-              .trim()
-              .isNotEmpty && // Ahora se llena desde el mapa
+          _baseLocationController.text.trim().isNotEmpty &&
           _selectedServices.isNotEmpty &&
-          otherServiceValid && // <-- NUEVA CONDICIÓN
+          otherServiceValid &&
           (_passwordController.text.trim() ==
               _confirmPasswordController.text.trim());
     });
@@ -118,19 +116,18 @@ class _RegisterScreenState extends State<RegisterScreen>
   Future<void> _register() async {
     if (!_isButtonEnabled || _isLoading) return;
 
-    // Inicia el estado de carga y la animación
+    final localizations = AppLocalizations.of(context);
+
     setState(() => _isLoading = true);
     _animationController.repeat();
 
-    // Preparamos la lista de servicios, incluyendo el servicio "Otro" si existe
     final List<String> servicesToSend = _selectedServices
-        .where((service) => service != 'Otro') // Quitamos "Otro" de la lista
+        .where((service) => service != localizations.other)
         .toList();
 
-    if (_selectedServices.contains('Otro') &&
+    if (_selectedServices.contains(localizations.other) &&
         _otherServiceController.text.trim().isNotEmpty) {
-      servicesToSend.add(_otherServiceController.text
-          .trim()); // Añadimos el servicio personalizado
+      servicesToSend.add(_otherServiceController.text.trim());
     }
 
     try {
@@ -140,8 +137,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         password: _passwordController.text.trim(),
         phone: _fullPhoneNumber!,
         baseLocation: _baseLocationController.text.trim(),
-        servicesOffered: servicesToSend, // <-- USAMOS LA NUEVA LISTA
-        licenseNumber: _licenseController.text.trim(), // <-- NUEVO
+        servicesOffered: servicesToSend,
+        licenseNumber: _licenseController.text.trim(),
         idDocument: _pickedIdFile,
       );
 
@@ -151,8 +148,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       if (response.success && response.token != null) {
         await TokenStorage.saveToken(response.token!);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Registro exitoso!'),
+          SnackBar(
+            content: Text(localizations.registrationSuccessful),
             backgroundColor: Colors.green,
           ),
         );
@@ -162,22 +159,16 @@ class _RegisterScreenState extends State<RegisterScreen>
           (route) => false,
         );
       } else {
-        // ▼▼▼ CORRECCIÓN AQUÍ ▼▼▼
-        // Mostramos un mensaje genérico porque 'response' no tiene un campo 'message'.
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'No se pudo completar el registro. Verifica tus datos e inténtalo de nuevo.')),
+          SnackBar(content: Text(localizations.registrationError)),
         );
       }
     } catch (e) {
       if (mounted) {
         _animationController.stop();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${localizations.error}: ${e.toString()}')));
       }
-    } catch (e) {
-      // ... tu manejo de errores
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -185,6 +176,8 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Future<void> _pickIdFile() async {
     setState(() => _isPickingFile = true);
+    final localizations = AppLocalizations.of(context);
+
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -197,9 +190,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         });
       }
     } catch (e) {
-      // Manejar error si es necesario
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al seleccionar el archivo: $e')),
+        SnackBar(content: Text('${localizations.fileSelectionError}$e')),
       );
     } finally {
       setState(() => _isPickingFile = false);
@@ -214,7 +206,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     if (selectedAddress != null && selectedAddress.isNotEmpty) {
       setState(() {
         _baseLocationController.text = selectedAddress;
-        _updateButtonState(); // Actualizamos el botón
+        _updateButtonState();
       });
     }
   }
@@ -236,7 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     const SizedBox(height: 60),
                     _buildHeader(),
                     const SizedBox(height: 30),
-                    _buildForm(), // El formulario ahora contiene todos los campos
+                    _buildForm(),
                     const SizedBox(height: 24),
                     _buildSocialLogins(),
                     const SizedBox(height: 24),
@@ -247,7 +239,6 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
             ),
           ),
-          // Muestra la animación de carga sobre toda la pantalla
           if (_isLoading)
             Center(
               child: AnimatedTruckProgress(
@@ -259,116 +250,127 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  // --- WIDGETS DE CONSTRUCCIÓN DE UI (ESTILO DEL CÓDIGO 2) ---
-
   Widget _buildHeader() {
-    return const Center(
+    final localizations = AppLocalizations.of(context);
+    return Center(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text('Crea tu cuenta de Técnico',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
-          SizedBox(height: 8),
-          Text('Completa el formulario para empezar.',
-              style: TextStyle(fontSize: 18, color: AppColors.textSecondary)),
+          Text(
+            localizations.createTechnicianAccount,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            localizations.completeTechnicianForm,
+            style: const TextStyle(
+              fontSize: 18,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildForm() {
+    final localizations = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTextField(
-            label: 'Nombre completo',
-            hint: 'Tu nombre y apellido',
-            controller: _nameController),
+          label: localizations.fullName,
+          hint: localizations.yourNameAndSurname,
+          controller: _nameController,
+        ),
         const SizedBox(height: 20),
         _buildTextField(
-            label: 'Correo electrónico',
-            hint: 'tucorreo@ejemplo.com',
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress),
+          label: localizations.emailAddress,
+          hint: localizations.emailHint,
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+        ),
         const SizedBox(height: 20),
-        _buildPhoneField(), // Campo de teléfono estilizado
-        const SizedBox(height: 20),
-        _buildPasswordField(
-            label: 'Contraseña',
-            controller: _passwordController,
-            isPasswordVisible: _isPasswordVisible,
-            onToggleVisibility: () =>
-                setState(() => _isPasswordVisible = !_isPasswordVisible)),
+        _buildPhoneField(),
         const SizedBox(height: 20),
         _buildPasswordField(
-            label: 'Confirmar contraseña',
-            controller: _confirmPasswordController,
-            isPasswordVisible: _isConfirmPasswordVisible,
-            onToggleVisibility: () => setState(
-                () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible)),
+          label: localizations.password,
+          controller: _passwordController,
+          isPasswordVisible: _isPasswordVisible,
+          onToggleVisibility: () =>
+              setState(() => _isPasswordVisible = !_isPasswordVisible),
+        ),
         const SizedBox(height: 20),
-
+        _buildPasswordField(
+          label: localizations.confirmPassword,
+          controller: _confirmPasswordController,
+          isPasswordVisible: _isConfirmPasswordVisible,
+          onToggleVisibility: () => setState(
+              () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+        ),
+        const SizedBox(height: 20),
         _buildLocationPicker(),
         const SizedBox(height: 20),
 
-        // --- SECCIÓN DE DATOS OPCIONALES ---
-        const Text(
-          'Documentación (Opcional)',
-          style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary),
+        // Optional Documentation Section
+        Text(
+          localizations.optionalDocumentation,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 16),
-
-        // ▼▼▼ NUEVO CAMPO: Licencia de conducir ▼▼▼
         _buildTextField(
-          label: 'Número de licencia de conducir',
-          hint: 'Ingresa tu número de licencia',
+          label: localizations.driverLicenseNumber,
+          hint: localizations.enterLicenseNumber,
           controller: _licenseController,
         ),
         const SizedBox(height: 20),
-
-        // ▼▼▼ NUEVO CAMPO: Subida de documento ▼▼▼
         _buildFileUploadField(),
-
         const SizedBox(height: 24),
+        _buildServicesSelection(),
 
-        _buildServicesSelection(), // Selector de servicios
         if (_showOtherServiceField)
           Padding(
             padding: const EdgeInsets.only(top: 16.0),
             child: _buildTextField(
-              label: 'Otro servicio',
-              hint: 'Describe el servicio que ofreces',
+              label: localizations.otherService,
+              hint: localizations.describeService,
               controller: _otherServiceController,
             ),
           ),
-
         const SizedBox(height: 30),
+
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: _isButtonEnabled && !_isLoading ? _register : null,
             style: ElevatedButton.styleFrom(
-                backgroundColor: _isButtonEnabled && !_isLoading
-                    ? AppColors.brandBlue
-                    : AppColors.gray300,
-                disabledBackgroundColor: AppColors.gray300,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                minimumSize: const Size(0, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0)),
-                elevation: 0),
-            child: const Text('Crear cuenta',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white)),
+              backgroundColor: _isButtonEnabled && !_isLoading
+                  ? AppColors.brandBlue
+                  : AppColors.gray300,
+              disabledBackgroundColor: AppColors.gray300,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              minimumSize: const Size(0, 50),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0)),
+              elevation: 0,
+            ),
+            child: Text(
+              localizations.createAccount,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.white,
+              ),
+            ),
           ),
         )
       ],
@@ -376,18 +378,19 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   Widget _buildFileUploadField() {
+    final localizations = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Foto de ID o certificación (AUN NO FUNCIONA, DEJAR ESTE CAMPO VACIO)',
-          style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: AppColors.textPrimary),
+        Text(
+          localizations.idPhotoOrCertification,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
-        // Contenedor que parece un campo de texto pero es un botón
         InkWell(
           onTap: _pickIdFile,
           child: Container(
@@ -404,8 +407,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 Expanded(
                   child: Text(
                     _pickedIdFile == null
-                        ? 'Seleccionar archivo (JPG, PNG, PDF)'
-                        // Mostramos solo el nombre del archivo
+                        ? localizations.selectFile
                         : _pickedIdFile!.path.split('/').last,
                     style: TextStyle(
                       color: _pickedIdFile == null
@@ -421,7 +423,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Icon(Icons.upload_file, color: AppColors.brandBlue),
+                    : const Icon(Icons.upload_file, color: AppColors.brandBlue),
               ],
             ),
           ),
@@ -431,26 +433,30 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   Widget _buildLocationPicker() {
+    final localizations = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Ubicación de Base',
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColors.textPrimary)),
+        Text(
+          localizations.baseLocation,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
+        ),
         const SizedBox(height: 8),
-        // Usamos un TextFormField de solo lectura para mostrar el resultado
         TextFormField(
           controller: _baseLocationController,
           readOnly: true,
           decoration: InputDecoration(
-            hintText: 'Selecciona una ubicación en el mapa',
+            hintText: localizations.selectLocationOnMap,
             filled: true,
             fillColor: AppColors.lightGrey.withOpacity(0.5),
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide(color: AppColors.gray300)),
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(color: AppColors.gray300),
+            ),
             suffixIcon: IconButton(
               icon: const Icon(Icons.map, color: AppColors.brandBlue),
               onPressed: _openMapPicker,
@@ -463,24 +469,31 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   Widget _buildFooter() {
+    final localizations = AppLocalizations.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text('¿Ya tienes una cuenta? ',
-            style: TextStyle(color: AppColors.textSecondary)),
+        Text(
+          localizations.alreadyHaveAccount,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
         GestureDetector(
           onTap: () => Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const LoginScreen())),
-          child: const Text('Inicia sesión.',
-              style: TextStyle(
-                  color: AppColors.brandBlue, fontWeight: FontWeight.bold)),
+          child: Text(
+            localizations.signInHere,
+            style: const TextStyle(
+              color: AppColors.brandBlue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
   }
 
   Widget _buildSocialLogins() {
-    // Este widget se mantiene igual que en el código de ejemplo
+    final localizations = AppLocalizations.of(context);
     return Column(
       children: [
         Row(
@@ -489,7 +502,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                'O',
+                localizations.or,
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
@@ -502,61 +515,65 @@ class _RegisterScreenState extends State<RegisterScreen>
         const SizedBox(height: 24),
         _buildSocialButton(
           assetName: 'assets/images/gugel.png',
-          text: 'Registrarse con Google',
+          text: localizations.signUpWithGoogle,
           onPressed: () {
-            print('Registro con Google presionado');
+            print('Google registration pressed');
           },
         ),
         const SizedBox(height: 12),
         _buildSocialButton(
           assetName: 'assets/images/appell.png',
-          text: 'Registrarse con Apple',
-          backgroundColor: Colors.black, // Color estándar para Apple
+          text: localizations.signUpWithApple,
+          backgroundColor: Colors.black,
           textColor: Colors.white,
           onPressed: () {
-            print('Registro con Apple presionado');
+            print('Apple registration pressed');
           },
         ),
       ],
     );
   }
 
-  // --- HELPERS PARA WIDGETS ESPECÍFICOS Y NUEVOS ---
-
   Widget _buildPhoneField() {
+    final localizations = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Teléfono móvil',
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColors.textPrimary)),
+        Text(
+          localizations.mobilePhone,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
+        ),
         const SizedBox(height: 8),
         IntlPhoneField(
           controller: _phoneController,
           decoration: InputDecoration(
-            hintText: 'Número de teléfono',
+            hintText: localizations.phoneNumber,
             filled: true,
             fillColor: AppColors.lightGrey.withOpacity(0.5),
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide(color: AppColors.gray300)),
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(color: AppColors.gray300),
+            ),
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide(color: AppColors.gray300)),
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(color: AppColors.gray300),
+            ),
             focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide:
-                    const BorderSide(color: AppColors.brandBlue, width: 1.5)),
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide:
+                  const BorderSide(color: AppColors.brandBlue, width: 1.5),
+            ),
           ),
           initialCountryCode: 'MX',
           onChanged: (phone) {
             setState(() {
               _fullPhoneNumber = phone.completeNumber;
             });
-
-            _updateButtonState(); // Actualiza el estado del botón cada vez que cambia
+            _updateButtonState();
           },
         ),
       ],
@@ -564,14 +581,18 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   Widget _buildServicesSelection() {
+    final localizations = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Servicios que ofreces',
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColors.textPrimary)),
+        Text(
+          localizations.servicesOffered,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
+        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8.0,
@@ -579,12 +600,15 @@ class _RegisterScreenState extends State<RegisterScreen>
           children: _availableServices.map((service) {
             final isSelected = _selectedServices.contains(service);
             return FilterChip(
-              label: Text(service,
-                  style: TextStyle(
-                      color: isSelected
-                          ? AppColors.brandBlue
-                          : AppColors.textSecondary,
-                      fontWeight: FontWeight.w600)),
+              label: Text(
+                service,
+                style: TextStyle(
+                  color: isSelected
+                      ? AppColors.brandBlue
+                      : AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               selected: isSelected,
               onSelected: (selected) {
                 setState(() {
@@ -593,25 +617,23 @@ class _RegisterScreenState extends State<RegisterScreen>
                   } else {
                     _selectedServices.remove(service);
                   }
-
-                  if (service == 'Otro') {
+                  if (service == localizations.other) {
                     _showOtherServiceField = selected;
                     if (!selected) {
                       _otherServiceController.clear();
                     }
                   }
-
-                  _updateButtonState(); // Actualiza el botón al cambiar la selección
+                  _updateButtonState();
                 });
               },
               backgroundColor: AppColors.lightGrey.withOpacity(0.5),
               selectedColor: AppColors.brandBlue.withOpacity(0.2),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  side: BorderSide(
-                      color: isSelected
-                          ? AppColors.brandBlue
-                          : AppColors.gray300)),
+                borderRadius: BorderRadius.circular(8.0),
+                side: BorderSide(
+                  color: isSelected ? AppColors.brandBlue : AppColors.gray300,
+                ),
+              ),
               showCheckmark: false,
             );
           }).toList(),
@@ -620,98 +642,101 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  // --- HELPERS GENÉRICOS (MANTENIDOS DEL CÓDIGO 2) ---
-
-  Widget _buildBackground(BuildContext context) {
-    return Stack(children: [
-      Positioned(
-          top: 0,
-          right: -90,
-          child: Image.asset('assets/images/rectangle1.png',
-              width: MediaQuery.of(context).size.width * 0.5,
-              color: AppColors.primary,
-              colorBlendMode: BlendMode.srcIn,
-              fit: BoxFit.contain)),
-      Positioned(
-          bottom: 0,
-          left: 0,
-          child: Image.asset('assets/images/rectangle3.png',
-              color: AppColors.primary,
-              colorBlendMode: BlendMode.srcIn,
-              width: MediaQuery.of(context).size.width * 0.5,
-              fit: BoxFit.contain))
-    ]);
-  }
-
-  Widget _buildTextField(
-      {required String label,
-      required String hint,
-      required TextEditingController controller,
-      TextInputType? keyboardType}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label,
+  // Helper methods remain largely the same, just with localized hints
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
           style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 8),
-      TextFormField(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           decoration: InputDecoration(
-              hintText: hint,
-              filled: true,
-              fillColor: AppColors.lightGrey.withOpacity(0.5),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide(color: AppColors.gray300)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide(color: AppColors.gray300)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: const BorderSide(
-                      color: AppColors.brandBlue, width: 1.5))))
-    ]);
+            hintText: hint,
+            filled: true,
+            fillColor: AppColors.lightGrey.withOpacity(0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(color: AppColors.gray300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(color: AppColors.gray300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide:
+                  const BorderSide(color: AppColors.brandBlue, width: 1.5),
+            ),
+          ),
+        )
+      ],
+    );
   }
 
-  Widget _buildPasswordField(
-      {required String label,
-      required TextEditingController controller,
-      required bool isPasswordVisible,
-      required VoidCallback onToggleVisibility}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label,
+  Widget _buildPasswordField({
+    required String label,
+    required TextEditingController controller,
+    required bool isPasswordVisible,
+    required VoidCallback onToggleVisibility,
+  }) {
+    final localizations = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
           style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 8),
-      TextFormField(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
           controller: controller,
           obscureText: !isPasswordVisible,
           decoration: InputDecoration(
-              hintText: 'Mínimo 8 caracteres',
-              filled: true,
-              fillColor: AppColors.lightGrey.withOpacity(0.5),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide(color: AppColors.gray300)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide(color: AppColors.gray300)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide:
-                      const BorderSide(color: AppColors.brandBlue, width: 1.5)),
-              suffixIcon: IconButton(
-                  icon: Icon(
-                      isPasswordVisible
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      color: AppColors.textSecondary),
-                  onPressed: onToggleVisibility)))
-    ]);
+            hintText: localizations.minimumCharacters,
+            filled: true,
+            fillColor: AppColors.lightGrey.withOpacity(0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(color: AppColors.gray300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(color: AppColors.gray300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide:
+                  const BorderSide(color: AppColors.brandBlue, width: 1.5),
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: onToggleVisibility,
+            ),
+          ),
+        )
+      ],
+    );
   }
 
   Widget _buildSocialButton({
@@ -743,6 +768,35 @@ class _RegisterScreenState extends State<RegisterScreen>
           side: BorderSide(color: AppColors.gray300),
         ),
       ),
+    );
+  }
+
+  Widget _buildBackground(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          top: 0,
+          right: -90,
+          child: Image.asset(
+            'assets/images/rectangle1.png',
+            width: MediaQuery.of(context).size.width * 0.5,
+            color: AppColors.primary,
+            colorBlendMode: BlendMode.srcIn,
+            fit: BoxFit.contain,
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          child: Image.asset(
+            'assets/images/rectangle3.png',
+            color: AppColors.primary,
+            colorBlendMode: BlendMode.srcIn,
+            width: MediaQuery.of(context).size.width * 0.5,
+            fit: BoxFit.contain,
+          ),
+        )
+      ],
     );
   }
 }

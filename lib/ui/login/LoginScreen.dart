@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:Voltgo_app/data/services/auth_api_service.dart';
@@ -52,6 +53,8 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _login() async {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     if (!_isButtonEnabled || _isLoading) return;
 
     setState(() => _isLoading = true);
@@ -80,8 +83,8 @@ class _LoginScreenState extends State<LoginScreen>
         // Si no fue exitoso, muestra el error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text(loginResult.error ?? 'Usuario o contraseña incorrectos'),
+            content: Text(
+                loginResult.error ?? l10n.incorrectUserPassword), // ✅ CAMBIAR
           ),
         );
       }
@@ -89,8 +92,8 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         _animationController.stop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error de conexión con el servidor'),
+          SnackBar(
+            content: Text(l10n.serverConnectionError), // ✅ CAMBIAR
           ),
         );
       }
@@ -145,6 +148,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ▼▼▼ NUEVO: Widget para mostrar botones de Google y Apple ▼▼▼
   Widget _buildSocialLogins() {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     return Column(
       children: [
         Row(
@@ -153,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                'O',
+                l10n.or,
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
@@ -167,7 +172,8 @@ class _LoginScreenState extends State<LoginScreen>
         // Botón de Google
         _buildSocialButton(
           assetName: 'assets/images/gugel.png',
-          text: 'Iniciar sesión con Google',
+          text:
+              l10n.signInWithGoogle, // ✅ CAMBIAR de 'Iniciar sesión con Google'
           onPressed: () {
             print('Login con Google presionado');
           },
@@ -177,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen>
         _buildSocialButton(
           assetName: 'assets/images/appell.png',
           // MODIFICADO: Texto del botón
-          text: 'Iniciar sesión con Apple',
+          text: l10n.signInWithApple, // ✅ CAMBIAR de 'Iniciar sesión con Apple'
           backgroundColor: Colors.blueGrey,
           textColor: Colors.white,
           onPressed: () {
@@ -241,6 +247,8 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     return Center(
       child: Column(
         children: [
@@ -264,8 +272,9 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Bienvenido Tecnico.',
+          Text(
+            l10n.welcomeTechnician, // ✅ CAMBIAR de 'Bienvenido Tecnico.'
+
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -278,13 +287,15 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildForm() {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTextField(
-          label: 'Correo electrónico',
-          hint: 'Ingresa tu correo electronico.',
-          controller: _emailController, // <-- Usa el nuevo nombre
+          label: l10n.email, // ✅ YA EXISTE
+          hint: l10n.enterEmail, // ✅ YA EXISTE
+          controller: _emailController,
         ),
         const SizedBox(height: 20),
         _buildPasswordField(controller: _passwordController),
@@ -304,7 +315,8 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.0)),
                 elevation: 0),
-            child: const Text('Iniciar sesión',
+            child: Text(l10n.signIn, // ✅ YA EXISTE de 'Iniciar sesión'
+
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -316,12 +328,15 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildFooter() {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('¿No tienes una cuenta? ',
+            Text(l10n.noAccount, // ✅ YA EXISTE de '¿No tienes una cuenta? '
+
                 style: TextStyle(
                     fontSize: 15,
                     color: AppColors.black,
@@ -334,7 +349,8 @@ class _LoginScreenState extends State<LoginScreen>
                       builder: (context) => const RegisterScreen()),
                 );
               },
-              child: const Text('Créala aquí.',
+              child: Text(l10n.createHere, // ✅ YA EXISTE de 'Créala aquí.'
+
                   style: TextStyle(
                       color: AppColors.brandBlue,
                       fontSize: 15,
@@ -391,8 +407,11 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildPasswordField({required TextEditingController controller}) {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Contraseña',
+      Text(l10n.password, // ✅ YA EXISTE de 'Contraseña'
+
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -402,7 +421,8 @@ class _LoginScreenState extends State<LoginScreen>
           controller: controller,
           obscureText: !_isPasswordVisible,
           decoration: InputDecoration(
-              hintText: 'Ingresa tu contraseña',
+              hintText:
+                  l10n.enterPassword, // ✅ YA EXISTE de 'Ingresa tu contraseña'
               filled: true,
               fillColor: AppColors.lightGrey.withOpacity(0.5),
               border: OutlineInputBorder(

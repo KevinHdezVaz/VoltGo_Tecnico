@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -10,6 +11,7 @@ import 'package:Voltgo_app/firebase_options.dart';
 import 'package:Voltgo_app/ui/MenuPage/notifications/NotificationDetailScreen.dart';
 import 'package:Voltgo_app/ui/SplashScreen.dart';
 import 'package:Voltgo_app/utils/AuthWrapper.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 // Importa tus pantallas
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
@@ -101,6 +103,20 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.grey[100],
       ),
+
+      locale: const Locale('en', ''),
+
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''), // English
+        Locale('es', ''), // Spanish
+      ],
+
       home: const SplashScreen(),
       onGenerateRoute: (settings) {
         switch (settings.name) {

@@ -78,10 +78,24 @@ class AnimatedTruckProgress extends AnimatedWidget {
                         Positioned(
                           left: truckLeftPosition,
                           bottom: _progressBarHeight - 7,
-                          child: const Icon(
-                            Icons.local_shipping,
-                            color: AppColors.primary,
-                            size: _truckIconSize,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Icon(
+                                Icons.directions_car,
+                                color: AppColors.primary,
+                                size: _truckIconSize,
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Icon(
+                                  Icons.electric_bolt,
+                                  color: Colors.green,
+                                  size: _truckIconSize * 0.4,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
