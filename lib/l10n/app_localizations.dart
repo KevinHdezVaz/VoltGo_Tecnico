@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart' show SynchronousFuture;
 
 class AppLocalizations {
@@ -20,7 +19,141 @@ class AppLocalizations {
       'appTitle': 'VoltGo',
       'searchingTechnician': 'Searching for technician',
       'technicianArriving': 'Technician arriving in',
+      'voltgoTechnician': 'VoltGo Technician',
+      'newRequest': 'New Request',
+      'waitingForRequests': 'Waiting for new requests',
+      'reviewingIncomingRequest': 'Reviewing incoming request',
+      'headToClientLocation': 'Head to client location',
+      'chargingClientVehicle': 'Charging client vehicle',
 
+      // ===== Service Request Panel (FALTANTES) =====
+      'newChargeRequest': 'NEW CHARGE REQUEST',
+      'client': 'Client',
+      'estimatedEarnings': 'Estimated earnings',
+      'reject': 'Reject',
+      'accept': 'Accept',
+      'searchingRequests': 'Searching requests',
+      'enRouteToClient': 'EN ROUTE TO CLIENT',
+      'serviceInProgressPanel': 'Service in progress',
+      'loadingEarningsError': 'Error loading earnings data',
+      'logout': 'Logout',
+      'logoutConfirmationMessage': 'Are you sure you want to log out?',
+      'cancel': 'Cancel',
+      'settings': 'Settings',
+      'error': 'Error',
+      'couldNotLoadProfile': 'Could not load profile',
+      'account': 'Account',
+      'editProfile': 'Edit Profile',
+      'securityAndPassword': 'Security and Password',
+      'chatHistory': 'Messages',
+      'paymentMethods': 'Payment Methods',
+      'vehicle': 'Vehicle',
+      'manageVehicles': 'Manage Vehicles',
+      'documents': 'Documents',
+      'logoutError': 'Error logging out. Please try again.',
+      'myEarnings': 'My Earnings',
+      'today': 'Today',
+      'week': 'Week',
+      'history': 'History',
+      'withdrawFunds': 'Withdraw Funds',
+      'availableBalance': 'Available Balance',
+      'withdrawalAmount': 'Withdrawal Amount',
+      'minimumWithdrawal': 'Minimum \$10.00',
+      'paymentMethod': 'Payment Method',
+      'bankTransfer': 'Bank Transfer',
+      'debitCard': 'Debit Card',
+      'confirmWithdrawal': 'Confirm Withdrawal',
+      'minimumWithdrawalError': 'The minimum withdrawal amount is \$10.00',
+      'insufficientBalance': 'Insufficient balance',
+      'withdrawalSuccess': 'Withdrawal processed successfully',
+      'withdrawalError': 'Error processing withdrawal',
+      'todaySummary': 'Today Summary',
+      'earnings': 'Earnings',
+      'services': 'Services',
+      'tips': 'Tips',
+      'distance': 'Distance',
+      'rating': 'Rating',
+      'thisWeek': 'This Week',
+      'thisMonth': 'This Month',
+      'totalEarned': 'Total Earned',
+      'pending': 'Pending',
+      'noRecentServices': 'No recent services',
+      'recentActivity': 'Recent Activity',
+      'realTimeTracking': 'REAL-TIME TRACKING',
+      'serviceHistory': 'Service History',
+      'reviewPreviousServices': 'Review your previous services',
+      'all': 'All',
+      'completed': 'Completed',
+      'cancelled': 'Cancelled',
+      'errorLoadingHistory': 'Error loading history',
+      'retry': 'Retry',
+      'noServiceHistory': 'You have no services in your history.',
+      'requestService': 'Request Service',
+      // ===== Navigation Texts (FALTANTES) =====
+      'navigateToClient': 'Navigate to client',
+      'openInMaps': 'Open in Maps',
+      'googleMaps': 'Google Maps',
+      'navigationWithTraffic': 'Navigation with real-time traffic',
+      'waze': 'Waze',
+      'optimizedRoutes': 'Optimized routes and community alerts',
+      'navigate': 'NAVIGATE',
+      'call': 'Call',
+
+      // ===== Service Panel States (FALTANTES) =====
+      'arrivedAtSite': 'I HAVE ARRIVED AT SITE',
+      'finishService': 'FINISH SERVICE',
+      'chargeServiceRequested': 'Charge service requested',
+
+      // ===== Success & Error Messages (FALTANTES) =====
+      'requestAccepted': 'Request accepted! Head to the client.',
+      'errorAcceptingRequest': 'Error accepting request',
+      'requestTakenByAnother': 'This request was taken by another technician',
+      'noAuthorizationForRequest': 'You have no authorization for this request',
+      'serviceCompletedSuccessfully': 'Service completed successfully!',
+      'errorLoadingData': 'Error loading data',
+      'pleaseEnableLocation': 'Please enable location service.',
+      'locationPermissionRequired':
+          'Location permission is required to operate.',
+      'noClientInformationAvailable': 'No client information available',
+      'noPhoneNumberAvailable': 'No phone number available',
+      'couldNotOpenPhoneApp': 'Could not open phone app',
+      'errorMakingCall': 'Error making call',
+      'errorChangingStatus': 'Error changing status',
+      'couldNotOpenGoogleMaps': 'Could not open Google Maps',
+      'wazeNotInstalled': 'Waze is not installed on your device',
+      'couldNotOpenWaze': 'Could not open Waze',
+      'noNavigationAppsAvailable': 'No navigation apps available',
+      'couldNotOpenNavigationApp': 'Could not open any navigation app',
+      'requestNoLongerAvailable': 'This request is no longer available',
+      'clientCancelledRequest': 'The client cancelled the request',
+      'errorCheckingStatus': 'Error checking status',
+      'requestNotAuthorizedAnymore':
+          'Request no longer available for this technician',
+      'loggingOut': 'Logging Out',
+      // ===== Online/Offline Status (FALTANTES) =====
+      'online': 'ONLINE',
+      'offline': 'OFFLINE',
+      'serviceActive': 'SERVICE ACTIVE',
+      'disconnected': 'DISCONNECTED',
+
+      // ===== Service Cancellation Dialog (FALTANTES) =====
+      'serviceCancelledTitle': 'Service Cancelled',
+      'clientCancelledService': 'The client has cancelled the service.',
+      'timeCompensation': 'Time compensation',
+      'partialCompensationMessage':
+          'You will receive partial compensation for the time invested in this service.',
+      'willContinueReceivingRequests':
+          'You will continue receiving new requests automatically.',
+      'serviceCancelledByClient': 'Service cancelled by client',
+
+      // ===== Service Expiration (FALTANTE) =====
+      'serviceAutoCancelledAfterHour':
+          'Your service has been automatically cancelled after 1 hour.',
+
+      'noActiveServiceFound': 'No active service found',
+      'serviceTrackingLocation': 'Tracking location every 30 seconds...',
+      'locationTrackingStopped': 'Location tracking stopped.',
+      'requestListCleaned': 'Unavailable requests list cleaned',
       'minutes': 'minutes',
       'estimated': 'Estimated',
       'arrival': 'Arrival',
@@ -35,7 +168,6 @@ class AppLocalizations {
       'viewActiveService': 'View Active Service',
       'youHaveActiveService': 'You have an active service',
       'tapToFindTechnician': 'Tap to find a technician',
-      'cancel': 'Cancel',
       'cancelService': 'Cancel Service',
       'followRealTime': 'Follow in real time',
       'serviceCompleted': 'Service Completed!',
@@ -201,14 +333,12 @@ class AppLocalizations {
       'syncOptions': 'Options:',
       'syncOptionsText':
           '• Wait a few seconds and continue\n• Close and reopen the app\n• If it persists, contact support',
-      'retry': 'Retry',
       'continueAnyway': 'Continue Anyway',
       'processing': 'Processing...',
       'nearbyTechnicians': 'Looking for nearby technicians',
       'thisCanTakeSeconds': 'This can take a few seconds',
       'searchingDots': 'Searching technicians nearby',
       'onSite': 'On site',
-      'cancelled': 'Cancelled',
       'unknownStatus': 'Unknown status',
       'fewSecondsAgo': 'A few seconds ago',
       'minutesAgo': 'minutes ago',
@@ -271,7 +401,6 @@ class AppLocalizations {
       'serviceStarted': '⚡ Service Started',
       'technicianStartedChargingVehicle':
           'The technician has started charging your electric vehicle.',
-      'serviceCompletedSuccessfully': '✅ Service Completed',
       'vehicleChargedSuccessfully':
           'Your vehicle has been charged successfully! Thank you for using VoltGo.',
       'statusUpdated': 'Status Updated',
@@ -318,36 +447,15 @@ class AppLocalizations {
           'You need to register a vehicle to request the service.',
       'authorizationError': 'Authorization error. Please log in again.',
       'sessionExpired': 'Session expired. Please log in again.',
-      'settings': 'Settings',
-      'logout': 'Logout',
-      'logoutConfirmationMessage': 'Are you sure you want to logout?',
-      'loggingOut': 'Logging out...',
-      'logoutError': 'Error logging out. Please try again.',
+
       'pleaseWait': 'Please wait...',
       'pleaseWaitMoment': 'Please wait a moment',
-      'error': 'Error',
-      'couldNotLoadProfile': 'Could not load profile',
-      'account': 'Account',
-      'editProfile': 'Edit Profile',
-      'securityAndPassword': 'Security and Password',
-      'chatHistory': 'Chat History',
-      'paymentMethods': 'Payment Methods',
-      'vehicle': 'Vehicle',
-      'manageVehicles': 'Manage Vehicles',
-      'documents': 'Documents',
-      'serviceHistory': 'Service History',
-      'reviewPreviousServices': 'Review your previous services',
-      'all': 'All',
-      'completed': 'Completed',
-      'pending': 'Pending',
+
       'accepted': 'Accepted',
       'enRoute': 'En Route',
       'charging': 'Charging',
-      'today': 'Today',
       'yesterday': 'Yesterday',
-      'errorLoadingHistory': 'Error loading history',
       'noServicesInHistory': 'You have no services in your history.',
-      'requestService': 'Request Service',
 
       'completeFormToStart': 'Complete the form to get started.',
 
@@ -432,12 +540,63 @@ class AppLocalizations {
       'onboardingSubtitle3':
           'Infórmate sobre promociones, eventos y noticias relevantes de la app.',
 
+      'voltgoTechnician': 'Técnico Voltgo',
+      'searchingRequests': 'Buscando solicitudes',
+      'newRequest': 'Nueva solicitud',
+      'enRouteToClient': 'EN RUTA HACIA EL CLIENTE',
+      'serviceInProgressPanel': 'Servicio en progreso',
+      'loadingEarningsError': 'Error al cargar los datos de ganancias',
+      'logout': 'Cerrar Sesión',
+      'logoutConfirmationMessage':
+          '¿Estás seguro de que quieres cerrar sesión?',
+      'cancel': 'Cancelar',
+      'settings': 'Ajustes',
+      'error': 'Error',
+      'couldNotLoadProfile': 'No se pudo cargar el perfil',
+      'account': 'Cuenta',
+      'editProfile': 'Editar Perfil',
+      'securityAndPassword': 'Seguridad y Contraseña',
+      'chatHistory': 'Mensajes',
+      'paymentMethods': 'Métodos de Pago',
+      'vehicle': 'Vehículo',
+      'manageVehicles': 'Gestionar Vehículos',
+      'documents': 'Documentos',
+      'logoutError': 'Error al cerrar sesión. Inténtalo nuevamente.',
+      'myEarnings': 'Mis Ganancias',
+      'today': 'Hoy',
+      'week': 'Semana',
+      'history': 'Historial',
+      'withdrawFunds': 'Retirar Fondos',
+      'availableBalance': 'Balance Disponible',
+      'withdrawalAmount': 'Monto a Retirar',
+      'minimumWithdrawal': 'Mínimo \$10.00',
+      'paymentMethod': 'Método de Pago',
+      'bankTransfer': 'Transferencia Bancaria',
+      'debitCard': 'Tarjeta de Débito',
+      'confirmWithdrawal': 'Confirmar Retiro',
+      'minimumWithdrawalError': 'El monto mínimo de retiro es \$10.00',
+      'insufficientBalance': 'Saldo insuficiente',
+      'withdrawalSuccess': 'Retiro procesado exitosamente',
+      'withdrawalError': 'Error al procesar el retiro',
+      'todaySummary': 'Resumen de Hoy',
+      'earnings': 'Ganancias',
+      'services': 'Servicios',
+      'tips': 'Propinas',
+      'distance': 'Distancia',
+      'rating': 'Calificación',
+      'thisWeek': 'Esta Semana',
+      'thisMonth': 'Este Mes',
+      'totalEarned': 'Total Ganado',
+      'pending': 'Pendiente',
+      'noRecentServices': 'No hay servicios recientes',
+      'recentActivity': 'Actividad Reciente',
+      'realTimeTracking': 'SEGUIMIENTO EN TIEMPO REAL',
+
       'appTitle': 'VoltGo',
       'searchingTechnician': 'Buscando técnico',
       'technicianArriving': 'Técnico llegando en',
       'minutes': 'minutos',
       'estimated': 'Estimado',
-      'history': 'History',
 
       'arrival': 'Llegada',
       'connector': 'Conector',
@@ -451,7 +610,6 @@ class AppLocalizations {
       'viewActiveService': 'Ver Servicio Activo',
       'youHaveActiveService': 'Tienes un servicio en curso',
       'tapToFindTechnician': 'Toca para buscar un técnico',
-      'cancel': 'Cancelar',
       'cancelService': 'Cancelar Servicio',
       'followRealTime': 'Seguir en tiempo real',
       'serviceCompleted': '¡Servicio Completado!',
@@ -548,6 +706,86 @@ class AppLocalizations {
       'technicianWorkingOnVehicle': 'El técnico está trabajando en tu vehículo',
       'since': 'Desde',
       'initial': 'Inicial',
+      'waitingForRequests': 'Esperando nuevas solicitudes',
+      'reviewingIncomingRequest': 'Revisando solicitud entrante',
+      'headToClientLocation': 'Dirígete a la ubicación del cliente',
+      'chargingClientVehicle': 'Cargando el vehículo del cliente',
+
+      // Service Request Panel (faltantes)
+      'newChargeRequest': 'NUEVA SOLICITUD DE RECARGA',
+      'client': 'Cliente',
+      'estimatedEarnings': 'Ganancia estimada',
+      'reject': 'Rechazar',
+      'accept': 'Aceptar',
+
+      // Navigation y Maps (faltantes)
+      'navigateToClient': 'Navegar hacia cliente',
+      'openInMaps': 'Abrir en Maps',
+      'googleMaps': 'Google Maps',
+      'navigationWithTraffic': 'Navegación con tráfico en tiempo real',
+      'waze': 'Waze',
+      'optimizedRoutes': 'Rutas optimizadas y alertas comunitarias',
+      'navigate': 'NAVEGAR',
+      'call': 'Llamar',
+      'realTimeTracking': 'SEGUIMIENTO EN TIEMPO REAL',
+
+      // Service Panel (faltantes)
+      'arrivedAtSite': 'HE LLEGADO AL SITIO',
+      'finishService': 'FINALIZAR SERVICIO',
+      'chargeServiceRequested': 'Servicio de recarga solicitado',
+
+      // Error Messages y Success (faltantes)
+      'requestAccepted': '¡Solicitud aceptada! Dirígete al cliente.',
+      'errorAcceptingRequest': 'Error al aceptar la solicitud',
+      'requestTakenByAnother': 'Esta solicitud fue tomada por otro técnico',
+      'noAuthorizationForRequest': 'No tienes autorización para esta solicitud',
+      'serviceCompletedSuccessfully': '¡Servicio completado exitosamente!',
+      'errorLoadingData': 'Error al cargar datos',
+      'pleaseEnableLocation': 'Por favor, activa el servicio de ubicación.',
+      'locationPermissionRequired':
+          'El permiso de ubicación es necesario para operar.',
+      'noClientInformationAvailable':
+          'No hay información del cliente disponible',
+      'noPhoneNumberAvailable': 'No hay número de teléfono disponible',
+      'couldNotOpenPhoneApp': 'No se pudo abrir la aplicación de teléfono',
+      'errorMakingCall': 'Error al intentar llamar',
+      'errorChangingStatus': 'Error al cambiar de estado',
+      'couldNotOpenGoogleMaps': 'No se pudo abrir Google Maps',
+      'wazeNotInstalled': 'Waze no está instalado en tu dispositivo',
+      'couldNotOpenWaze': 'No se pudo abrir Waze',
+      'noNavigationAppsAvailable': 'No hay apps de navegación disponibles',
+      'couldNotOpenNavigationApp': 'No se pudo abrir ninguna app de navegación',
+      'requestNoLongerAvailable': 'Esta solicitud ya no está disponible',
+      'clientCancelledRequest': 'El cliente canceló la solicitud',
+      'errorCheckingStatus': 'Error verificando estado',
+      'requestNotAuthorizedAnymore':
+          'Solicitud ya no está disponible para este técnico',
+
+      // Status Estados (faltantes)
+      'online': 'EN LÍNEA',
+      'offline': 'DESCONECTADO',
+      'serviceActive': 'SERVICIO ACTIVO',
+      'disconnected': 'DESCONECTADO',
+
+      // Stats y Earnings (faltantes)
+      'earnings': 'Ganancias',
+
+      // Service Cancellation por Cliente (faltantes)
+      'serviceCancelledTitle': 'Servicio Cancelado',
+      'clientCancelledService': 'El cliente ha cancelado el servicio.',
+      'timeCompensation': 'Compensación por tiempo',
+      'partialCompensationMessage':
+          'Recibirás una compensación parcial por el tiempo invertido en este servicio.',
+      'willContinueReceivingRequests':
+          'Continuarás recibiendo nuevas solicitudes automáticamente.',
+      'serviceCancelledByClient': 'Servicio cancelado por cliente',
+
+      // Service Expiration específica para técnico (faltante)
+      'serviceAutoCancelledAfterHour':
+          'Tu servicio ha sido cancelado automáticamente después de 1 hora.',
+
+      // Loading y Processing (faltantes)
+      'loadingEarningsError': 'Error cargando ganancias',
       'time': 'Tiempo',
       'technicianPreparingEquipment':
           'El técnico está preparando el equipo. El servicio comenzará pronto.',
@@ -645,7 +883,6 @@ class AppLocalizations {
       'serviceStarted': '⚡ Servicio Iniciado',
       'technicianStartedChargingVehicle':
           'El técnico ha comenzado la carga de tu vehículo eléctrico.',
-      'serviceCompletedSuccessfully': '✅ Servicio Completado',
       'vehicleChargedSuccessfully':
           '¡Tu vehículo ha sido cargado exitosamente! Gracias por usar VoltGo.',
       'statusUpdated': 'Estado Actualizado',
@@ -695,34 +932,18 @@ class AppLocalizations {
       'sessionExpired': 'Sesión expirada. Por favor, inicia sesión nuevamente.',
 
 // En español:
-      'settings': 'Ajustes',
 
-      'logout': 'Cerrar Sesión',
-      'logoutConfirmationMessage':
-          '¿Estás seguro de que quieres cerrar sesión?',
       'loggingOut': 'Cerrando sesión...',
-      'logoutError': 'Error al cerrar sesión. Inténtalo nuevamente.',
       'pleaseWait': 'Por favor espera...',
       'pleaseWaitMoment': 'Por favor espera un momento',
-      'error': 'Error',
-      'couldNotLoadProfile': 'No se pudo cargar el perfil',
-      'account': 'Cuenta',
-      'editProfile': 'Editar Perfil',
-      'securityAndPassword': 'Seguridad y Contraseña',
-      'chatHistory': 'Historial de Chats',
-      'paymentMethods': 'Métodos de Pago',
-      'vehicle': 'Vehículo',
-      'manageVehicles': 'Gestionar Vehículos',
-      'documents': 'Documentos',
+
       'serviceHistory': 'Historial de Servicios',
       'reviewPreviousServices': 'Revisa tus servicios anteriores',
       'all': 'Todo',
       'completed': 'Completado',
-      'pending': 'Pendiente',
       'accepted': 'Aceptado',
       'enRoute': 'En Camino',
       'charging': 'Cargando',
-      'today': 'Hoy',
       'yesterday': 'Ayer',
       'errorLoadingHistory': 'Error al cargar el historial',
       'noServicesInHistory': 'No tienes servicios en tu historial.',
@@ -741,6 +962,13 @@ class AppLocalizations {
       'baseLocation': 'Ubicación de Base',
       'selectLocationOnMap': 'Selecciona una ubicación en el mapa',
 
+      // ===== Service Expiration (FALTANTE) =====
+
+      // ===== Hardcoded Texts Found in Code (FALTANTES) =====
+      'noActiveServiceFound': 'No hay servicio activo',
+      'serviceTrackingLocation': 'Rastreando ubicación cada 30 segundos...',
+      'locationTrackingStopped': 'Rastreo de ubicación detenido.',
+      'requestListCleaned': 'Lista de solicitudes no disponibles limpiada',
       // Optional Documentation Section
       'optionalDocumentation': 'Documentación (Opcional)',
       'driverLicenseNumber': 'Número de licencia de conducir',
@@ -749,6 +977,7 @@ class AppLocalizations {
           'Foto de ID o certificación (AUN NO FUNCIONA, DEJAR ESTE CAMPO VACIO)',
       'selectFile': 'Seleccionar archivo (JPG, PNG, PDF)',
 
+      'noServiceHistory': 'No tienes servicios en tu historial.',
       // Services Section
       'servicesOffered': 'Servicios que ofreces',
       'jumpStart': 'Arranque',
@@ -776,6 +1005,7 @@ class AppLocalizations {
       'signUpWithApple': 'Registrarse con Apple',
       'or': 'O',
 // En español:
+
       'registerElectricVehicle': 'Registra tu Vehículo Eléctrico',
       'step': 'Paso',
       'of': 'de',
@@ -855,6 +1085,88 @@ class AppLocalizations {
       _localizedValues[locale.languageCode]!['onboardingTitle3']!;
   String get onboardingSubtitle3 =>
       _localizedValues[locale.languageCode]!['onboardingSubtitle3']!;
+
+  String get voltgoTechnician =>
+      _localizedValues[locale.languageCode]!['voltgoTechnician']!;
+  String get searchingRequestsText =>
+      _localizedValues[locale.languageCode]!['searchingRequests']!;
+  String get newRequest =>
+      _localizedValues[locale.languageCode]!['newRequest']!;
+  String get enRouteToClientPanel =>
+      _localizedValues[locale.languageCode]!['enRouteToClient']!;
+  String get serviceInProgressPanel =>
+      _localizedValues[locale.languageCode]!['serviceInProgressPanel']!;
+  String get loadingEarningsError =>
+      _localizedValues[locale.languageCode]!['loadingEarningsError']!;
+  String get logout => _localizedValues[locale.languageCode]!['logout']!;
+  String get logoutConfirmationMessage =>
+      _localizedValues[locale.languageCode]!['logoutConfirmationMessage']!;
+  String get cancel => _localizedValues[locale.languageCode]!['cancel']!;
+  String get settings => _localizedValues[locale.languageCode]!['settings']!;
+  String get error => _localizedValues[locale.languageCode]!['error']!;
+  String get couldNotLoadProfile =>
+      _localizedValues[locale.languageCode]!['couldNotLoadProfile']!;
+  String get account => _localizedValues[locale.languageCode]!['account']!;
+  String get editProfile =>
+      _localizedValues[locale.languageCode]!['editProfile']!;
+  String get securityAndPassword =>
+      _localizedValues[locale.languageCode]!['securityAndPassword']!;
+  String get chatHistory =>
+      _localizedValues[locale.languageCode]!['chatHistory']!;
+  String get paymentMethods =>
+      _localizedValues[locale.languageCode]!['paymentMethods']!;
+  String get vehicle => _localizedValues[locale.languageCode]!['vehicle']!;
+  String get manageVehicles =>
+      _localizedValues[locale.languageCode]!['manageVehicles']!;
+  String get documents => _localizedValues[locale.languageCode]!['documents']!;
+  String get logoutError =>
+      _localizedValues[locale.languageCode]!['logoutError']!;
+  String get myEarnings =>
+      _localizedValues[locale.languageCode]!['myEarnings']!;
+  String get today => _localizedValues[locale.languageCode]!['today']!;
+  String get week => _localizedValues[locale.languageCode]!['week']!;
+  String get history => _localizedValues[locale.languageCode]!['history']!;
+  String get withdrawFunds =>
+      _localizedValues[locale.languageCode]!['withdrawFunds']!;
+  String get availableBalance =>
+      _localizedValues[locale.languageCode]!['availableBalance']!;
+  String get withdrawalAmount =>
+      _localizedValues[locale.languageCode]!['withdrawalAmount']!;
+  String get minimumWithdrawal =>
+      _localizedValues[locale.languageCode]!['minimumWithdrawal']!;
+  String get paymentMethod =>
+      _localizedValues[locale.languageCode]!['paymentMethod']!;
+  String get bankTransfer =>
+      _localizedValues[locale.languageCode]!['bankTransfer']!;
+  String get debitCard => _localizedValues[locale.languageCode]!['debitCard']!;
+  String get confirmWithdrawal =>
+      _localizedValues[locale.languageCode]!['confirmWithdrawal']!;
+  String get minimumWithdrawalError =>
+      _localizedValues[locale.languageCode]!['minimumWithdrawalError']!;
+  String get insufficientBalance =>
+      _localizedValues[locale.languageCode]!['insufficientBalance']!;
+  String get withdrawalSuccess =>
+      _localizedValues[locale.languageCode]!['withdrawalSuccess']!;
+  String get withdrawalError =>
+      _localizedValues[locale.languageCode]!['withdrawalError']!;
+  String get todaySummary =>
+      _localizedValues[locale.languageCode]!['todaySummary']!;
+  String get earnings => _localizedValues[locale.languageCode]!['earnings']!;
+  String get services => _localizedValues[locale.languageCode]!['services']!;
+  String get tips => _localizedValues[locale.languageCode]!['tips']!;
+  String get distance => _localizedValues[locale.languageCode]!['distance']!;
+  String get rating => _localizedValues[locale.languageCode]!['rating']!;
+  String get thisWeek => _localizedValues[locale.languageCode]!['thisWeek']!;
+  String get thisMonth => _localizedValues[locale.languageCode]!['thisMonth']!;
+  String get totalEarned =>
+      _localizedValues[locale.languageCode]!['totalEarned']!;
+  String get pending => _localizedValues[locale.languageCode]!['pending']!;
+  String get noRecentServices =>
+      _localizedValues[locale.languageCode]!['noRecentServices']!;
+  String get recentActivity =>
+      _localizedValues[locale.languageCode]!['recentActivity']!;
+  String get realTimeTracking =>
+      _localizedValues[locale.languageCode]!['realTimeTracking']!;
 
 // GETTERS NECESARIOS PARA AppLocalizations:
   String get createAccount =>
@@ -997,7 +1309,6 @@ class AppLocalizations {
       _localizedValues[locale.languageCode]!['youHaveActiveService']!;
   String get tapToFindTechnician =>
       _localizedValues[locale.languageCode]!['tapToFindTechnician']!;
-  String get cancel => _localizedValues[locale.languageCode]!['cancel']!;
   String get cancelService =>
       _localizedValues[locale.languageCode]!['cancelService']!;
   String get followRealTime =>
@@ -1105,7 +1416,6 @@ class AppLocalizations {
       _localizedValues[locale.languageCode]!['systemInfo']!;
   String get serviceInfo =>
       _localizedValues[locale.languageCode]!['serviceInfo']!;
-  String get history => _localizedValues[locale.languageCode]!['history']!;
 
   // Additional getters for new strings
   String get chatWithTechnician =>
@@ -1202,35 +1512,11 @@ class AppLocalizations {
   String get serviceUpdatedCorrectly =>
       _localizedValues[locale.languageCode]!['serviceUpdatedCorrectly']!;
 
-// GETTERS NECESARIOS PARA AppLocalizations:
-  String get settings => _localizedValues[locale.languageCode]!['settings']!;
-  String get logout => _localizedValues[locale.languageCode]!['logout']!;
-  String get logoutConfirmationMessage =>
-      _localizedValues[locale.languageCode]!['logoutConfirmationMessage']!;
-  String get loggingOut =>
-      _localizedValues[locale.languageCode]!['loggingOut']!;
-  String get logoutError =>
-      _localizedValues[locale.languageCode]!['logoutError']!;
   String get pleaseWait =>
       _localizedValues[locale.languageCode]!['pleaseWait']!;
   String get pleaseWaitMoment =>
       _localizedValues[locale.languageCode]!['pleaseWaitMoment']!;
-  String get error => _localizedValues[locale.languageCode]!['error']!;
-  String get couldNotLoadProfile =>
-      _localizedValues[locale.languageCode]!['couldNotLoadProfile']!;
-  String get account => _localizedValues[locale.languageCode]!['account']!;
-  String get editProfile =>
-      _localizedValues[locale.languageCode]!['editProfile']!;
-  String get securityAndPassword =>
-      _localizedValues[locale.languageCode]!['securityAndPassword']!;
-  String get chatHistory =>
-      _localizedValues[locale.languageCode]!['chatHistory']!;
-  String get paymentMethods =>
-      _localizedValues[locale.languageCode]!['paymentMethods']!;
-  String get vehicle => _localizedValues[locale.languageCode]!['vehicle']!;
-  String get manageVehicles =>
-      _localizedValues[locale.languageCode]!['manageVehicles']!;
-  String get documents => _localizedValues[locale.languageCode]!['documents']!;
+
 // Searching
   String get nearbyTechnicians =>
       _localizedValues[locale.languageCode]!['nearbyTechnicians']!;
@@ -1400,6 +1686,124 @@ class AppLocalizations {
   String get chargingTime =>
       _localizedValues[locale.languageCode]!['chargingTime']!;
   String get min => _localizedValues[locale.languageCode]!['min']!;
+  String get waitingForRequests =>
+      _localizedValues[locale.languageCode]!['waitingForRequests']!;
+  String get reviewingIncomingRequest =>
+      _localizedValues[locale.languageCode]!['reviewingIncomingRequest']!;
+  String get headToClientLocation =>
+      _localizedValues[locale.languageCode]!['headToClientLocation']!;
+  String get chargingClientVehicle =>
+      _localizedValues[locale.languageCode]!['chargingClientVehicle']!;
+
+// Service Request Panel getters
+  String get newChargeRequest =>
+      _localizedValues[locale.languageCode]!['newChargeRequest']!;
+  String get client => _localizedValues[locale.languageCode]!['client']!;
+  String get estimatedEarnings =>
+      _localizedValues[locale.languageCode]!['estimatedEarnings']!;
+  String get reject => _localizedValues[locale.languageCode]!['reject']!;
+  String get accept => _localizedValues[locale.languageCode]!['accept']!;
+
+// Navigation getters
+  String get navigateToClient =>
+      _localizedValues[locale.languageCode]!['navigateToClient']!;
+  String get openInMaps =>
+      _localizedValues[locale.languageCode]!['openInMaps']!;
+  String get googleMaps =>
+      _localizedValues[locale.languageCode]!['googleMaps']!;
+  String get navigationWithTraffic =>
+      _localizedValues[locale.languageCode]!['navigationWithTraffic']!;
+  String get waze => _localizedValues[locale.languageCode]!['waze']!;
+  String get optimizedRoutes =>
+      _localizedValues[locale.languageCode]!['optimizedRoutes']!;
+  String get navigate => _localizedValues[locale.languageCode]!['navigate']!;
+  String get call => _localizedValues[locale.languageCode]!['call']!;
+
+  String get arrivedAtSite =>
+      _localizedValues[locale.languageCode]!['arrivedAtSite']!;
+  String get finishService =>
+      _localizedValues[locale.languageCode]!['finishService']!;
+  String get chargeServiceRequested =>
+      _localizedValues[locale.languageCode]!['chargeServiceRequested']!;
+
+// Success & Error Messages getters
+  String get requestAccepted =>
+      _localizedValues[locale.languageCode]!['requestAccepted']!;
+  String get errorAcceptingRequest =>
+      _localizedValues[locale.languageCode]!['errorAcceptingRequest']!;
+  String get requestTakenByAnother =>
+      _localizedValues[locale.languageCode]!['requestTakenByAnother']!;
+  String get noAuthorizationForRequest =>
+      _localizedValues[locale.languageCode]!['noAuthorizationForRequest']!;
+  String get errorLoadingData =>
+      _localizedValues[locale.languageCode]!['errorLoadingData']!;
+  String get pleaseEnableLocation =>
+      _localizedValues[locale.languageCode]!['pleaseEnableLocation']!;
+  String get locationPermissionRequired =>
+      _localizedValues[locale.languageCode]!['locationPermissionRequired']!;
+  String get noClientInformationAvailable =>
+      _localizedValues[locale.languageCode]!['noClientInformationAvailable']!;
+  String get noPhoneNumberAvailable =>
+      _localizedValues[locale.languageCode]!['noPhoneNumberAvailable']!;
+  String get couldNotOpenPhoneApp =>
+      _localizedValues[locale.languageCode]!['couldNotOpenPhoneApp']!;
+  String get errorMakingCall =>
+      _localizedValues[locale.languageCode]!['errorMakingCall']!;
+  String get errorChangingStatus =>
+      _localizedValues[locale.languageCode]!['errorChangingStatus']!;
+  String get couldNotOpenGoogleMaps =>
+      _localizedValues[locale.languageCode]!['couldNotOpenGoogleMaps']!;
+  String get wazeNotInstalled =>
+      _localizedValues[locale.languageCode]!['wazeNotInstalled']!;
+  String get couldNotOpenWaze =>
+      _localizedValues[locale.languageCode]!['couldNotOpenWaze']!;
+  String get noNavigationAppsAvailable =>
+      _localizedValues[locale.languageCode]!['noNavigationAppsAvailable']!;
+  String get couldNotOpenNavigationApp =>
+      _localizedValues[locale.languageCode]!['couldNotOpenNavigationApp']!;
+  String get requestNoLongerAvailable =>
+      _localizedValues[locale.languageCode]!['requestNoLongerAvailable']!;
+  String get clientCancelledRequest =>
+      _localizedValues[locale.languageCode]!['clientCancelledRequest']!;
+  String get errorCheckingStatus =>
+      _localizedValues[locale.languageCode]!['errorCheckingStatus']!;
+  String get requestNotAuthorizedAnymore =>
+      _localizedValues[locale.languageCode]!['requestNotAuthorizedAnymore']!;
+
+// Online/Offline Status getters
+  String get online => _localizedValues[locale.languageCode]!['online']!;
+  String get offline => _localizedValues[locale.languageCode]!['offline']!;
+  String get serviceActive =>
+      _localizedValues[locale.languageCode]!['serviceActive']!;
+  String get disconnected =>
+      _localizedValues[locale.languageCode]!['disconnected']!;
+
+// Service Cancellation getters
+  String get serviceCancelledTitle =>
+      _localizedValues[locale.languageCode]!['serviceCancelledTitle']!;
+  String get clientCancelledService =>
+      _localizedValues[locale.languageCode]!['clientCancelledService']!;
+  String get timeCompensation =>
+      _localizedValues[locale.languageCode]!['timeCompensation']!;
+  String get partialCompensationMessage =>
+      _localizedValues[locale.languageCode]!['partialCompensationMessage']!;
+  String get willContinueReceivingRequests =>
+      _localizedValues[locale.languageCode]!['willContinueReceivingRequests']!;
+  String get serviceCancelledByClient =>
+      _localizedValues[locale.languageCode]!['serviceCancelledByClient']!;
+
+// Service Expiration getter
+  String get serviceAutoCancelledAfterHour =>
+      _localizedValues[locale.languageCode]!['serviceAutoCancelledAfterHour']!;
+
+  String get noActiveServiceFound =>
+      _localizedValues[locale.languageCode]!['noActiveServiceFound']!;
+  String get serviceTrackingLocation =>
+      _localizedValues[locale.languageCode]!['serviceTrackingLocation']!;
+  String get locationTrackingStopped =>
+      _localizedValues[locale.languageCode]!['locationTrackingStopped']!;
+  String get requestListCleaned =>
+      _localizedValues[locale.languageCode]!['requestListCleaned']!;
 
 // UI elements
   String get followInRealTime =>
@@ -1423,11 +1827,9 @@ class AppLocalizations {
       _localizedValues[locale.languageCode]!['reviewPreviousServices']!;
   String get all => _localizedValues[locale.languageCode]!['all']!;
   String get completed => _localizedValues[locale.languageCode]!['completed']!;
-  String get pending => _localizedValues[locale.languageCode]!['pending']!;
   String get accepted => _localizedValues[locale.languageCode]!['accepted']!;
   String get enRoute => _localizedValues[locale.languageCode]!['enRoute']!;
   String get charging => _localizedValues[locale.languageCode]!['charging']!;
-  String get today => _localizedValues[locale.languageCode]!['today']!;
   String get yesterday => _localizedValues[locale.languageCode]!['yesterday']!;
   String get errorLoadingHistory =>
       _localizedValues[locale.languageCode]!['errorLoadingHistory']!;
@@ -1493,6 +1895,8 @@ class AppLocalizations {
   String get continueText =>
       _localizedValues[locale.languageCode]!['continueText']!;
 
+  String get loggingOut =>
+      _localizedValues[locale.languageCode]!['loggingOut']!;
 // Mensajes de validación específicos
   String get selectBrandMessage =>
       _localizedValues[locale.languageCode]!['selectBrandMessage']!;
@@ -1515,6 +1919,9 @@ class AppLocalizations {
   String get welcomeTechnician =>
       _localizedValues[locale.languageCode]!['welcomeTechnician']!;
 
+  String get noServiceHistory =>
+      _localizedValues[locale.languageCode]!['noServiceHistory']!;
+
 // Mensajes de validación generales
   String get fieldRequired =>
       _localizedValues[locale.languageCode]!['fieldRequired']!;
@@ -1529,6 +1936,8 @@ class AppLocalizations {
   String get previous => _localizedValues[locale.languageCode]!['previous']!;
   String get next => _localizedValues[locale.languageCode]!['next']!;
   String get register => _localizedValues[locale.languageCode]!['register']!;
+
+// Stats getters (faltantes)
 
 // Success messages
   String get thankYouForYourRating =>

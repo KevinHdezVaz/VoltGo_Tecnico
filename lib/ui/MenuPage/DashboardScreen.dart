@@ -178,7 +178,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       // ✅ CARGAR GANANCIAS AL INICIALIZAR
       await _loadEarnings();
     } catch (e) {
-      _showErrorSnackbar('Error al cargar datos: $e');
+      final localizations = AppLocalizations.of(context);
+      _showErrorSnackbar('${localizations.errorLoadingData}: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -291,7 +292,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         }
       });
     } catch (e) {
-      _showErrorSnackbar('Error al cambiar de estado: ${e.toString()}');
+      final localizations = AppLocalizations.of(context);
+      _showErrorSnackbar(
+          '${localizations.errorChangingStatus}: ${e.toString()}');
       setState(() {
         _driverStatus = !isOnline ? DriverStatus.online : DriverStatus.offline;
       });
@@ -422,6 +425,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
 // ✅ Contenido scrollable para el DraggableScrollableSheet
   Widget _buildScrollableNavigationContent(ScrollController scrollController) {
+    final localizations = AppLocalizations.of(context);
+
     final clientName = _currentRequest?.user?.name ?? 'Cliente';
     final lat = _currentRequest!.requestLat;
     final lng = _currentRequest!.requestLng;
@@ -460,7 +465,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Navegar hacia $clientName',
+                    '${localizations.navigateToClient} $clientName',
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -531,6 +536,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }
 
   Widget _buildNavigationSheet() {
+    final localizations = AppLocalizations.of(context);
+
     final clientName = _currentRequest?.user?.name ?? 'Cliente';
     final lat = _currentRequest!.requestLat;
     final lng = _currentRequest!.requestLng;
@@ -651,8 +658,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 // Google Maps
                 _buildNavigationOption(
                   icon: Icons.map,
-                  title: 'Google Maps',
-                  subtitle: 'Navegación con tráfico en tiempo real',
+                  title: localizations.googleMaps,
+                  subtitle: localizations.navigationWithTraffic,
                   color: Colors.blue,
                   onTap: () async {
                     Navigator.pop(context);
@@ -665,8 +672,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 // Waze
                 _buildNavigationOption(
                   icon: Icons.directions_car,
-                  title: 'Waze',
-                  subtitle: 'Rutas optimizadas y alertas comunitarias',
+                  title: localizations.waze,
+                  subtitle: localizations.optimizedRoutes,
                   color: Colors.purple,
                   onTap: () async {
                     Navigator.pop(context);
@@ -1075,6 +1082,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   // ✅ NUEVO: Manejar cuando una solicitud ya no está disponible
   void _handleRequestUnavailable() {
+    final localizations = AppLocalizations.of(context);
+
     if (_currentRequest != null) {
       _unavailableRequestIds.add(_currentRequest!.id);
     }
@@ -1091,12 +1100,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       _isDialogShowing = false;
     });
 
-    _showErrorSnackbar('Esta solicitud ya no está disponible');
+    _showErrorSnackbar(localizations.requestNoLongerAvailable);
     _startRequestChecker(); // Reiniciar la búsqueda de solicitudes
   }
 
   // ✅ NUEVO: Manejar cuando una solicitud es cancelada
   void _handleRequestCancelled() {
+    final localizations = AppLocalizations.of(context);
+
     // Cerrar el diálogo si está abierto
     if (_isDialogShowing && Navigator.canPop(context)) {
       Navigator.of(context).pop(false);
@@ -1109,7 +1120,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       _isDialogShowing = false;
     });
 
-    _showErrorSnackbar('El cliente canceló la solicitud');
+    _showErrorSnackbar(localizations.clientCancelledRequest);
     _startRequestChecker(); // Reiniciar la búsqueda de solicitudes
   }
 
@@ -1245,6 +1256,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   // ✅ NUEVO: Diálogo cuando cliente cancela
   void _showClientCancellationDialog() {
+    final localizations = AppLocalizations.of(context);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1265,9 +1278,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Servicio Cancelado',
+                localizations.serviceCancelledTitle,
                 style: TextStyle(fontSize: 18),
               ),
             ),
@@ -1278,11 +1291,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'El cliente ha cancelado el servicio.',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              localizations.clientCancelledService,
+              style:
+                  GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             Container(
@@ -1300,7 +1311,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       Icon(Icons.info_outline, color: Colors.blue, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        'Compensación por tiempo',
+                        localizations.timeCompensation,
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w600,
                           color: Colors.blue.shade700,
@@ -1310,7 +1321,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Recibirás una compensación parcial por el tiempo invertido en este servicio.',
+                    localizations.partialCompensationMessage,
                     style: GoogleFonts.inter(fontSize: 14),
                   ),
                 ],
@@ -1330,7 +1341,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Continuarás recibiendo nuevas solicitudes automáticamente.',
+                      localizations.willContinueReceivingRequests,
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         color: Colors.green.shade700,
@@ -1463,10 +1474,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   // ELIMINADO: _checkRequestStatusPeriodically() ya no es necesario
   Future<void> _startLocationTracking() async {
+    final localizations = AppLocalizations.of(context);
+
     bool serviceEnabled = await _location.serviceEnabled();
     if (!serviceEnabled) serviceEnabled = await _location.requestService();
     if (!serviceEnabled) {
-      _showErrorSnackbar('Por favor, activa el servicio de ubicación.');
+      _showErrorSnackbar(localizations.pleaseEnableLocation);
       _toggleOnlineStatus(false);
       return;
     }
@@ -1475,7 +1488,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     if (permission == PermissionStatus.denied) {
       permission = await _location.requestPermission();
       if (permission != PermissionStatus.granted) {
-        _showErrorSnackbar('El permiso de ubicación es necesario para operar.');
+        _showErrorSnackbar(localizations.locationPermissionRequired);
         _toggleOnlineStatus(false);
         return;
       }
@@ -1626,18 +1639,19 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
-  // Modified _getStatusTitle method
   String _getStatusTitle() {
     final localizations = AppLocalizations.of(context);
     switch (_driverStatus) {
       case DriverStatus.offline:
         return localizations.voltgoTechnician;
       case DriverStatus.online:
-        return localizations.searchingRequests;
+        return localizations
+            .searchingRequestsText; // Assuming you fixed this as per the previous response
       case DriverStatus.incomingRequest:
         return localizations.newRequest;
       case DriverStatus.enRouteToUser:
-        return localizations.enRouteToClient;
+        return localizations
+            .enRouteToClientPanel; // Use enRouteToClientPanel instead of enRouteToClient
       case DriverStatus.onService:
         return localizations.serviceInProgress;
     }
@@ -1734,6 +1748,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 // En tu clase _DriverDashboardScreenState
 
   Widget _buildTopHeaderPanel() {
+    final localizations = AppLocalizations.of(context);
+
     // Determinar el estado actual para la lógica de la UI
     final bool isOnline = _driverStatus != DriverStatus.offline;
     final bool isDuringService = _driverStatus == DriverStatus.enRouteToUser ||
@@ -1812,8 +1828,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                             // El texto cambia si hay un servicio activo
                             Text(
                               isDuringService
-                                  ? 'SERVICIO ACTIVO'
-                                  : (isOnline ? 'EN LÍNEA' : 'DESCONECTADO'),
+                                  ? localizations.serviceActive
+                                  : (isOnline
+                                      ? localizations.online
+                                      : localizations.offline),
                               style: const TextStyle(
                                 color: AppColors.textOnPrimary,
                                 fontSize: 11,
@@ -2107,13 +2125,18 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }
 
   Widget _buildActiveServicePanel() {
+    final localizations = AppLocalizations.of(context);
+
     if (_currentRequest == null) {
       return const SizedBox.shrink();
     }
 
     final bool enRuta = _driverStatus == DriverStatus.enRouteToUser;
-    final String title =
-        enRuta ? 'EN RUTA HACIA EL CLIENTE' : 'SERVICIO EN CURSO';
+
+    final String title = enRuta
+        ? localizations.enRouteToClientPanel
+        : localizations.serviceInProgressPanel;
+
     final String mainButtonText =
         enRuta ? 'HE LLEGADO AL SITIO' : 'FINALIZAR SERVICIO';
     final IconData mainButtonIcon =
@@ -2175,11 +2198,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Servicio de recarga solicitado',
+                        localizations.chargeServiceRequested,
                         style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
+                            fontSize: 12, color: AppColors.textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -2344,9 +2365,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }
 
   void _callClient() async {
+    final localizations = AppLocalizations.of(context);
+
     // Ensure there is an active request
     if (_currentRequest == null || _currentRequest!.user == null) {
-      _showErrorSnackbar('No hay información del cliente disponible');
+      _showErrorSnackbar(localizations.noClientInformationAvailable);
       return;
     }
 
@@ -2355,7 +2378,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
     // Check if the phone number is valid
     if (clientPhone == null || clientPhone.isEmpty) {
-      _showErrorSnackbar('No hay número de teléfono disponible');
+      _showErrorSnackbar(localizations.noPhoneNumberAvailable);
       return;
     }
 
@@ -2368,7 +2391,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
         print('✅ Llamada iniciada al cliente: $clientPhone');
       } else {
-        _showErrorSnackbar('No se pudo abrir la aplicación de teléfono');
+        _showErrorSnackbar(localizations.couldNotOpenPhoneApp);
       }
     } catch (e) {
       print('❌ Error al intentar llamar: $e');

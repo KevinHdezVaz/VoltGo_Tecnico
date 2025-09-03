@@ -1,5 +1,6 @@
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/services/HistoryService.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,7 +15,7 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen>
     with SingleTickerProviderStateMixin {
   late Future<List<ServiceRequestModel>> _historyFuture;
-  String _selectedFilter = 'Todo';
+  String _selectedFilter = 'All'; // Valor predeterminado
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   List<ServiceRequestModel> _historyItems = [];
@@ -30,6 +31,12 @@ class _HistoryScreenState extends State<HistoryScreen>
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _selectedFilter = AppLocalizations.of(context).all; // Inicializar aquí
   }
 
   @override
@@ -51,7 +58,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   List<ServiceRequestModel> get _filteredList {
-    if (_selectedFilter == 'Todo') {
+    if (_selectedFilter == AppLocalizations.of(context).all) {
       return _historyItems;
     }
     return _historyItems
@@ -65,9 +72,9 @@ class _HistoryScreenState extends State<HistoryScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Historial de Servicios',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context).serviceHistory,
+          style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 22,
             color: Colors.white,
@@ -105,11 +112,11 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
                 child: Text(
-                  'Revisa tus servicios anteriores',
-                  style: TextStyle(
+                  AppLocalizations.of(context).reviewPreviousServices,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textSecondary,
@@ -165,11 +172,11 @@ class _HistoryScreenState extends State<HistoryScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            _buildChip('Todo'),
+            _buildChip(AppLocalizations.of(context).all),
             const SizedBox(width: 12),
-            _buildChip('Completado'),
+            _buildChip(AppLocalizations.of(context).completed),
             const SizedBox(width: 12),
-            _buildChip('Cancelado'),
+            _buildChip(AppLocalizations.of(context).cancelled),
           ],
         ),
       ),
@@ -304,7 +311,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Error al cargar el historial: $error',
+            '${AppLocalizations.of(context).errorLoadingHistory}: $error',
             style: const TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
@@ -323,9 +330,9 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: const Text(
-              'Reintentar',
-              style: TextStyle(fontWeight: FontWeight.w600),
+            child: Text(
+              AppLocalizations.of(context).retry,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -344,9 +351,9 @@ class _HistoryScreenState extends State<HistoryScreen>
             size: 48,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No tienes servicios en tu historial.',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context).noServiceHistory,
+            style: const TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
@@ -355,8 +362,8 @@ class _HistoryScreenState extends State<HistoryScreen>
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
-              // TODO: Navigate to request service screen
               HapticFeedback.lightImpact();
+              // TODO: Navigate to request service screen
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -366,9 +373,9 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: const Text(
-              'Solicitar Servicio',
-              style: TextStyle(fontWeight: FontWeight.w600),
+            child: Text(
+              AppLocalizations.of(context).requestService,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],

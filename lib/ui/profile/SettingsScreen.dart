@@ -1,6 +1,7 @@
 import 'package:Voltgo_app/data/models/User/UserModel.dart';
 import 'package:Voltgo_app/data/services/ChatHistoryScreen.dart';
 import 'package:Voltgo_app/data/services/auth_api_service.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
 import 'package:Voltgo_app/utils/EditVehicleScreen.dart';
@@ -21,16 +22,12 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _darkModeEnabled = false;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-
-  // ✅ NUEVA VARIABLE: Para controlar el estado de logout
   bool _isLoggingOut = false;
 
   @override
   void initState() {
     super.initState();
-    // ▼▼▼ 3. LLAMA AL SERVICIO CUANDO LA PANTALLA SE INICIA ▼▼▼
     _userFuture = AuthService.fetchUserProfile();
-
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -46,9 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     super.dispose();
   }
 
-  // ✅ MÉTODO MEJORADO: Logout con indicador de carga
   Future<void> _handleLogout() async {
-    // Mostrar diálogo de confirmación primero
     final shouldLogout = await _showLogoutConfirmationDialog();
     if (!shouldLogout) return;
 
@@ -58,17 +53,11 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     try {
       HapticFeedback.mediumImpact();
-
-      // Simular un pequeño delay para mostrar el indicador
       await Future.delayed(const Duration(milliseconds: 500));
-
-      // Realizar el logout
       await AuthService.logout();
 
       if (mounted) {
-        // Pequeño delay adicional para suavizar la transición
         await Future.delayed(const Duration(milliseconds: 300));
-
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -76,7 +65,6 @@ class _SettingsScreenState extends State<SettingsScreen>
         );
       }
     } catch (e) {
-      // Manejar errores de logout
       if (mounted) {
         setState(() {
           _isLoggingOut = false;
@@ -90,7 +78,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Error al cerrar sesión. Inténtalo nuevamente.',
+                    AppLocalizations.of(context)
+                        .logoutError, // Usa AppLocalizations
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -108,7 +97,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-  // ✅ NUEVO MÉTODO: Diálogo de confirmación
   Future<bool> _showLogoutConfirmationDialog() async {
     return await showDialog<bool>(
           context: context,
@@ -133,24 +121,25 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Cerrar Sesión',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context).logout, // Usa AppLocalizations
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              content: const Text(
-                '¿Estás seguro de que quieres cerrar sesión?',
-                style: TextStyle(fontSize: 16),
+              content: Text(
+                AppLocalizations.of(context)
+                    .logoutConfirmationMessage, // Usa AppLocalizations
+                style: const TextStyle(fontSize: 16),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   child: Text(
-                    'Cancelar',
+                    AppLocalizations.of(context).cancel, // Usa AppLocalizations
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
@@ -169,9 +158,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                       vertical: 12,
                     ),
                   ),
-                  child: const Text(
-                    'Cerrar Sesión',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context).logout, // Usa AppLocalizations
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
@@ -189,9 +178,9 @@ class _SettingsScreenState extends State<SettingsScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Ajustes',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context).settings, // Usa AppLocalizations
+          style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 22,
             color: AppColors.textOnPrimary,
@@ -230,39 +219,39 @@ class _SettingsScreenState extends State<SettingsScreen>
               future: _userFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  // Muestra un loader mientras carga
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError || !snapshot.hasData) {
-                  // Muestra un estado de error si algo falla
                   return _buildProfileHeader(
-                      name: 'Error', email: 'No se pudo cargar el perfil');
+                    name: AppLocalizations.of(context)
+                        .error, // Usa AppLocalizations
+                    email: AppLocalizations.of(context)
+                        .couldNotLoadProfile, // Usa AppLocalizations
+                  );
                 }
-                // Si todo sale bien, muestra los datos del usuario
                 final user = snapshot.data!;
                 return _buildProfileHeader(name: user.name, email: user.email);
               },
             ),
             const SizedBox(height: 24),
-            // Account Section
-            _buildSectionHeader('Cuenta'),
+            _buildSectionHeader(
+                AppLocalizations.of(context).account), // Usa AppLocalizations
             _buildSettingsItem(
               icon: Icons.person_outline,
-              title: 'Editar Perfil',
-              onTap: () {
-                // TODO: Navigate to edit profile screen
-              },
+              title: AppLocalizations.of(context)
+                  .editProfile, // Usa AppLocalizations
+              onTap: () {},
             ),
             _buildSettingsItem(
               icon: Icons.lock_outline,
-              title: 'Seguridad y Contraseña',
-              onTap: () {
-                // TODO: Navigate to security screen
-              },
+              title: AppLocalizations.of(context)
+                  .securityAndPassword, // Usa AppLocalizations
+              onTap: () {},
             ),
             _buildSettingsItem(
               icon: Icons.directions_car_outlined,
-              title: 'Mensajes',
+              title: AppLocalizations.of(context)
+                  .chatHistory, // Usa AppLocalizations
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -272,17 +261,17 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
             _buildSettingsItem(
               icon: Icons.account_balance_wallet_outlined,
-              title: 'Métodos de Pago',
-              onTap: () {
-                // TODO: Navigate to payments screen
-              },
+              title: AppLocalizations.of(context)
+                  .paymentMethods, // Usa AppLocalizations
+              onTap: () {},
             ),
             const Divider(height: 32, color: AppColors.gray300),
-            // Vehicle Section
-            _buildSectionHeader('Vehículo'),
+            _buildSectionHeader(
+                AppLocalizations.of(context).vehicle), // Usa AppLocalizations
             _buildSettingsItem(
               icon: Icons.directions_car_outlined,
-              title: 'Gestionar Vehículos',
+              title: AppLocalizations.of(context)
+                  .manageVehicles, // Usa AppLocalizations
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -292,16 +281,12 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
             _buildSettingsItem(
               icon: Icons.article_outlined,
-              title: 'Documentos',
-              onTap: () {
-                // TODO: Navigate to documents screen
-              },
+              title: AppLocalizations.of(context)
+                  .documents, // Usa AppLocalizations
+              onTap: () {},
             ),
-            // Preferences Section
-
             const Divider(height: 32, color: AppColors.gray300),
             const SizedBox(height: 24),
-            // ✅ LOGOUT BUTTON MEJORADO
             _buildLogoutButton(),
           ],
         ),
@@ -310,7 +295,6 @@ class _SettingsScreenState extends State<SettingsScreen>
         onPressed: _isLoggingOut
             ? null
             : () {
-                // TODO: Navigate to edit profile or primary action
                 HapticFeedback.lightImpact();
               },
         backgroundColor: _isLoggingOut ? AppColors.disabled : AppColors.accent,
@@ -320,7 +304,8 @@ class _SettingsScreenState extends State<SettingsScreen>
               _isLoggingOut ? AppColors.textSecondary : AppColors.textOnPrimary,
         ),
         elevation: 4,
-        tooltip: 'Editar Perfil',
+        tooltip:
+            AppLocalizations.of(context).editProfile, // Usa AppLocalizations
       ),
     );
   }
@@ -352,7 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name, // Usa el nombre del parámetro
+                  name,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -361,7 +346,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  email, // Usa el email del parámetro
+                  email,
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,
@@ -444,57 +429,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  Widget _buildSwitchItem({
-    required IconData icon,
-    required String title,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 3,
-      shadowColor: AppColors.gray300.withOpacity(0.4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            border: Border.all(color: AppColors.border.withOpacity(0.5)),
-          ),
-          child: SwitchListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            secondary: Icon(icon, color: AppColors.brandBlue, size: 28),
-            title: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            value: value,
-            onChanged: (newValue) {
-              HapticFeedback.lightImpact();
-              onChanged(newValue);
-            },
-            activeColor: AppColors.accent,
-            activeTrackColor: AppColors.accent.withOpacity(0.5),
-            inactiveThumbColor: AppColors.disabled,
-            inactiveTrackColor: AppColors.lightGrey,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ✅ WIDGET MEJORADO: Botón de logout con indicador de carga
   Widget _buildLogoutButton() {
     return GestureDetector(
       onTapDown: _isLoggingOut ? null : (_) => _animationController.forward(),
@@ -546,7 +480,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                         size: 28,
                       ),
                 title: Text(
-                  _isLoggingOut ? 'Cerrando Sesión...' : 'Cerrar Sesión',
+                  _isLoggingOut
+                      ? AppLocalizations.of(context)
+                          .loggingOut // Usa AppLocalizations
+                      : AppLocalizations.of(context)
+                          .logout, // Usa AppLocalizations
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -555,10 +493,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                         : AppColors.error,
                   ),
                 ),
-                // ✅ TEXTO ADICIONAL cuando está cargando
                 subtitle: _isLoggingOut
                     ? Text(
-                        'Por favor espera...',
+                        AppLocalizations.of(context)
+                            .pleaseWait, // Usa AppLocalizations
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary.withOpacity(0.7),

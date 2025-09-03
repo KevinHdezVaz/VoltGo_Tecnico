@@ -1,3 +1,4 @@
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:Voltgo_app/data/services/EarningsService.dart';
@@ -20,8 +21,6 @@ class _EarningsScreenState extends State<EarningsScreen>
   String _selectedPeriod = 'today';
   int _currentPage = 1;
   bool _hasMorePages = true;
-
-  // Para el modal de retiro
   final _withdrawAmountController = TextEditingController();
   String _selectedPaymentMethod = 'bank_transfer';
 
@@ -57,7 +56,8 @@ class _EarningsScreenState extends State<EarningsScreen>
       print('Error cargando datos: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-        //      _showErrorSnackBar('Error al cargar los datos');
+        _showErrorSnackBar(AppLocalizations.of(context)
+            .loadingEarningsError); // Usa AppLocalizations
       }
     }
   }
@@ -89,6 +89,66 @@ class _EarningsScreenState extends State<EarningsScreen>
         setState(() => _isLoadingHistory = false);
       }
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
   }
 
   void _showWithdrawModal() {
@@ -125,9 +185,10 @@ class _EarningsScreenState extends State<EarningsScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Retirar Fondos',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)
+                    .withdrawFunds, // Usa AppLocalizations
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -135,7 +196,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'Balance disponible: \$${availableBalance.toStringAsFixed(2)}',
+                '${AppLocalizations.of(context).availableBalance}: \$${availableBalance.toStringAsFixed(2)}', // Usa AppLocalizations
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 14,
@@ -146,9 +207,11 @@ class _EarningsScreenState extends State<EarningsScreen>
                 controller: _withdrawAmountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: 'Monto a retirar',
+                  labelText: AppLocalizations.of(context)
+                      .withdrawalAmount, // Usa AppLocalizations
                   prefixText: '\$',
-                  hintText: 'Mínimo \$10.00',
+                  hintText: AppLocalizations.of(context)
+                      .minimumWithdrawal, // Usa AppLocalizations
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -160,9 +223,10 @@ class _EarningsScreenState extends State<EarningsScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Método de pago',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)
+                    .paymentMethod, // Usa AppLocalizations
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
@@ -171,12 +235,13 @@ class _EarningsScreenState extends State<EarningsScreen>
               const SizedBox(height: 8),
               _buildPaymentMethodOption(
                 'bank_transfer',
-                'Transferencia Bancaria',
+                AppLocalizations.of(context)
+                    .bankTransfer, // Usa AppLocalizations
                 Icons.account_balance,
               ),
               _buildPaymentMethodOption(
                 'debit_card',
-                'Tarjeta de Débito',
+                AppLocalizations.of(context).debitCard, // Usa AppLocalizations
                 Icons.credit_card,
               ),
               const SizedBox(height: 20),
@@ -191,9 +256,10 @@ class _EarningsScreenState extends State<EarningsScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Confirmar Retiro',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)
+                        .confirmWithdrawal, // Usa AppLocalizations
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.white,
@@ -256,7 +322,8 @@ class _EarningsScreenState extends State<EarningsScreen>
     final amount = double.tryParse(_withdrawAmountController.text) ?? 0;
 
     if (amount < 10) {
-      //_showErrorSnackBar('El monto mínimo de retiro es \$10.00');
+      _showErrorSnackBar(AppLocalizations.of(context)
+          .minimumWithdrawalError); // Usa AppLocalizations
       return;
     }
 
@@ -265,13 +332,13 @@ class _EarningsScreenState extends State<EarningsScreen>
         0.0;
 
     if (amount > availableBalance) {
-      //   _showErrorSnackBar('Saldo insuficiente');
+      _showErrorSnackBar(AppLocalizations.of(context)
+          .insufficientBalance); // Usa AppLocalizations
       return;
     }
 
     Navigator.pop(context);
-
-    //  _showLoadingDialog();
+    _showLoadingDialog();
 
     final success = await EarningsService.requestWithdrawal(
       amount,
@@ -281,11 +348,13 @@ class _EarningsScreenState extends State<EarningsScreen>
     Navigator.pop(context); // Cerrar loading
 
     if (success) {
-      //  _showSuccessSnackBar('Retiro procesado exitosamente');
+      _showSuccessSnackBar(AppLocalizations.of(context)
+          .withdrawalSuccess); // Usa AppLocalizations
       _withdrawAmountController.clear();
-      _loadEarningsData(); // Recargar datos
+      _loadEarningsData();
     } else {
-      //    _showErrorSnackBar('Error al procesar el retiro');
+      _showErrorSnackBar(
+          AppLocalizations.of(context).withdrawalError); // Usa AppLocalizations
     }
   }
 
@@ -324,9 +393,9 @@ class _EarningsScreenState extends State<EarningsScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text(
-        'Mis Ganancias',
-        style: TextStyle(
+      title: Text(
+        AppLocalizations.of(context).myEarnings, // Usa AppLocalizations
+        style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 20,
           color: AppColors.textOnPrimary,
@@ -362,10 +431,12 @@ class _EarningsScreenState extends State<EarningsScreen>
         unselectedLabelColor: AppColors.textSecondary,
         indicatorColor: AppColors.primary,
         indicatorWeight: 3,
-        tabs: const [
-          Tab(text: 'Hoy'),
-          Tab(text: 'Semana'),
-          Tab(text: 'Historial'),
+        tabs: [
+          Tab(text: AppLocalizations.of(context).today), // Usa AppLocalizations
+          Tab(text: AppLocalizations.of(context).week), // Usa AppLocalizations
+          Tab(
+              text:
+                  AppLocalizations.of(context).history), // Usa AppLocalizations
         ],
       ),
     );
@@ -408,11 +479,12 @@ class _EarningsScreenState extends State<EarningsScreen>
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildPeriodCard('Esta Semana', weekData, AppColors.info),
+            _buildPeriodCard(AppLocalizations.of(context).thisWeek, weekData,
+                AppColors.info), // Usa AppLocalizations
             const SizedBox(height: 16),
-            _buildPeriodCard('Este Mes', monthData, AppColors.success),
+            _buildPeriodCard(AppLocalizations.of(context).thisMonth, monthData,
+                AppColors.success), // Usa AppLocalizations
             const SizedBox(height: 20),
-            // _buildEarningsChart(),
           ],
         ),
       ),
@@ -442,9 +514,8 @@ class _EarningsScreenState extends State<EarningsScreen>
                 ),
               );
             }
-
             final earning = _earningsHistory[index];
-            //  return _buildHistoryItem(earning);
+            // return _buildHistoryItem(earning);
           },
         ),
       ),
@@ -486,7 +557,8 @@ class _EarningsScreenState extends State<EarningsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Balance Disponible',
+                    AppLocalizations.of(context)
+                        .availableBalance, // Usa AppLocalizations
                     style: TextStyle(
                       color: AppColors.textOnPrimary.withOpacity(0.9),
                       fontSize: 14,
@@ -534,7 +606,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Pendiente: \$${pendingBalance.toStringAsFixed(2)}',
+                    '${AppLocalizations.of(context).pending}: \$${pendingBalance.toStringAsFixed(2)}', // Usa AppLocalizations
                     style: TextStyle(
                       color: AppColors.textOnPrimary.withOpacity(0.9),
                       fontSize: 12,
@@ -564,8 +636,10 @@ class _EarningsScreenState extends State<EarningsScreen>
                   const SizedBox(width: 8),
                   Text(
                     balance >= 10
-                        ? 'Retirar Fondos'
-                        : 'Mínimo \$10 para retirar',
+                        ? AppLocalizations.of(context)
+                            .withdrawFunds // Usa AppLocalizations
+                        : AppLocalizations.of(context)
+                            .minimumWithdrawal, // Usa AppLocalizations
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -608,9 +682,10 @@ class _EarningsScreenState extends State<EarningsScreen>
             children: [
               Icon(Icons.today, color: AppColors.primary, size: 24),
               const SizedBox(width: 8),
-              const Text(
-                'Resumen de Hoy',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)
+                    .todaySummary, // Usa AppLocalizations
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -624,18 +699,14 @@ class _EarningsScreenState extends State<EarningsScreen>
             children: [
               _buildStatItem(
                 '\$${earnings.toStringAsFixed(2)}',
-                'Ganancias',
+                AppLocalizations.of(context).earnings, // Usa AppLocalizations
                 AppColors.success,
                 Icons.attach_money,
               ),
-              Container(
-                width: 1,
-                height: 40,
-                color: AppColors.gray300,
-              ),
+              Container(width: 1, height: 40, color: AppColors.gray300),
               _buildStatItem(
                 services.toString(),
-                'Servicios',
+                AppLocalizations.of(context).services, // Usa AppLocalizations
                 AppColors.info,
                 Icons.electric_bolt,
               ),
@@ -646,7 +717,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               ),
               _buildStatItem(
                 '\$${tips.toStringAsFixed(2)}',
-                'Propinas',
+                AppLocalizations.of(context).tips, // Usa AppLocalizations
                 AppColors.warning,
                 Icons.card_giftcard,
               ),
@@ -692,7 +763,7 @@ class _EarningsScreenState extends State<EarningsScreen>
       children: [
         Expanded(
           child: _buildQuickStatCard(
-            'Distancia',
+            AppLocalizations.of(context).distance, // Usa AppLocalizations
             '${distance.toStringAsFixed(1)} km',
             Icons.route,
             AppColors.primary,
@@ -701,7 +772,7 @@ class _EarningsScreenState extends State<EarningsScreen>
         const SizedBox(width: 12),
         Expanded(
           child: _buildQuickStatCard(
-            'Calificación',
+            AppLocalizations.of(context).rating, // Usa AppLocalizations
             rating > 0 ? rating.toStringAsFixed(1) : 'N/A',
             Icons.star,
             AppColors.warning,
@@ -802,7 +873,8 @@ class _EarningsScreenState extends State<EarningsScreen>
                     ),
                   ),
                   Text(
-                    'Total ganado',
+                    AppLocalizations.of(context)
+                        .totalEarned, // Usa AppLocalizations
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.white.withOpacity(0.9),
@@ -827,7 +899,8 @@ class _EarningsScreenState extends State<EarningsScreen>
                       ),
                     ),
                     Text(
-                      'Servicios',
+                      AppLocalizations.of(context)
+                          .services, // Usa AppLocalizations
                       style: TextStyle(
                         fontSize: 10,
                         color: AppColors.white.withOpacity(0.9),
@@ -841,11 +914,16 @@ class _EarningsScreenState extends State<EarningsScreen>
           const SizedBox(height: 12),
           Row(
             children: [
-              _buildMiniStat(Icons.card_giftcard,
-                  '\$${tips.toStringAsFixed(2)}', 'Propinas'),
+              _buildMiniStat(
+                  Icons.card_giftcard,
+                  '\$${tips.toStringAsFixed(2)}',
+                  AppLocalizations.of(context).tips), // Usa AppLocalizations
               const SizedBox(width: 20),
-              _buildMiniStat(Icons.route, '${distance.toStringAsFixed(1)} km',
-                  'Distancia'),
+              _buildMiniStat(
+                  Icons.route,
+                  '${distance.toStringAsFixed(1)} km',
+                  AppLocalizations.of(context)
+                      .distance), // Usa AppLocalizations
             ],
           ),
         ],
@@ -896,7 +974,8 @@ class _EarningsScreenState extends State<EarningsScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'No hay servicios recientes',
+              AppLocalizations.of(context)
+                  .noRecentServices, // Usa AppLocalizations
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -910,9 +989,9 @@ class _EarningsScreenState extends State<EarningsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Actividad Reciente',
-          style: TextStyle(
+        Text(
+          AppLocalizations.of(context).recentActivity, // Usa AppLocalizations
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
@@ -921,7 +1000,7 @@ class _EarningsScreenState extends State<EarningsScreen>
         const SizedBox(height: 12),
         ...(_earningsHistory
             .take(5)
-            //    .map((earning) => _buildHistoryItem(earning))
+            // .map((earning) => _buildHistoryItem(earning))
             .toList()),
       ],
     );
