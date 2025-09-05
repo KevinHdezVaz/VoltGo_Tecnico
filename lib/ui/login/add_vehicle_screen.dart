@@ -1,4 +1,5 @@
 import 'package:Voltgo_app/data/services/vehicles_service.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -35,7 +36,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Vehículo registrado con éxito',
+            AppLocalizations.of(context).vehicleRegisteredSuccess,
             style: TextStyle(color: AppColors.textOnPrimary),
           ),
           backgroundColor: AppColors.success,
@@ -52,7 +53,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Error al registrar el vehículo: $e',
+            '${AppLocalizations.of(context).vehicleRegistrationError}: $e',
             style: TextStyle(color: AppColors.textOnPrimary),
           ),
           backgroundColor: AppColors.error,
@@ -79,12 +80,14 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     return Theme(
       data: Theme.of(context).copyWith(
         textTheme: Theme.of(context).textTheme.apply(
-              bodyColor: AppColors.textPrimary,
-              displayColor: AppColors.textPrimary,
-            ),
+          bodyColor: AppColors.textPrimary,
+          displayColor: AppColors.textPrimary,
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
@@ -139,11 +142,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'Registrar Vehículo',
+            localizations.registerVehicle,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           centerTitle: true,
         ),
@@ -157,15 +160,15 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 children: [
                   const SizedBox(height: 16),
                   Text(
-                    'Registra tu vehículo',
+                    localizations.registerVehicle,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Completa los detalles para continuar',
+                    localizations.completeRequiredFields,
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 16,
@@ -174,34 +177,34 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   const SizedBox(height: 32),
                   _buildTextField(
                     controller: _makeController,
-                    label: 'Marca',
+                    label: localizations.brand,
                     hint: 'Ej. Tesla',
                     icon: Icons.car_repair,
                     validator: (value) =>
-                        value!.isEmpty ? 'Ingresa la marca' : null,
+                        value!.isEmpty ? localizations.selectBrandMessage : null,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _modelController,
-                    label: 'Modelo',
-                    hint: 'Ej. Model 3',
+                    label: localizations.model,
+                    hint: localizations.modelHint,
                     icon: Icons.directions_car,
                     validator: (value) =>
-                        value!.isEmpty ? 'Ingresa el modelo' : null,
+                        value!.isEmpty ? localizations.enterModelMessage : null,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _yearController,
-                    label: 'Año',
+                    label: localizations.year,
                     hint: 'Ej. 2023',
                     icon: Icons.calendar_today,
                     keyboardType: TextInputType.number,
                     validator: (value) {
-                      if (value!.isEmpty) return 'Ingresa el año';
+                      if (value!.isEmpty) return localizations.enterYearMessage;
                       if (int.tryParse(value) == null ||
                           int.parse(value) < 1900 ||
                           int.parse(value) > DateTime.now().year) {
-                        return 'Ingresa un año válido';
+                        return localizations.validYearMessage;
                       }
                       return null;
                     },
@@ -209,11 +212,12 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _connectorController,
-                    label: 'Tipo de Conector',
+                    label: localizations.connectorType,
                     hint: 'Ej. CCS2',
                     icon: Icons.ev_station,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Ingresa el tipo de conector' : null,
+                    validator: (value) => value!.isEmpty
+                        ? localizations.selectConnectorMessage
+                        : null,
                   ),
                   const SizedBox(height: 32),
                   Center(
@@ -232,9 +236,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                       AppColors.textOnPrimary),
                                 ),
                               )
-                            : const Text(
-                                'Guardar Vehículo',
-                                style: TextStyle(color: Colors.white),
+                            : Text(
+                                localizations.registerVehicle,
+                                style: const TextStyle(color: Colors.white),
                               ),
                       ),
                     ),

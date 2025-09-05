@@ -1,3 +1,4 @@
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:Voltgo_app/data/services/TechnicianService.dart';
@@ -45,28 +46,32 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
     'GB/T',
   ];
 
-  final List<Map<String, dynamic>> _popularBrands = [
-    {'name': 'Tesla', 'icon': '⚡'},
-    {'name': 'Nissan', 'icon': '🚗'},
-    {'name': 'Chevrolet', 'icon': '🚙'},
-    {'name': 'BMW', 'icon': '🏎️'},
-    {'name': 'Volkswagen', 'icon': '🚐'},
-    {'name': 'Audi', 'icon': '🚘'},
-    {'name': 'Ford', 'icon': '🛻'},
-    {'name': 'Hyundai', 'icon': '🚕'},
-    {'name': 'Otro', 'icon': '➕'},
-  ];
+  List<Map<String, dynamic>> _getPopularBrands(AppLocalizations localizations) {
+    return [
+      {'name': 'Tesla', 'icon': '⚡'},
+      {'name': 'Nissan', 'icon': '🚗'},
+      {'name': 'Chevrolet', 'icon': '🚙'},
+      {'name': 'BMW', 'icon': '🏎️'},
+      {'name': 'Volkswagen', 'icon': '🚐'},
+      {'name': 'Audi', 'icon': '🚘'},
+      {'name': 'Ford', 'icon': '🛻'},
+      {'name': 'Hyundai', 'icon': '🚕'},
+      {'name': localizations.other, 'icon': '➕'},
+    ];
+  }
 
-  final List<Map<String, dynamic>> _colors = [
-    {'name': 'Blanco', 'color': Colors.white},
-    {'name': 'Negro', 'color': Colors.black},
-    {'name': 'Gris', 'color': Colors.grey},
-    {'name': 'Plata', 'color': Colors.grey.shade300},
-    {'name': 'Rojo', 'color': Colors.red},
-    {'name': 'Azul', 'color': Colors.blue},
-    {'name': 'Verde', 'color': Colors.green},
-    {'name': 'Otro', 'color': Colors.transparent}, // Added 'Otro' option
-  ];
+  List<Map<String, dynamic>> _getColors(AppLocalizations localizations) {
+    return [
+      {'name': localizations.white, 'color': Colors.white},
+      {'name': localizations.black, 'color': Colors.black},
+      {'name': localizations.gray, 'color': Colors.grey},
+      {'name': localizations.silver, 'color': Colors.grey.shade300},
+      {'name': localizations.red, 'color': Colors.red},
+      {'name': localizations.blue, 'color': Colors.blue},
+      {'name': localizations.green, 'color': Colors.green},
+      {'name': localizations.other, 'color': Colors.transparent},
+    ];
+  }
 
   String? _selectedBrand;
   String? _selectedConnectorType;
@@ -150,10 +155,11 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
   }
 
   bool _validateCurrentStep() {
+    final localizations = AppLocalizations.of(context);
     switch (_currentStep) {
       case 0:
-        bool hasMake = (_selectedBrand != null && _selectedBrand != 'Otro') ||
-            (_selectedBrand == 'Otro' && _makeController.text.isNotEmpty);
+        bool hasMake = (_selectedBrand != null && _selectedBrand != localizations.other) ||
+            (_selectedBrand == localizations.other && _makeController.text.isNotEmpty);
         return hasMake &&
             _modelController.text.isNotEmpty &&
             _yearController.text.isNotEmpty;
@@ -167,12 +173,13 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
   }
 
   Future<void> _submitForm() async {
+    final localizations = AppLocalizations.of(context);
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
       try {
         final vehicleData = {
-          'make': (_selectedBrand == 'Otro'
+          'make': (_selectedBrand == localizations.other
                   ? _makeController.text
                   : _selectedBrand) ??
               '',
@@ -199,7 +206,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Error: ${e.toString().replaceFirst("Exception: ", "")}',
+                      '${localizations.error}: ${e.toString().replaceFirst("Exception: ", "")}',
                     ),
                   ),
                 ],
@@ -221,10 +228,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
   }
 
   void _showSuccessDialog() {
+    final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
-      // Usamos 'dialogContext' para asegurarnos de cerrar el diálogo correcto
       builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -234,7 +241,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ... (El contenido de tu diálogo se queda igual)
               Container(
                 width: 80,
                 height: 80,
@@ -245,31 +251,27 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                     color: AppColors.success, size: 48),
               ),
               const SizedBox(height: 20),
-              const Text('¡Vehículo Registrado!',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary)),
+              Text(
+                localizations.vehicleRegistered,
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary),
+              ),
               const SizedBox(height: 12),
-              const Text(
-                  'Tu vehículo eléctrico ha sido registrado exitosamente.',
-                  textAlign: TextAlign.center,
-                  style:
-                      TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+              Text(
+                localizations.vehicleRegisteredSuccess,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 14, color: AppColors.textSecondary),
+              ),
               const SizedBox(height: 24),
-              // ... (Fin del contenido sin cambios)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // ▼▼▼ LÓGICA CORREGIDA AQUÍ ▼▼▼
-                    // 1. Notifica al Dashboard que debe recargarse.
                     widget.onVehicleRegistered();
-
-                    // 2. Cierra el diálogo de éxito.
                     Navigator.of(dialogContext).pop();
-
-                    // 3. Cierra la pantalla de registro.
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
@@ -279,9 +281,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Continuar',
-                    style: TextStyle(
+                  child: Text(
+                    localizations.continueText,
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600),
@@ -297,24 +299,23 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
 
   @override
   Widget build(BuildContext context) {
-    // 1. Envolvemos el Scaffold con WillPopScope
+    final localizations = AppLocalizations.of(context);
+    
     return WillPopScope(
       onWillPop: () async {
-        // 2. Mostramos el SnackBar cuando el usuario intenta salir
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Debes completar el registro para continuar.'),
+          SnackBar(
+            content: Text(localizations.completeRequiredFields),
             backgroundColor: Colors.orange,
           ),
         );
-        // 3. Retornamos 'false' para cancelar la acción de "atrás"
         return false;
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Registra tu Vehículo Eléctrico',
-            style: TextStyle(
+          title: Text(
+            localizations.registerElectricVehicle,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -322,9 +323,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           ),
           centerTitle: true,
           backgroundColor: AppColors.primary,
-          // 4. Desactivamos la flecha de retroceso automática
           automaticallyImplyLeading: false,
-          // Mantenemos la flecha para navegar ENTRE PASOS
           leading: _currentStep > 0
               ? IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -336,7 +335,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
               padding: const EdgeInsets.only(right: 16.0),
               child: Center(
                 child: Text(
-                  'Paso ${_currentStep + 1} de 3',
+                  '${localizations.step} ${_currentStep + 1} ${localizations.off} 3',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.9),
@@ -401,13 +400,16 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
   }
 
   Widget _buildStep1() {
+    final localizations = AppLocalizations.of(context);
+    final popularBrands = _getPopularBrands(localizations);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Información del Vehículo',
+            localizations.vehicleInformation,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -416,7 +418,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Selecciona la marca y modelo de tu vehículo',
+            localizations.selectOrEnterBrand,
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -424,7 +426,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           ),
           const SizedBox(height: 24),
           Text(
-            'Marca',
+            localizations.brand,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -435,7 +437,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _popularBrands.map((brand) {
+            children: popularBrands.map((brand) {
               final isSelected = _selectedBrand == brand['name'];
               return ChoiceChip(
                 label: Row(
@@ -450,7 +452,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                 onSelected: (selected) {
                   setState(() {
                     _selectedBrand = selected ? brand['name'] : null;
-                    if (_selectedBrand != 'Otro') {
+                    if (_selectedBrand != localizations.other) {
                       _makeController.text = _selectedBrand ?? '';
                     } else {
                       _makeController.text = '';
@@ -466,10 +468,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
               );
             }).toList(),
           ),
-          if (_selectedBrand == 'Otro') ...[
+          if (_selectedBrand == localizations.other) ...[
             const SizedBox(height: 20),
             Text(
-              'Ingresa la marca:',
+              localizations.writeBrandHint,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -497,9 +499,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                 ),
               ),
               validator: (value) {
-                if (_selectedBrand == 'Otro' &&
+                if (_selectedBrand == localizations.other &&
                     (value == null || value.isEmpty)) {
-                  return 'Este campo es requerido';
+                  return localizations.fieldRequired;
                 }
                 return null;
               },
@@ -508,14 +510,14 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           const SizedBox(height: 20),
           _buildEnhancedTextField(
             controller: _modelController,
-            label: 'Modelo',
-            hint: 'Ej: Model 3, Leaf, ID.4',
+            label: localizations.model,
+            hint: localizations.modelHint,
             icon: Icons.car_rental,
           ),
           const SizedBox(height: 20),
           _buildEnhancedTextField(
             controller: _yearController,
-            label: 'Año',
+            label: localizations.year,
             hint: DateTime.now().year.toString(),
             icon: Icons.calendar_today,
             keyboardType: TextInputType.number,
@@ -530,13 +532,16 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
   }
 
   Widget _buildStep2() {
+    final localizations = AppLocalizations.of(context);
+    final colors = _getColors(localizations);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Identificación',
+            localizations.identification,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -554,14 +559,14 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           const SizedBox(height: 24),
           _buildEnhancedTextField(
             controller: _plateController,
-            label: 'Placa',
-            hint: 'ABC-123',
+            label: localizations.plate,
+            hint: localizations.plateHint,
             icon: Icons.pin,
             textCapitalization: TextCapitalization.characters,
           ),
           const SizedBox(height: 24),
           Text(
-            'Color',
+            localizations.color,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -578,9 +583,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
               mainAxisSpacing: 12,
               childAspectRatio: 1,
             ),
-            itemCount: _colors.length,
+            itemCount: colors.length,
             itemBuilder: (context, index) {
-              final colorData = _colors[index];
+              final colorData = colors[index];
               final isSelected = _selectedColor == colorData['name'];
               return InkWell(
                 onTap: () {
@@ -604,7 +609,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (colorData['name'] != 'Otro') ...[
+                      if (colorData['name'] != localizations.other) ...[
                         Container(
                           width: 32,
                           height: 32,
@@ -651,10 +656,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
               );
             },
           ),
-          if (_selectedColor == 'Otro') ...[
+          if (_selectedColor == localizations.other) ...[
             const SizedBox(height: 20),
             Text(
-              'Ingresa el color:',
+              localizations.enterColor,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -665,7 +670,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
             TextFormField(
               controller: _colorController,
               decoration: InputDecoration(
-                hintText: 'Ej: Amarillo, Naranja',
+                hintText: localizations.colorHint,
                 filled: true,
                 fillColor: AppColors.background,
                 border: OutlineInputBorder(
@@ -686,9 +691,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                 ),
               ),
               validator: (value) {
-                if (_selectedColor == 'Otro' &&
+                if (_selectedColor == localizations.other &&
                     (value == null || value.isEmpty)) {
-                  return 'Este campo es requerido';
+                  return localizations.fieldRequired;
                 }
                 return null;
               },
@@ -700,13 +705,15 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
   }
 
   Widget _buildStep3() {
+    final localizations = AppLocalizations.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Especificaciones Técnicas',
+            localizations.technicalSpecs,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -723,7 +730,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           ),
           const SizedBox(height: 24),
           Text(
-            'Tipo de Conector',
+            localizations.connectorType,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -843,6 +850,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
     List<TextInputFormatter>? inputFormatters,
     TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
+    final localizations = AppLocalizations.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -898,14 +907,14 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Este campo es requerido';
+              return localizations.fieldRequired;
             }
-            if (label == 'Año') {
+            if (label == localizations.year) {
               final year = int.tryParse(value);
               if (year == null ||
                   year < 2010 ||
                   year > DateTime.now().year + 1) {
-                return 'Ingrese un año válido (2010 - ${DateTime.now().year + 1})';
+                return '${localizations.yearRange} 2010 ${localizations.and} ${DateTime.now().year + 1}';
               }
             }
             return null;
@@ -916,6 +925,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
   }
 
   Widget _buildActions() {
+    final localizations = AppLocalizations.of(context);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -951,7 +962,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Anterior',
+                      localizations.previous,
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 14,
@@ -990,7 +1001,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _currentStep < 2 ? 'Siguiente' : 'Registrar',
+                          _currentStep < 2 ? localizations.next : localizations.register,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,

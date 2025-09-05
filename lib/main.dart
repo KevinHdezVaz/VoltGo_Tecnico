@@ -1,45 +1,42 @@
 import 'dart:io';
 
-import 'package:Voltgo_app/l10n/app_localizations.dart';
+ import 'package:Voltgo_app/l10n/app_localizations.dart';
+import 'package:Voltgo_app/utils/OneSignalService.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart'; // Importante
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:Voltgo_app/firebase_options.dart';
-import 'package:Voltgo_app/ui/MenuPage/notifications/NotificationDetailScreen.dart';
-import 'package:Voltgo_app/ui/SplashScreen.dart';
+ import 'package:Voltgo_app/ui/SplashScreen.dart';
 import 'package:Voltgo_app/utils/AuthWrapper.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+ 
 // Importa tus pantallas
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/DashboardScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/dashboard/CombinedDashboardScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/moviles/MobilesScreen.dart';
-import 'package:Voltgo_app/ui/MenuPage/notifications/NotificationsScreen.dart';
-import 'package:Voltgo_app/ui/profile/SettingsScreen.dart';
+ import 'package:Voltgo_app/ui/profile/SettingsScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// Importa la pantalla de detalle de notificación
 
-// ✅ PASO 1: CREA LA CLAVE GLOBAL PARA EL NAVEGADOR
+ import 'data/services/SoundService.dart';
+
+// GlobalKey para navegación
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-/// ✅ PASO 2: CREA LA FUNCIÓN MANEJADORA DE NOTIFICACIONES
-/// Esta función debe ser global (fuera de cualquier clase)
+/// Manejar notificaciones Firebase (existente)
 void _handleMessage(RemoteMessage message) {
-  // Extrae el ID de la notificación de la data payload
   final notificationId = message.data['notificationId'];
 
   if (notificationId != null) {
-    print('Notificación recibida, navegando a detalle ID: $notificationId');
+    print('Notificación Firebase recibida, navegando a detalle ID: $notificationId');
     try {
-      // Usa la GlobalKey para navegar a la pantalla de detalle
       navigatorKey.currentState?.pushNamed(
         '/notification_detail',
-        arguments:
-            int.parse(notificationId), // Pasamos el ID convertido a entero
+        arguments: int.parse(notificationId),
       );
     } catch (e) {
       print('Error al parsear el ID de la notificación o al navegar: $e');
@@ -49,55 +46,154 @@ void _handleMessage(RemoteMessage message) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  
+  try {
+    // Cargar variables de entorno
+    await dotenv.load(fileName: ".env");
+    print('Variables de entorno cargadas');
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+    // Inicializar Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase inicializado');
 
-  // ✅ PASO 3: CONFIGURA LOS LISTENERS DE FIREBASE MESSAGING
-  // 1. Para cuando la app está en segundo plano y se abre desde la notificación
-  FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+    // ✅ NUEVO: Inicializar OneSignal
+    await OneSignalService.initialize();
+    print('OneSignal inicializado');
+
+    // ✅ NUEVO: Inicializar NotificationService para sonidos locales
+    NotificationService.reinitialize();
+    print('NotificationService inicializado');
+
+    // Configurar Firebase Messaging (existente)
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        _handleMessage(message);
+      }
+    });
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Notificación Firebase en primer plano: ${message.notification?.title}');
+    });
+
+    print('Todos los servicios inicializados correctamente');
+
+  } catch (e, stackTrace) {
+    print('Error inicializando servicios: $e');
+    print('StackTrace: $stackTrace');
+    // Continuar para no bloquear la app completamente
+  }
 
   final prefs = await SharedPreferences.getInstance();
-  final bool onboardingCompleted =
-      prefs.getBool('onboarding_completed') ?? false;
-
-  // 2. Para cuando la app está cerrada y se abre desde la notificación
-  FirebaseMessaging.instance.getInitialMessage().then((message) {
-    if (message != null) {
-      _handleMessage(message);
-    }
-  });
-
-  // (Opcional) Manejo de notificaciones en primer plano
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print(
-        'Notificación recibida en primer plano: ${message.notification?.title}');
-    // Aquí podrías mostrar una notificación local si lo deseas
-  });
-
-  // NotificationCountService.updateCount();
+  final bool onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
 
   initializeDateFormatting('es_ES', null).then((_) {
     runApp(MyApp(onboardingCompleted: onboardingCompleted));
   });
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final bool onboardingCompleted;
 
   const MyApp({Key? key, required this.onboardingCompleted}) : super(key: key);
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    // ✅ NUEVO: Observar ciclo de vida de la app
+    WidgetsBinding.instance.addObserver(this);
+    print('MyApp inicializada - observando ciclo de vida');
+  }
+
+  @override
+  void dispose() {
+    // ✅ NUEVO: Limpiar observer y servicios
+    WidgetsBinding.instance.removeObserver(this);
+    
+    // Limpiar servicios
+    OneSignalService.dispose();
+    NotificationService.dispose();
+    
+    super.dispose();
+  }
+
+  /// ✅ NUEVO: Manejar cambios en el ciclo de vida de la app
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    print('Cambio en ciclo de vida: $state');
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        print('App en primer plano');
+        _handleAppResumed();
+        break;
+      case AppLifecycleState.paused:
+        print('App pausada (segundo plano)');
+        _handleAppPaused();
+        break;
+      case AppLifecycleState.inactive:
+        print('App inactiva');
+        break;
+      case AppLifecycleState.detached:
+        print('App desconectada');
+        _handleAppDetached();
+        break;
+      default:
+        break;
+    }
+  }
+
+  /// Manejar cuando la app pasa a primer plano
+  void _handleAppResumed() {
+    try {
+      OneSignalService.updateAppState('foreground');
+      NotificationService.reinitialize();
+    } catch (e) {
+      print('Error manejando app resumed: $e');
+    }
+  }
+
+  /// Manejar cuando la app pasa a segundo plano
+  void _handleAppPaused() {
+    try {
+      OneSignalService.updateAppState('background');
+      NotificationService.stop().catchError((e) {
+        print('Error deteniendo sonido al pausar app: $e');
+      });
+    } catch (e) {
+      print('Error manejando app paused: $e');
+    }
+  }
+
+  /// Manejar cuando la app se desconecta
+  void _handleAppDetached() {
+    try {
+      OneSignalService.updateAppState('background');
+    } catch (e) {
+      print('Error manejando app detached: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // ✅ PASO 4: MODIFICA TU MATERIALAPP
     return MaterialApp(
       title: 'Voltgo',
       debugShowCheckedModeBanner: false,
 
-      // Asigna la GlobalKey aquí
+      // GlobalKey para navegación
       navigatorKey: navigatorKey,
+      
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
         useMaterial3: true,
@@ -118,7 +214,10 @@ class MyApp extends StatelessWidget {
       ],
 
       home: const SplashScreen(),
+      
       onGenerateRoute: (settings) {
+        print('Navegando a ruta: ${settings.name}');
+        
         switch (settings.name) {
           case '/auth_wrapper':
             return MaterialPageRoute(builder: (_) => const AuthWrapper());
@@ -134,25 +233,21 @@ class MyApp extends StatelessWidget {
                 builder: (_) => const CombinedDashboardScreen());
           case '/mobiles':
             return MaterialPageRoute(builder: (_) => MobilesScreen());
-          case '/notifications':
-            return MaterialPageRoute(
-                builder: (_) => const NotificationsScreen());
+ 
           case '/settings':
             return MaterialPageRoute(builder: (_) => const SettingsScreen());
 
-          // ESTA ES LA NUEVA RUTA PARA EL DETALLE
-          case '/notification_detail':
-            // Extrae el argumento (el ID de la notificación)
-            final int notificationId = settings.arguments as int;
-            return MaterialPageRoute(
-              builder: (_) =>
-                  NotificationDetailScreen(notificationId: notificationId),
-            );
-
+          // Ruta para detalle de notificación Firebase
+         
           default:
-            // Si la ruta no se encuentra, puedes mostrar una página de error o la splash
+            print('Ruta no encontrada: ${settings.name}');
             return MaterialPageRoute(builder: (_) => const SplashScreen());
         }
+      },
+      
+      // ✅ NUEVO: Builder para configurar UI global
+      builder: (context, child) {
+        return child ?? Container();
       },
     );
   }

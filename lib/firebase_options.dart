@@ -10,7 +10,7 @@ class DefaultFirebaseOptions {
         'DefaultFirebaseOptions have not been configured for web.',
       );
     }
-    //
+    
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return FirebaseOptions(
@@ -22,9 +22,10 @@ class DefaultFirebaseOptions {
         );
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
+        // Para iOS necesitarás configurar la app iOS en Firebase Console
         return FirebaseOptions(
-          apiKey: dotenv.env['IOS_API_KEY']!,
-          appId: dotenv.env['IOS_APP_ID']!,
+          apiKey: dotenv.env['IOS_API_KEY'] ?? 'PENDIENTE_CONFIGURAR',
+          appId: dotenv.env['IOS_APP_ID'] ?? 'PENDIENTE_CONFIGURAR',
           messagingSenderId: dotenv.env['MESSAGING_SENDER_ID']!,
           projectId: dotenv.env['PROJECT_ID']!,
           storageBucket: dotenv.env['STORAGE_BUCKET']!,

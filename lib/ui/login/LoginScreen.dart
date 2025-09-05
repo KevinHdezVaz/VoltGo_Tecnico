@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
+import 'package:Voltgo_app/ui/login/GoogleProfileCompletionScreen.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:Voltgo_app/data/services/auth_api_service.dart';
@@ -146,54 +147,116 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // ▼▼▼ NUEVO: Widget para mostrar botones de Google y Apple ▼▼▼
   Widget _buildSocialLogins() {
-    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+  final l10n = AppLocalizations.of(context);
 
-    return Column(
-      children: [
-        Row(
-          children: [
-            const Expanded(child: Divider(thickness: 1)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                l10n.or,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
+  return Column(
+    children: [
+      Row(
+        children: [
+          const Expanded(child: Divider(thickness: 1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              l10n.or,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const Expanded(child: Divider(thickness: 1)),
-          ],
+          ),
+          const Expanded(child: Divider(thickness: 1)),
+        ],
+      ),
+      const SizedBox(height: 24),
+      // Botón de Google - ACTUALIZADO
+      _buildSocialButton(
+        assetName: 'assets/images/gugel.png',
+        text: l10n.signInWithGoogle,
+        onPressed: _loginWithGoogle, // ← Cambiado aquí
+      ),
+      const SizedBox(height: 12),
+      // Botón de Apple
+      _buildSocialButton(
+        assetName: 'assets/images/appell.png',
+        text: l10n.signInWithApple,
+        backgroundColor: Colors.blueGrey,
+        textColor: Colors.white,
+        onPressed: () {
+          // TODO: Implementar Apple Sign In
+          print('Login con Apple presionado');
+        },
+      ),
+    ],
+  );
+}
+
+ 
+Future<void> _loginWithGoogle() async {
+  final l10n = AppLocalizations.of(context);
+  
+  if (_isLoading) return;
+
+  setState(() => _isLoading = true);
+  _animationController.repeat();
+
+  try {
+    final loginResult = await AuthService.loginWithGoogle();
+
+    _animationController.stop();
+    if (!mounted) return;
+
+    if (loginResult.success) {
+      // Verificar si necesita completar perfil
+      final needsCompletion = loginResult.user?['phone'] == null;
+      
+      if (needsCompletion) {
+        // Navegar a completar perfil
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GoogleProfileCompletionScreen(
+              userName: loginResult.user?['name'] ?? 'Usuario',
+              userEmail: loginResult.user?['email'] ?? '',
+            ),
+          ),
+        );
+      } else {
+        // Ir directamente al dashboard
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const BottomNavBar()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } else {
+      // Mostrar error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            loginResult.error ?? l10n.serverConnectionError,
+          ),
+          backgroundColor: Colors.red.shade600,
         ),
-        const SizedBox(height: 24),
-        // Botón de Google
-        _buildSocialButton(
-          assetName: 'assets/images/gugel.png',
-          text:
-              l10n.signInWithGoogle, // ✅ CAMBIAR de 'Iniciar sesión con Google'
-          onPressed: () {
-            print('Login con Google presionado');
-          },
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      _animationController.stop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error inesperado: ${e.toString()}'),
+          backgroundColor: Colors.red.shade600,
         ),
-        const SizedBox(height: 12),
-        // Botón de Apple
-        _buildSocialButton(
-          assetName: 'assets/images/appell.png',
-          // MODIFICADO: Texto del botón
-          text: l10n.signInWithApple, // ✅ CAMBIAR de 'Iniciar sesión con Apple'
-          backgroundColor: Colors.blueGrey,
-          textColor: Colors.white,
-          onPressed: () {
-            // TODO: Implementar la lógica de inicio de sesión con Apple
-            print('Login con Apple presionado');
-          },
-        ),
-      ],
-    );
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
+}
+
 
   // ▼▼▼ NUEVO: Helper para crear botones de login social genéricos ▼▼▼
   Widget _buildSocialButton({

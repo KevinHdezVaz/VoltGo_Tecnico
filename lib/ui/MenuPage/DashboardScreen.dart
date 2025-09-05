@@ -3,11 +3,14 @@ import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/services/EarningsService.dart';
 import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
 import 'package:Voltgo_app/data/services/ServiceRequestService.dart';
+import 'package:Voltgo_app/data/services/SoundService.dart';
 import 'package:Voltgo_app/data/services/TechnicianService.dart';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/IncomingRequestScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/RealTimeTrackingScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/findATechnician/ServiceWorkScreen.dart';
+import 'package:Voltgo_app/utils/OneSignalService.dart';
+import 'package:Voltgo_app/utils/TokenStorage.dart';
 import 'package:Voltgo_app/utils/VehicleRegistrationDialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -38,6 +41,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   StreamSubscription<LocationData>? _locationSubscription;
   Timer? _requestCheckTimer;
 
+ // ✅ NUEVAS variables para OneSignal
+  StreamSubscription? _newRequestSubscription;
+  StreamSubscription? _serviceCancelledSubscription;
+  StreamSubscription? _statusUpdateSubscription;
+
   Timer?
       _statusCheckTimer; // NUEVO: Timer para verificar el estado de la solicitud actual
   bool _isDialogShowing = false;
@@ -53,6 +61,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   void initState() {
     super.initState();
     _logic = DashboardLogic();
+
+
+    _setupOneSignalListeners();
 
     Timer.periodic(const Duration(seconds: 10), (timer) async {
       if (_hasActiveService) {
@@ -85,6 +96,23 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   @override
   void dispose() {
     _logic.dispose();
+ 
+ 
+   NotificationService.stop().then((_) {
+    NotificationService.dispose();
+  });
+  
+
+     _newRequestSubscription?.cancel();
+    _serviceCancelledSubscription?.cancel();
+    _statusUpdateSubscription?.cancel();
+    
+    // ✅ NUEVO: Informar al backend que la app está cerrándose
+    OneSignalService.updateAppState('background').catchError((e) {
+      print('Error actualizando estado al cerrar: $e');
+    });
+    
+
     _stopLocationTracking();
     _stopRequestChecker();
     _unavailableRequestIds.clear();
@@ -117,73 +145,91 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
-  Future<void> _initializeApp() async {
-    setState(() => _isLoading = true);
+Future<void> _initializeApp() async {
+  setState(() => _isLoading = true);
+
+  // Reinicializar NotificationService
+  NotificationService.reinitialize();
+
+  try {
+    final profile = await TechnicianService.getProfile();
+    final user = profile['user'];
+    final bool hasVehicle = user['has_registered_vehicle'] == 1;
+
     try {
-      final profile = await TechnicianService.getProfile();
-      final user = profile['user'];
-      final bool hasVehicle = user['has_registered_vehicle'] == 1;
-
-      // Si no tiene vehículo, lo manda a registrarlo (lógica existente)
-      if (!hasVehicle && mounted) {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => VehicleRegistrationScreen(
-            onVehicleRegistered: () => _initializeApp(),
-          ),
-        ));
-        setState(() => _isLoading = false);
-        return;
+      final userId = user['id']?.toString();
+      final token = await TokenStorage.getToken();
+      
+      if (userId != null && token != null) {
+        await OneSignalService.setAuthenticatedUser(userId, token);
+        print('OneSignal configurado en _initializeApp - Usuario: $userId');
+        
+        // ✅ NUEVO: Verificar después de un delay si no se registró inmediatamente
+        OneSignalService.checkRegistrationAfterDelay();
       }
-
-      // 1. Leer el estado guardado desde el perfil del técnico
-      final serverStatus = profile['status'] ?? 'offline';
-      final bool isOnline = serverStatus == 'available';
-
-      // ✅ VERIFICAR SERVICIO ACTIVO ANTES DE ESTABLECER EL ESTADO
-      bool hasActiveService = false;
-      if (isOnline) {
-        await _checkForActiveService();
-        // Verificar si se encontró un servicio activo
-        hasActiveService = _activeServiceRequest != null;
-      }
-
-      // 2. Establecer el estado inicial solo si NO hay servicio activo
-      if (!hasActiveService) {
-        setState(() {
-          _driverStatus = isOnline ? DriverStatus.online : DriverStatus.offline;
-        });
-      }
-
-      // 3. Iniciar servicios según el estado
-      if (isOnline) {
-        _startLocationTracking();
-        // ✅ Solo iniciar búsqueda si NO hay servicio activo
-        if (!hasActiveService) {
-          _startRequestChecker();
-        }
-      }
-
-      // Cargar el mapa (lógica existente)
-      final position = await _logic.getCurrentUserPosition();
-      if (position != null && mounted) {
-        final latLng = LatLng(position.latitude!, position.longitude!);
-        setState(() {
-          _logic.initialCameraPosition =
-              CameraPosition(target: latLng, zoom: 16.0);
-          _logic.updateUserMarker(latLng);
-        });
-        _centerMapOnUser(latLng);
-      }
-
-      // ✅ CARGAR GANANCIAS AL INICIALIZAR
-      await _loadEarnings();
     } catch (e) {
-      final localizations = AppLocalizations.of(context);
-      _showErrorSnackbar('${localizations.errorLoadingData}: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      print('Error configurando OneSignal en _initializeApp: $e');
     }
+    
+
+    // Si no tiene vehículo, lo manda a registrarlo (lógica existente)
+    if (!hasVehicle && mounted) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => VehicleRegistrationScreen(
+          onVehicleRegistered: () => _initializeApp(),
+        ),
+      ));
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    // 1. Leer el estado guardado desde el perfil del técnico
+    final serverStatus = profile['status'] ?? 'offline';
+    final bool isOnline = serverStatus == 'available';
+
+    // ✅ VERIFICAR SERVICIO ACTIVO ANTES DE ESTABLECER EL ESTADO
+    bool hasActiveService = false;
+    if (isOnline) {
+      await _checkForActiveService();
+      hasActiveService = _activeServiceRequest != null;
+    }
+
+    // 2. Establecer el estado inicial solo si NO hay servicio activo
+    if (!hasActiveService) {
+      setState(() {
+        _driverStatus = isOnline ? DriverStatus.online : DriverStatus.offline;
+      });
+    }
+
+    // 3. Iniciar servicios según el estado
+    if (isOnline) {
+      _startLocationTracking();
+      if (!hasActiveService) {
+        _startRequestChecker();
+      }
+    }
+
+    // Cargar el mapa (lógica existente)
+    final position = await _logic.getCurrentUserPosition();
+    if (position != null && mounted) {
+      final latLng = LatLng(position.latitude!, position.longitude!);
+      setState(() {
+        _logic.initialCameraPosition =
+            CameraPosition(target: latLng, zoom: 16.0);
+        _logic.updateUserMarker(latLng);
+      });
+      _centerMapOnUser(latLng);
+    }
+
+    // ✅ CARGAR GANANCIAS AL INICIALIZAR
+    await _loadEarnings();
+  } catch (e) {
+    final localizations = AppLocalizations.of(context);
+    _showErrorSnackbar('${localizations.errorLoadingData}: $e');
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}    
 
   Future<void> _checkForActiveService() async {
     try {
@@ -271,6 +317,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     try {
       await TechnicianService.updateStatus(newStatus);
 
+      await OneSignalService.updateAppState(isOnline ? 'foreground' : 'background');
+
       setState(() {
         _driverStatus = isOnline ? DriverStatus.online : DriverStatus.offline;
 
@@ -323,6 +371,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         if (availableRequests.isNotEmpty && mounted) {
           final rawRequest = availableRequests.first;
 
+      
+        try {
+          await NotificationService.playIncomingRequestNotification();
+          print('🎵📳 Notificación de solicitud entrante iniciada');
+        } catch (e) {
+          print('⚠️ No se pudo reproducir la notificación: $e');
+        }
+
           print(
               "🎯 Nueva solicitud encontrada: ID ${rawRequest['id']}, Cliente: ${rawRequest['user_name']}, Distancia: ${rawRequest['distance']}");
 
@@ -365,20 +421,40 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
           _startStatusChecker();
 
-          final bool? accepted = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) =>
-                IncomingRequestDialog(serviceRequest: newRequest),
-          );
+         try {
+  final bool? accepted = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => IncomingRequestDialog(serviceRequest: newRequest),
+  );
 
-          _stopStatusChecker();
+  // ✅ SIEMPRE detener el sonido cuando el diálogo se cierre
+  try {
+    await NotificationService.stop();
+    print('🔇 Sonido detenido después de cerrar diálogo');
+  } catch (e) {
+    print('⚠️ Error deteniendo sonido después de diálogo: $e');
+  }
 
-          if (accepted == true) {
-            _acceptRequest(newRequest.id);
-          } else {
-            _rejectRequest(newRequest.id);
-          }
+  _stopStatusChecker();
+
+  // Procesar la respuesta
+  if (accepted == true) {
+    _acceptRequest(newRequest.id);
+  } else {
+    // Tanto false como null se tratan como rechazo
+    _rejectRequest(newRequest.id);
+  }
+
+} catch (e) {
+  // En caso de error, también detener el sonido
+  print("❌ Error en showDialog: $e");
+  try {
+    await NotificationService.stop();
+  } catch (stopError) {
+    print('⚠️ Error deteniendo sonido después de error: $stopError');
+  }
+}
 
           _isDialogShowing = false;
           _startRequestChecker();
@@ -534,6 +610,153 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       ],
     );
   }
+
+
+ void _setupOneSignalListeners() {
+    print('Configurando listeners de OneSignal...');
+
+    // Escuchar nuevas solicitudes de servicio
+    _newRequestSubscription = OneSignalService.eventBus.on<NewServiceRequestEvent>().listen((event) {
+      print('Evento OneSignal - Nueva solicitud: ${event.clientName}');
+      _handleOneSignalNewRequest(event);
+    });
+
+    // Escuchar cancelaciones de servicio
+    _serviceCancelledSubscription = OneSignalService.eventBus.on<ServiceCancelledEvent>().listen((event) {
+      print('Evento OneSignal - Servicio cancelado: ${event.reason}');
+      _handleOneSignalServiceCancelled(event);
+    });
+
+    // Escuchar actualizaciones de estado
+    _statusUpdateSubscription = OneSignalService.eventBus.on<ServiceStatusUpdateEvent>().listen((event) {
+      print('Evento OneSignal - Estado actualizado: ${event.newStatus}');
+      _handleOneSignalStatusUpdate(event);
+    });
+
+    print('Listeners OneSignal configurados');
+  }
+
+  /// ✅ NUEVO: Manejar nueva solicitud desde OneSignal
+  void _handleOneSignalNewRequest(NewServiceRequestEvent event) {
+    print('Manejando nueva solicitud OneSignal: ${event.serviceRequestId}');
+
+    // Solo procesar si estamos en estado online y no hay diálogo abierto
+    if (_driverStatus == DriverStatus.online && !_isDialogShowing) {
+      print('Estado válido para procesar solicitud OneSignal');
+      
+      // Realizar una búsqueda inmediata sin sonido (ya sonó la push)
+      _checkForImmediateRequestsFromPush();
+    } else {
+      print('Estado no válido para solicitud OneSignal - Estado: $_driverStatus, Diálogo: $_isDialogShowing');
+    }
+  }
+
+
+
+  /// ✅ NUEVO: Búsqueda inmediata sin sonido (activada por push notification)
+  Future<void> _checkForImmediateRequestsFromPush() async {
+    if (_isDialogShowing || _driverStatus != DriverStatus.online) {
+      print('No se puede buscar - diálogo abierto o estado incorrecto');
+      return;
+    }
+    
+    print('Búsqueda inmediata activada por push notification...');
+    
+    try {
+      final List<Map<String, dynamic>> rawRequests =
+          await TechnicianService.checkForNewRequests();
+
+      final availableRequests = rawRequests
+          .where((request) => !_unavailableRequestIds.contains(request['id']))
+          .toList();
+
+      if (availableRequests.isNotEmpty && mounted) {
+        print('Solicitudes encontradas por push: ${availableRequests.length}');
+        
+        // Detener búsqueda periódica para evitar conflictos
+        _stopRequestChecker();
+        
+        final rawRequest = availableRequests.first;
+        
+        // ✅ NO reproducir sonido - la push notification ya sonó
+        print('Procesando solicitud por push: ID ${rawRequest['id']}');
+
+        final status = await TechnicianService.getRequestStatus(rawRequest['id']);
+
+        if (status == null || status.status != 'pending') {
+          print('Solicitud push no válida o ya no pendiente');
+          _unavailableRequestIds.add(rawRequest['id']);
+          _startRequestChecker(); // Reiniciar búsqueda normal
+          return;
+        }
+
+        final newRequest = _createServiceRequestFromRawData(rawRequest, status);
+
+        _isDialogShowing = true;
+
+        setState(() {
+          _currentRequest = newRequest;
+          _driverStatus = DriverStatus.incomingRequest;
+        });
+
+        _startStatusChecker();
+
+        final bool? accepted = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => IncomingRequestDialog(serviceRequest: newRequest),
+        );
+
+        // ✅ IMPORTANTE: No llamar NotificationService.stop() aquí 
+        // porque no se reprodujo sonido local
+
+        _stopStatusChecker();
+
+        if (accepted == true) {
+          _acceptRequest(newRequest.id);
+        } else {
+          _rejectRequest(newRequest.id);
+        }
+
+        _isDialogShowing = false;
+        _startRequestChecker(); // Reiniciar búsqueda normal
+        
+      } else {
+        print('No hay solicitudes disponibles para push notification');
+      }
+    } catch (e) {
+      print('Error en búsqueda inmediata por push: $e');
+      _startRequestChecker(); // Asegurar que continúe la búsqueda normal
+    }
+  }
+
+
+  /// ✅ NUEVO: Manejar cancelación desde OneSignal
+  void _handleOneSignalServiceCancelled(ServiceCancelledEvent event) {
+    print('Manejando cancelación OneSignal: ${event.serviceRequestId}');
+
+    // Verificar si es nuestra solicitud activa
+    if (_currentRequest != null && _currentRequest!.id == event.serviceRequestId) {
+      print('Cancelación coincide con solicitud activa');
+      _handleClientCancellation();
+    } else if (_activeServiceRequest != null && _activeServiceRequest!.id == event.serviceRequestId) {
+      print('Cancelación coincide con servicio activo');
+      _handleClientCancellation();
+    } else {
+      print('Cancelación no coincide con solicitudes actuales');
+    }
+  }
+
+  /// ✅ NUEVO: Manejar actualización de estado desde OneSignal
+  void _handleOneSignalStatusUpdate(ServiceStatusUpdateEvent event) {
+    print('Manejando actualización OneSignal: ${event.serviceRequestId} -> ${event.newStatus}');
+
+    // Refrescar datos si coincide con nuestro servicio
+    if (_currentRequest != null && _currentRequest!.id == event.serviceRequestId) {
+      _refreshServiceData();
+    }
+  }
+
 
   Widget _buildNavigationSheet() {
     final localizations = AppLocalizations.of(context);
@@ -944,87 +1167,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }
 
 // También actualiza tu método _buildIncomingRequestPanel:
-
-// ✅ CORREGIR _buildIncomingRequestPanel para usar las propiedades correctas
-  Widget _buildIncomingRequestPanel() {
-    final localizations = AppLocalizations.of(context);
-
-    if (_currentRequest == null) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Card(
-        margin: const EdgeInsets.all(16),
-        elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(localizations.newChargeRequest,
-                  style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16)),
-              const SizedBox(height: 12),
-
-              // ✅ USAR getters seguros
-              Text(_currentRequest!.formattedDistanceDisplay,
-                  style: const TextStyle(
-                      fontSize: 28, fontWeight: FontWeight.bold)),
-
-              Text(
-                '${localizations.client}: ${_currentRequest!.clientNameDisplay}',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              Text(
-                '${localizations.estimatedEarnings}: ${_currentRequest!.formattedEarningsDisplay}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-              const LinearProgressIndicator(),
-              const SizedBox(height: 16),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _rejectRequest(_currentRequest!.id),
-                      style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey[800]),
-                      child: Text(localizations.reject),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _acceptRequest(_currentRequest!.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(localizations.accept),
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  
 
   void _stopRequestChecker() {
     _requestCheckTimer?.cancel();
@@ -1084,6 +1227,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   void _handleRequestUnavailable() {
     final localizations = AppLocalizations.of(context);
 
+
+  NotificationService.stop().catchError((e) {
+    print('⚠️ Error al detener notificación: $e');
+  });
+    NotificationService.vibrateOnly(VibrationPattern.urgent);
+
+
     if (_currentRequest != null) {
       _unavailableRequestIds.add(_currentRequest!.id);
     }
@@ -1108,6 +1258,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   void _handleRequestCancelled() {
     final localizations = AppLocalizations.of(context);
 
+  // ✅ CORREGIDO: Detener notificación
+  NotificationService.stop().catchError((e) {
+    print('⚠️ Error al detener notificación: $e');
+  });
+  
+  // Vibración para cancelación
+  NotificationService.vibrateOnly(VibrationPattern.single);
     // Cerrar el diálogo si está abierto
     if (_isDialogShowing && Navigator.canPop(context)) {
       Navigator.of(context).pop(false);
@@ -1133,6 +1290,17 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   void _acceptRequest(int requestId) async {
     final localizations = AppLocalizations.of(context);
 
+
+  try {
+    await NotificationService.stop();
+    // Vibración suave de confirmación
+    NotificationService.vibrateOnly(VibrationPattern.gentle);
+    print('🔇 Notificación detenida y feedback de aceptación enviado');
+  } catch (e) {
+    print('⚠️ Error al detener notificación: $e');
+  }
+
+
     setState(() {
       _driverStatus = DriverStatus.enRouteToUser;
       _isDialogShowing = false;
@@ -1142,6 +1310,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       final success = await TechnicianService.acceptRequest(requestId);
       if (success) {
         _showSuccessSnackbar(localizations.requestAccepted);
+
+      await NotificationService.playGentleNotification();
 
         // ✅ NUEVO: Establecer servicio activo y empezar monitoreo
         _activeServiceRequest = _currentRequest;
@@ -1163,6 +1333,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       }
 
       _showErrorSnackbar(errorMessage);
+    NotificationService.vibrateOnly(VibrationPattern.urgent);
 
       setState(() {
         _driverStatus = DriverStatus.online;
@@ -1237,7 +1408,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     if (!mounted) return;
 
     // Vibración fuerte para llamar la atención
-    HapticFeedback.heavyImpact();
+  NotificationService.playUrgentNotification().catchError((e) {
+    print('⚠️ Error reproduciendo notificación urgente: $e');
+  });
 
     // Mostrar diálogo de cancelación
     _showClientCancellationDialog();
@@ -1253,6 +1426,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     // Reiniciar búsqueda de solicitudes
     _startRequestChecker();
   }
+
+  void _showSuccessNotification(String message) {
+  NotificationService.playGentleNotification().catchError((e) {
+    print('⚠️ Error reproduciendo notificación suave: $e');
+  });
+  _showSuccessSnackbar(message);
+}
+
+// ✅ NUEVO: Método para notificaciones de error
+void _showErrorNotification(String message) {
+  NotificationService.vibrateOnly(VibrationPattern.urgent);
+  _showErrorSnackbar(message);
+}
+
 
   // ✅ NUEVO: Diálogo cuando cliente cancela
   void _showClientCancellationDialog() {
@@ -1452,6 +1639,15 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   // ✅ CORREGIR _rejectRequest
   void _rejectRequest(int requestId) async {
+
+     try {
+    await NotificationService.stop();
+    print('🔇 Notificación detenida al rechazar solicitud');
+  } catch (e) {
+    print('⚠️ Error al detener notificación: $e');
+  }
+
+
     try {
       final success = await TechnicianService.rejectRequest(requestId);
       if (success) {
@@ -1623,7 +1819,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           ),
           // Paneles de estado
           if (_driverStatus == DriverStatus.incomingRequest)
-            _buildIncomingRequestPanel(),
+           // _buildIncomingRequestPanel(),
           if (_driverStatus == DriverStatus.enRouteToUser ||
               _driverStatus == DriverStatus.onService)
             Positioned(
