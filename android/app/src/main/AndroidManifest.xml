@@ -8,6 +8,13 @@
         android:label="VoltGo Driver"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+
+            <meta-data android:name="onesignal_app_id" 
+               android:value="3708fbd6-1d48-48aa-94dc-3fa8cbdcdd16" />
+    <meta-data android:name="onesignal_google_project_number" 
+               android:value="REMOTE" />
+               
         <activity
             android:name=".MainActivity"
             android:exported="true"

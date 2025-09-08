@@ -1,28 +1,30 @@
 import 'dart:io';
 
- import 'package:Voltgo_app/l10n/app_localizations.dart';
+import 'package:Voltgo_app/data/services/ChatNotificationProvider.dart';
+import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/utils/OneSignalService.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:Voltgo_app/firebase_options.dart';
- import 'package:Voltgo_app/ui/SplashScreen.dart';
+import 'package:Voltgo_app/ui/SplashScreen.dart';
 import 'package:Voltgo_app/utils/AuthWrapper.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart'; // ✅ NUEVO
 
- 
 // Importa tus pantallas
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/DashboardScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/dashboard/CombinedDashboardScreen.dart';
 import 'package:Voltgo_app/ui/MenuPage/moviles/MobilesScreen.dart';
- import 'package:Voltgo_app/ui/profile/SettingsScreen.dart';
+import 'package:Voltgo_app/ui/profile/SettingsScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
- import 'data/services/SoundService.dart';
+import 'data/services/SoundService.dart';
 
 // GlobalKey para navegación
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -58,11 +60,11 @@ void main() async {
     );
     print('Firebase inicializado');
 
-    // ✅ NUEVO: Inicializar OneSignal
+    // Inicializar OneSignal
     await OneSignalService.initialize();
     print('OneSignal inicializado');
 
-    // ✅ NUEVO: Inicializar NotificationService para sonidos locales
+    // Inicializar NotificationService para sonidos locales
     NotificationService.reinitialize();
     print('NotificationService inicializado');
 
@@ -109,14 +111,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     
-    // ✅ NUEVO: Observar ciclo de vida de la app
+    // Observar ciclo de vida de la app
     WidgetsBinding.instance.addObserver(this);
     print('MyApp inicializada - observando ciclo de vida');
   }
 
   @override
   void dispose() {
-    // ✅ NUEVO: Limpiar observer y servicios
+    // Limpiar observer y servicios
     WidgetsBinding.instance.removeObserver(this);
     
     // Limpiar servicios
@@ -126,7 +128,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// ✅ NUEVO: Manejar cambios en el ciclo de vida de la app
+  /// Manejar cambios en el ciclo de vida de la app
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -187,68 +189,92 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Voltgo',
-      debugShowCheckedModeBanner: false,
-
-      // GlobalKey para navegación
-      navigatorKey: navigatorKey,
-      
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
-        useMaterial3: true,
-        scaffoldBackgroundColor: Colors.grey[100],
-      ),
-
-      locale: const Locale('en', ''),
-
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
+    return MultiProvider( // ✅ ENVOLVER EN MULTIPROVIDER
+      providers: [
+        // ✅ AGREGAR CHAT NOTIFICATION PROVIDER
+        ChangeNotifierProvider(
+          create: (context) => ChatNotificationProvider(),
+        ),
+        // Aquí puedes agregar otros providers que tengas
       ],
-      supportedLocales: const [
-        Locale('en', ''), // English
-        Locale('es', ''), // Spanish
-      ],
+      child: MaterialApp(
+        title: 'Voltgo',
+        debugShowCheckedModeBanner: false,
 
-      home: const SplashScreen(),
-      
-      onGenerateRoute: (settings) {
-        print('Navegando a ruta: ${settings.name}');
+        // GlobalKey para navegación
+        navigatorKey: navigatorKey,
         
-        switch (settings.name) {
-          case '/auth_wrapper':
-            return MaterialPageRoute(builder: (_) => const AuthWrapper());
-          case '/login':
-            return MaterialPageRoute(builder: (_) => const LoginScreen());
-          case '/home':
-            return MaterialPageRoute(builder: (_) => BottomNavBar());
-          case '/dashboard':
-            return MaterialPageRoute(
-                builder: (_) => const DriverDashboardScreen());
-          case '/dashboard_combined':
-            return MaterialPageRoute(
-                builder: (_) => const CombinedDashboardScreen());
-          case '/mobiles':
-            return MaterialPageRoute(builder: (_) => MobilesScreen());
- 
-          case '/settings':
-            return MaterialPageRoute(builder: (_) => const SettingsScreen());
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
+          useMaterial3: true,
+          scaffoldBackgroundColor: Colors.grey[100],
+        ),
 
-          // Ruta para detalle de notificación Firebase
-         
-          default:
-            print('Ruta no encontrada: ${settings.name}');
-            return MaterialPageRoute(builder: (_) => const SplashScreen());
-        }
-      },
-      
-      // ✅ NUEVO: Builder para configurar UI global
-      builder: (context, child) {
-        return child ?? Container();
-      },
+        locale: const Locale('en', ''),
+
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en', ''), // English
+          Locale('es', ''), // Spanish
+        ],
+
+        home: const SplashScreen(),
+        
+        onGenerateRoute: (settings) {
+          print('Navegando a ruta: ${settings.name}');
+          
+          switch (settings.name) {
+            case '/auth_wrapper':
+              return MaterialPageRoute(builder: (_) => const AuthWrapper());
+            case '/login':
+              return MaterialPageRoute(builder: (_) => const LoginScreen());
+            case '/home':
+              return MaterialPageRoute(builder: (_) => BottomNavBar());
+            case '/dashboard':
+              return MaterialPageRoute(
+                  builder: (_) => const DriverDashboardScreen());
+            case '/dashboard_combined':
+              return MaterialPageRoute(
+                  builder: (_) => const CombinedDashboardScreen());
+            case '/mobiles':
+              return MaterialPageRoute(builder: (_) => MobilesScreen());
+            case '/settings':
+              return MaterialPageRoute(builder: (_) => const SettingsScreen());
+
+            // ✅ NUEVA RUTA PARA CHAT
+            case '/chat':
+              final args = settings.arguments as Map<String, dynamic>?;
+              if (args != null && args['serviceRequest'] != null) {
+                return MaterialPageRoute(
+                  builder: (_) => ServiceChatScreen(
+                    serviceRequest: args['serviceRequest'],
+                    userType: args['userType'] ?? 'user',
+                  ),
+                );
+              }
+              return MaterialPageRoute(builder: (_) => const SplashScreen());
+
+            default:
+              print('Ruta no encontrada: ${settings.name}');
+              return MaterialPageRoute(builder: (_) => const SplashScreen());
+          }
+        },
+        
+        // Builder para configurar UI global y OneSignal context
+        builder: (context, child) {
+          // ✅ CONFIGURAR CONTEXTO PARA ONESIGNAL
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            OneSignalService.setContext(context);
+          });
+          
+          return child ?? Container();
+        },
+      ),
     );
   }
 }

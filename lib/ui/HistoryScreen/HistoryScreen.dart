@@ -1,8 +1,9 @@
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/services/HistoryService.dart';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
+import 'package:Voltgo_app/ui/HistoryScreen/ServiceDetailsScreen.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -15,7 +16,7 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen>
     with SingleTickerProviderStateMixin {
   late Future<List<ServiceRequestModel>> _historyFuture;
-  String _selectedFilter = 'All'; // Valor predeterminado
+  String _selectedFilter = 'All';
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   List<ServiceRequestModel> _historyItems = [];
@@ -36,7 +37,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _selectedFilter = AppLocalizations.of(context).all; // Inicializar aquí
+    _selectedFilter = AppLocalizations.of(context).all;
   }
 
   @override
@@ -55,6 +56,33 @@ class _HistoryScreenState extends State<HistoryScreen>
     setState(() {
       _selectedFilter = filter;
     });
+  }
+
+  // NUEVO MÉTODO PARA NAVEGACIÓN
+  void _navigateToServiceDetails(ServiceRequestModel serviceRequest) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ServiceDetailsScreen(
+          serviceRequest: serviceRequest,
+        ),
+      ),
+    );
+  }
+
+  // NUEVO MÉTODO PARA FORMATEAR ESTADOS
+  String _getStatusDisplayText(String status, BuildContext context) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return AppLocalizations.of(context).completed;
+      case 'cancelled':
+        return AppLocalizations.of(context).cancelled;
+      case 'pending':
+        return 'Pendiente'; // O AppLocalizations.of(context).pending si lo tienes
+      case 'in_progress':
+        return 'En Progreso'; // O AppLocalizations.of(context).inProgress si lo tienes
+      default:
+        return status;
+    }
   }
 
   List<ServiceRequestModel> get _filteredList {
@@ -225,6 +253,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     IconData icon;
     Color statusColor;
 
+    // MEJORADO: Más estados y mejor manejo
     switch (item.status.toLowerCase()) {
       case 'completed':
         icon = Icons.check_circle;
@@ -234,9 +263,17 @@ class _HistoryScreenState extends State<HistoryScreen>
         icon = Icons.cancel;
         statusColor = AppColors.error;
         break;
-      default:
-        icon = Icons.hourglass_empty;
+      case 'pending':
+        icon = Icons.schedule;
         statusColor = AppColors.warning;
+        break;
+      case 'in_progress':
+        icon = Icons.hourglass_empty;
+        statusColor = AppColors.primary;
+        break;
+      default:
+        icon = Icons.help_outline;
+        statusColor = AppColors.textSecondary;
     }
 
     return GestureDetector(
@@ -245,7 +282,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       onTapCancel: () => _animationController.reverse(),
       onTap: () {
         HapticFeedback.lightImpact();
-        // TODO: Navigate to service details screen
+        _navigateToServiceDetails(item); // ACTUALIZADO: Navegar a detalles
       },
       child: ScaleTransition(
         scale: _scaleAnimation,
@@ -270,7 +307,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   child: Icon(icon, color: statusColor, size: 28),
                 ),
                 subtitle: Text(
-                  '${item.formattedDate} - ${item.formattedTime} • ${item.status}',
+                  '${item.formattedDate} - ${item.formattedTime} • ${_getStatusDisplayText(item.status, context)}', // ACTUALIZADO: Mejor formato
                   style: TextStyle(
                     fontSize: 14,
                     color: statusColor,

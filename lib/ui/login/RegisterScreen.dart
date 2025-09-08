@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
+import 'package:Voltgo_app/ui/login/GoogleProfileCompletionScreen.dart';
 import 'package:Voltgo_app/utils/map_picker_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -112,7 +113,75 @@ class _RegisterScreenState extends State<RegisterScreen>
               _confirmPasswordController.text.trim());
     });
   }
+// NUEVO: Método para registro con Google
+Future<void> _registerWithGoogle() async {
+  final localizations = AppLocalizations.of(context);
+  
+  if (_isLoading) return;
 
+  setState(() => _isLoading = true);
+  _animationController.repeat();
+
+  try {
+    final loginResult = await AuthService.loginWithGoogle();
+
+    _animationController.stop();
+    if (!mounted) return;
+
+    if (loginResult.success) {
+      // ✅ CORRECCIÓN: Verificar si el perfil ya está completo
+      final user = loginResult.user;
+      final needsCompletion = user?['phone'] == null || 
+                              user?['base_location'] == null || 
+                              user?['services_offered'] == null ||
+                              (user?['services_offered'] is List && (user?['services_offered'] as List).isEmpty);
+      
+      if (needsCompletion) {
+        // Navegar a completar perfil (caso normal para registro)
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GoogleProfileCompletionScreen(
+              userName: user?['name'] ?? 'Usuario',
+              userEmail: user?['email'] ?? '',
+            ),
+          ),
+        );
+      } else {
+        // Si ya tiene perfil completo, ir directamente al dashboard
+        // (esto puede pasar si el usuario ya se había registrado antes)
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const BottomNavBar()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            loginResult.error ?? localizations.serverConnectionError,
+          ),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      _animationController.stop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error inesperado: ${e.toString()}'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+}
   Future<void> _register() async {
     if (!_isButtonEnabled || _isLoading) return;
 
@@ -225,12 +294,15 @@ class _RegisterScreenState extends State<RegisterScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 40),
                     _buildHeader(),
-                    const SizedBox(height: 30),
-                    _buildForm(),
                     const SizedBox(height: 24),
+                    // NUEVO: Botones sociales arriba para mejor UX
                     _buildSocialLogins(),
+                    const SizedBox(height: 24),
+                    _buildDivider(),
+                    const SizedBox(height: 24),
+                    _buildForm(),
                     const SizedBox(height: 24),
                     _buildFooter(),
                     const SizedBox(height: 40),
@@ -267,14 +339,64 @@ class _RegisterScreenState extends State<RegisterScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            localizations.completeTechnicianForm,
+            'Elige cómo quieres registrarte',
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               color: AppColors.textSecondary,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // NUEVO: Separador entre opciones sociales y formulario manual
+  Widget _buildDivider() {
+    final localizations = AppLocalizations.of(context);
+    return Row(
+      children: [
+        const Expanded(child: Divider(thickness: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'O completa el formulario',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        const Expanded(child: Divider(thickness: 1)),
+      ],
+    );
+  }
+
+  // ACTUALIZADO: Botones sociales más prominentes
+  Widget _buildSocialLogins() {
+    final localizations = AppLocalizations.of(context);
+    return Column(
+      children: [
+        _buildSocialButton(
+          assetName: 'assets/images/gugel.png',
+          text: localizations.signUpWithGoogle,
+          onPressed: _isLoading ? null : _registerWithGoogle, // ACTUALIZADO
+        ),
+        const SizedBox(height: 12),
+        _buildSocialButton(
+          assetName: 'assets/images/appell.png',
+          text: localizations.signUpWithApple,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          onPressed: _isLoading ? null : () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Apple Sign In próximamente'),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -492,48 +614,6 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  Widget _buildSocialLogins() {
-    final localizations = AppLocalizations.of(context);
-    return Column(
-      children: [
-        Row(
-          children: [
-            const Expanded(child: Divider(thickness: 1)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                localizations.or,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const Expanded(child: Divider(thickness: 1)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _buildSocialButton(
-          assetName: 'assets/images/gugel.png',
-          text: localizations.signUpWithGoogle,
-          onPressed: () {
-            print('Google registration pressed');
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildSocialButton(
-          assetName: 'assets/images/appell.png',
-          text: localizations.signUpWithApple,
-          backgroundColor: Colors.black,
-          textColor: Colors.white,
-          onPressed: () {
-            print('Apple registration pressed');
-          },
-        ),
-      ],
-    );
-  }
-
   Widget _buildPhoneField() {
     final localizations = AppLocalizations.of(context);
     return Column(
@@ -742,7 +822,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   Widget _buildSocialButton({
     required String assetName,
     required String text,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed, // Puede ser null cuando está cargando
     Color? backgroundColor,
     Color? textColor,
   }) {

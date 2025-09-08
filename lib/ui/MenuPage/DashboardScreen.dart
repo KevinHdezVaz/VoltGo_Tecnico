@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
+import 'package:Voltgo_app/data/services/ChatNotificationProvider.dart';
 import 'package:Voltgo_app/data/services/EarningsService.dart';
+import 'package:Voltgo_app/data/services/NotificationBadge.dart';
 import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
 import 'package:Voltgo_app/data/services/ServiceRequestService.dart';
 import 'package:Voltgo_app/data/services/SoundService.dart';
@@ -19,6 +21,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:Voltgo_app/data/logic/dashboard/DashboardLogic.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Enum para controlar el estado y la UI del conductor
@@ -63,6 +66,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     _logic = DashboardLogic();
 
 
+
+ WidgetsBinding.instance.addPostFrameCallback((_) {
+    OneSignalService.setContext(context);
+  });
+  
     _setupOneSignalListeners();
 
     Timer.periodic(const Duration(seconds: 10), (timer) async {
@@ -1066,16 +1074,27 @@ Future<void> _initializeApp() async {
     );
   }
 
-  Future<void> _launchGoogleMaps(
-      double lat, double lng, String destination) async {
-    try {
-      //   await MapsLauncher.launchCoordinates(lat, lng, destination);
+ Future<void> _launchGoogleMaps(double lat, double lng, String destination) async {
+  try {
+    // URL para abrir Google Maps con navegación
+    final String googleMapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+    
+    // URL alternativa más específica
+    // final String googleMapsUrl = 'google.navigation:q=$lat,$lng&mode=d';
+    
+    final Uri uri = Uri.parse(googleMapsUrl);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
       print('✅ Google Maps abierto exitosamente');
-    } catch (e) {
-      print('❌ Error abriendo Google Maps: $e');
-      _showErrorSnackbar('No se pudo abrir Google Maps');
+    } else {
+      _showErrorSnackbar('Google Maps no está disponible');
     }
+  } catch (e) {
+    print('❌ Error abriendo Google Maps: $e');
+    _showErrorSnackbar('No se pudo abrir Google Maps: $e');
   }
+}
 
   Future<void> _launchWaze(double lat, double lng) async {
     try {
@@ -1287,61 +1306,50 @@ Future<void> _initializeApp() async {
     _statusCheckTimer = null;
   }
 
-  void _acceptRequest(int requestId) async {
-    final localizations = AppLocalizations.of(context);
-
+void _acceptRequest(int requestId) async {
+  final localizations = AppLocalizations.of(context);
 
   try {
     await NotificationService.stop();
-    // Vibración suave de confirmación
     NotificationService.vibrateOnly(VibrationPattern.gentle);
     print('🔇 Notificación detenida y feedback de aceptación enviado');
   } catch (e) {
     print('⚠️ Error al detener notificación: $e');
   }
 
+  // ✅ IMPORTANTE: NO limpiar _currentRequest aquí
+  setState(() {
+    _driverStatus = DriverStatus.enRouteToUser;
+    _isDialogShowing = false;
+    // ✅ NO hacer _currentRequest = null aquí
+  });
 
-    setState(() {
-      _driverStatus = DriverStatus.enRouteToUser;
-      _isDialogShowing = false;
-    });
-
-    try {
-      final success = await TechnicianService.acceptRequest(requestId);
-      if (success) {
-        _showSuccessSnackbar(localizations.requestAccepted);
-
+  try {
+    final success = await TechnicianService.acceptRequest(requestId);
+    if (success) {
+      _showSuccessSnackbar(localizations.requestAccepted);
       await NotificationService.playGentleNotification();
 
-        // ✅ NUEVO: Establecer servicio activo y empezar monitoreo
-        _activeServiceRequest = _currentRequest;
-        _lastActiveServiceStatus = 'accepted';
-        _startActiveServiceMonitoring();
+      // ✅ MANTENER _currentRequest para el panel
+      _activeServiceRequest = _currentRequest;
+      _lastActiveServiceStatus = 'accepted';
+      _startActiveServiceMonitoring();
 
-        _unavailableRequestIds.clear();
-      }
-    } catch (e) {
-      print("❌ Error aceptando solicitud: $e");
-
-      String errorMessage = localizations.errorAcceptingRequest;
-      if (e.toString().contains('ya no está disponible')) {
-        errorMessage = localizations.requestTakenByAnother;
-        _unavailableRequestIds.add(requestId);
-      } else if (e.toString().contains('No tienes autorización')) {
-        errorMessage = localizations.noAuthorizationForRequest;
-        _unavailableRequestIds.add(requestId);
-      }
-
-      _showErrorSnackbar(errorMessage);
-    NotificationService.vibrateOnly(VibrationPattern.urgent);
-
-      setState(() {
-        _driverStatus = DriverStatus.online;
-        _currentRequest = null;
-      });
-      _startRequestChecker();
+      _unavailableRequestIds.clear();
+      
+      // ✅ DEBUGGING: Verificar que _currentRequest no es null
+      print("✅ Solicitud aceptada - _currentRequest: ${_currentRequest?.id}");
+      print("✅ Estado actual: $_driverStatus");
     }
+  } catch (e) {
+    // Error handling...
+    setState(() {
+      _driverStatus = DriverStatus.online;
+      _currentRequest = null; // ✅ Solo limpiar en caso de error
+    });
+    _startRequestChecker();
   }
+}    
 
 // ✅ NUEVO: Monitorear servicio activo para detectar cancelaciones
   void _startActiveServiceMonitoring() {
@@ -1775,6 +1783,13 @@ void _showErrorNotification(String message) {
 // ✅ SOLUCIÓN 2: Ajustar el build method para más espacio
   @override
   Widget build(BuildContext context) {
+ print("🏗️ Building dashboard - Estado: $_driverStatus, Request: ${_currentRequest?.id}");
+  print("🔍 Verificando condiciones:");
+  print("   - _driverStatus == DriverStatus.enRouteToUser: ${_driverStatus == DriverStatus.enRouteToUser}");
+  print("   - _driverStatus == DriverStatus.onService: ${_driverStatus == DriverStatus.onService}");
+  print("   - _currentRequest != null: ${_currentRequest != null}");
+  
+
     final headerHeight = MediaQuery.of(context).padding.top + 64;
     final topPanelHeight = 160;
     final bottomNavHeight = 100; // ✅ AUMENTADO de 80 a 100
@@ -1818,18 +1833,32 @@ void _showErrorNotification(String message) {
             child: _buildTopHeaderPanel(),
           ),
           // Paneles de estado
-          if (_driverStatus == DriverStatus.incomingRequest)
-           // _buildIncomingRequestPanel(),
-          if (_driverStatus == DriverStatus.enRouteToUser ||
-              _driverStatus == DriverStatus.onService)
-            Positioned(
-              bottom: bottomNavHeight + 32, // ✅ AUMENTADO de 16 a 32
-              left: 16,
-              right: 16,
-              child:
-                  _buildActiveServicePanel(), // ✅ Ahora SIN Positioned interno
-            ),
-          if (_isLoading) const Center(child: CircularProgressIndicator()),
+         if (_driverStatus == DriverStatus.enRouteToUser ||
+            _driverStatus == DriverStatus.onService) ...[
+          Builder(
+            builder: (context) {
+              print("🔧 Intentando mostrar panel activo");
+              print("🔧 _currentRequest en builder: ${_currentRequest?.id}");
+              return Positioned(
+                bottom: bottomNavHeight + 32,
+                left: 16,
+                right: 16,
+                child: _buildActiveServicePanel(),
+              );
+            },
+          ),
+        ] else ...[
+          // ✅ DEBUGGING: Mostrar por qué no se muestra el panel
+          Builder(
+            builder: (context) {
+              print("❌ Panel NO se muestra - Estado actual: $_driverStatus");
+              return SizedBox.shrink();
+            },
+          ),
+        ],
+        
+        if (_isLoading) const Center(child: CircularProgressIndicator()),
+      
         ],
       ),
     );
@@ -2037,7 +2066,7 @@ void _showErrorNotification(String message) {
                             ),
                             if (isOnline && !isDuringService)
                               Text(
-                                'Buscando solicitudes',
+                                localizations.searchingRequests,
                                 style: TextStyle(
                                   color:
                                       AppColors.textOnPrimary.withOpacity(0.7),
@@ -2083,7 +2112,7 @@ void _showErrorNotification(String message) {
                   children: [
                     _buildCompactStat(
                       icon: Icons.attach_money,
-                      label: 'Hoy',
+                      label: localizations.hoy,
                       value: '\$${todayEarnings.toStringAsFixed(2)}',
                       iconColor: AppColors.accent,
                     ),
@@ -2095,7 +2124,7 @@ void _showErrorNotification(String message) {
                     ),
                     _buildCompactStat(
                       icon: Icons.electric_bolt,
-                      label: 'Servicios',
+                      label: localizations.services,
                       value: todayServices.toString(),
                       iconColor: AppColors.warning,
                     ),
@@ -2138,30 +2167,39 @@ void _showErrorNotification(String message) {
     }
   }
 
-  void _openChat() async {
-    // ✅ CORREGIDO: Usar _currentRequest (que tiene los datos del servicio activo)
-    // en lugar de _activeRequest
-    if (_currentRequest == null) {
-      _showErrorSnackbar('No hay servicio activo');
-      return;
-    }
+// ✅ MÉTODO _openChat ACTUALIZADO PARA MARCAR COMO LEÍDO
+// En DriverDashboardScreen
 
-    HapticFeedback.lightImpact();
-
-    print('🔍 Abriendo chat para servicio: ${_currentRequest!.id}');
-    print('📱 Usuario: ${_currentRequest!.user?.name ?? 'Desconocido'}');
-
-    // Navegar a la pantalla de chat
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ServiceChatScreen(
-          serviceRequest: _currentRequest!, // ✅ USAR _currentRequest
-          userType: 'technician', // ✅ CORRECTO: 'technician' para técnicos
-        ),
-      ),
-    );
+void _openChat() async {
+  if (_currentRequest == null) {
+    _showErrorSnackbar('No hay servicio activo');
+    return;
   }
+
+  HapticFeedback.lightImpact();
+
+  print('🔍 Abriendo chat para servicio: ${_currentRequest!.id}');
+  print('📱 Usuario: ${_currentRequest!.user?.name ?? 'Desconocido'}');
+
+  // ✅ MARCAR COMO LEÍDO ANTES DE ABRIR EL CHAT
+  final chatProvider = Provider.of<ChatNotificationProvider>(context, listen: false);
+  await chatProvider.markServiceAsRead(_currentRequest!.id);
+
+  // Navegar a la pantalla de chat
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ServiceChatScreen(
+        serviceRequest: _currentRequest!,
+        userType: 'technician',
+      ),
+    ),
+  ).then((_) {
+    // ✅ REFRESH AL VOLVER DEL CHAT
+    chatProvider.forceRefresh();
+  });
+}
+
 
 // Widget auxiliar para estadísticas compactas
   Widget _buildCompactStat({
@@ -2320,223 +2358,294 @@ void _showErrorNotification(String message) {
     );
   }
 
-  Widget _buildActiveServicePanel() {
-    final localizations = AppLocalizations.of(context);
+ 
+Widget _buildActiveServicePanel() {
+  final localizations = AppLocalizations.of(context);
 
-    if (_currentRequest == null) {
-      return const SizedBox.shrink();
-    }
+  print("🔍 Building active service panel - _currentRequest: ${_currentRequest?.id}");
 
-    final bool enRuta = _driverStatus == DriverStatus.enRouteToUser;
+  if (_currentRequest == null) {
+    print("⚠️ _currentRequest es null en _buildActiveServicePanel");
+    return const SizedBox.shrink();
+  }
 
-    final String title = enRuta
-        ? localizations.enRouteToClientPanel
-        : localizations.serviceInProgressPanel;
+  final bool enRuta = _driverStatus == DriverStatus.enRouteToUser;
+  print("🚗 enRuta: $enRuta, _driverStatus: $_driverStatus");
 
-    final String mainButtonText =
-        enRuta ? 'HE LLEGADO AL SITIO' : 'FINALIZAR SERVICIO';
-    final IconData mainButtonIcon =
-        enRuta ? Icons.location_on : Icons.check_circle;
+  final String title = enRuta
+      ? localizations.enRouteToClientPanel
+      : localizations.serviceInProgressPanel;
 
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 10,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Título del Panel
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 0.8,
-              ),
+  return Card(
+    margin: EdgeInsets.zero,
+    elevation: 10,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Título del Panel
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              letterSpacing: 0.8,
             ),
-            const Divider(height: 16),
+          ),
+          const Divider(height: 16),
 
-            // Información del Cliente
-            Row(
-              children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
-                  child: Text(
-                    _currentRequest!.user?.name.isNotEmpty == true
-                        ? _currentRequest!.user!.name[0].toUpperCase()
-                        : 'C',
-                    style: GoogleFonts.inter(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+          // Información del Cliente
+          Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                child: Text(
+                  _currentRequest!.user?.name.isNotEmpty == true
+                      ? _currentRequest!.user!.name[0].toUpperCase()
+                      : 'C',
+                  style: GoogleFonts.inter(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Nombre y Dirección
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _currentRequest!.user?.name ?? 'Cliente',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(width: 12),
+              // Nombre y Dirección
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _currentRequest!.user?.name ?? 'Cliente',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        localizations.chargeServiceRequested,
-                        style: GoogleFonts.inter(
-                            fontSize: 12, color: AppColors.textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      localizations.chargeServiceRequested,
+                      style: GoogleFonts.inter(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Botones de acción
+          if (enRuta) ...[
+            // Botones para cuando está en ruta
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // ✅ BOTÓN DE CHAT CON BADGE MEJORADO
+                Consumer<ChatNotificationProvider>(
+                  builder: (context, chatProvider, child) {
+                    final unreadCount = _currentRequest != null 
+                        ? chatProvider.getUnreadForService(_currentRequest!.id)
+                        : 0;
+
+                    return _buildChatButtonWithBadge(
+                      unreadCount: unreadCount,
+                      onTap: _openChat,
+                    );
+                  },
+                ),
+
+                const SizedBox(width: 8),
+
+                // Botón de Llamada
+                OutlinedButton(
+                  onPressed: _callClient,
+                  style: OutlinedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(10),
+                    side: BorderSide(color: AppColors.success),
                   ),
+                  child: Icon(Icons.phone, color: AppColors.success, size: 18),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // --- ✅ SECCIÓN DE BOTONES MODIFICADA ---
-            if (enRuta) ...[
-              // Fila con seguimiento y acciones de comunicación (llamada y chat)
-              Row(
-                // Añade esta línea para alinear todo a la derecha
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // El SizedBox inicial ya no es necesario aquí
-                  // const SizedBox(width: 8),
-
-                  // NUEVO: Botón de Chat (icono)
-                  OutlinedButton(
-                    onPressed: _openChat,
-                    style: OutlinedButton.styleFrom(
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(10),
-                      side: BorderSide(color: AppColors.info),
-                    ),
-                    child: Icon(Icons.chat, color: AppColors.info, size: 18),
-                  ),
-
-                  // Botón de Llamada (icono)
-                  OutlinedButton(
-                    onPressed: _callClient,
-                    style: OutlinedButton.styleFrom(
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(10),
-                      side: BorderSide(color: AppColors.success),
-                    ),
-                    child:
-                        Icon(Icons.phone, color: AppColors.success, size: 18),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Botón para navegación externa
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.navigation, size: 16),
-                  label: Text(
-                    'Abrir en Maps',
-                    style: GoogleFonts.inter(
-                        fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: _showNavigationOptions,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ] else ...[
-              // Cuando está en servicio, mostrar botones normales
-              Row(
-                children: [
-                  // Botón de Navegación normal
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.navigation_rounded, size: 18),
-                      label:
-                          const Text('NAVEGAR', style: TextStyle(fontSize: 12)),
-                      onPressed: _showNavigationOptions,
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: AppColors.brandBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Botón de Llamada
-                  OutlinedButton(
-                    onPressed: _callClient,
-                    style: OutlinedButton.styleFrom(
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(10),
-                      side: BorderSide(color: AppColors.success),
-                    ),
-                    child:
-                        Icon(Icons.phone, color: AppColors.success, size: 18),
-                  ),
-                ],
-              ),
-            ],
-            // --- FIN DE LA SECCIÓN MODIFICADA ---
-
             const SizedBox(height: 12),
 
-            // Botón de Acción Principal (Llegué / Finalizar)
+            // Botón para navegación
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: Icon(
-                  Icons.my_location,
-                  size: 18,
-                  color: Colors.white,
-                ),
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.navigation, size: 16),
                 label: Text(
-                  "SEGUIMIENTO EN TIEMPO REAL",
+                  'Abrir en Maps',
                   style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      fontSize: 14, fontWeight: FontWeight.bold),
                 ),
-                onPressed: _openRealTimeTracking,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor:
-                      enRuta ? AppColors.primary : AppColors.success,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                onPressed: _showNavigationOptions,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
             ),
+          ] else ...[
+            // Botones para cuando está en servicio
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.navigation_rounded, size: 18),
+                    label: const Text('NAVEGAR', style: TextStyle(fontSize: 12)),
+                    onPressed: _showNavigationOptions,
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.brandBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // ✅ BOTÓN DE CHAT CON BADGE MEJORADO
+                Consumer<ChatNotificationProvider>(
+                  builder: (context, chatProvider, child) {
+                    final unreadCount = _currentRequest != null 
+                        ? chatProvider.getUnreadForService(_currentRequest!.id)
+                        : 0;
+
+                    return _buildChatButtonWithBadge(
+                      unreadCount: unreadCount,
+                      onTap: _openChat,
+                    );
+                  },
+                ),
+
+                const SizedBox(width: 8),
+
+                // Botón de Llamada
+                OutlinedButton(
+                  onPressed: _callClient,
+                  style: OutlinedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(10),
+                    side: BorderSide(color: AppColors.success),
+                  ),
+                  child: Icon(Icons.phone, color: AppColors.success, size: 18),
+                ),
+              ],
+            ),
           ],
+
+          const SizedBox(height: 12),
+
+          // Botón principal de seguimiento
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: Icon(
+                Icons.my_location,
+                size: 18,
+                color: Colors.white,
+              ),
+              label: Text(
+                "SEGUIMIENTO EN TIEMPO REAL",
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: _openRealTimeTracking,
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: enRuta ? AppColors.primary : AppColors.success,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ✅ MÉTODO AUXILIAR PARA BOTÓN DE CHAT CON BADGE OPTIMIZADO
+Widget _buildChatButtonWithBadge({
+  required int unreadCount,
+  required VoidCallback onTap,
+}) {
+  return Stack(
+    clipBehavior: Clip.none,
+    children: [
+      // Botón principal
+      OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          shape: const CircleBorder(),
+          padding: const EdgeInsets.all(10),
+          side: BorderSide(color: AppColors.info),
+        ),
+        child: Icon(
+          Icons.chat,
+          color: AppColors.info,
+          size: 18, // ✅ Tamaño normal del icono
         ),
       ),
-    );
-  }
-
+      
+      // Badge pequeño y bien posicionado
+      if (unreadCount > 0)
+        Positioned(
+          top: -2, // ✅ Posición más precisa
+          right: -2,
+          child: Container(
+             padding: EdgeInsets.all(unreadCount > 9 ? 3 : 4), // ✅ Padding ajustable
+            decoration: BoxDecoration(
+              color: AppColors.error,
+              borderRadius: BorderRadius.circular(8), // ✅ Menos redondeado
+              border: Border.all(
+                color: Colors.white,
+                width: 1.5, // ✅ Borde más fino
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 2, // ✅ Sombra más sutil
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Text(
+              unreadCount > 99 ? '99+' : unreadCount.toString(),
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 9, // ✅ Texto más pequeño
+                fontWeight: FontWeight.bold,
+                height: 1, // ✅ Sin espacio extra vertical
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+    ],
+  );
+}
 // ✅ PASO 3: Agregar método para abrir seguimiento en tiempo real
 
   void _openRealTimeTracking() {

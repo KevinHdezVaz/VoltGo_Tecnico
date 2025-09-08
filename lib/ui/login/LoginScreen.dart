@@ -192,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen>
 }
 
  
-Future<void> _loginWithGoogle() async {
+ Future<void> _loginWithGoogle() async {
   final l10n = AppLocalizations.of(context);
   
   if (_isLoading) return;
@@ -207,8 +207,12 @@ Future<void> _loginWithGoogle() async {
     if (!mounted) return;
 
     if (loginResult.success) {
-      // Verificar si necesita completar perfil
-      final needsCompletion = loginResult.user?['phone'] == null;
+      // ✅ CORRECCIÓN: Verificar múltiples campos requeridos para técnicos
+      final user = loginResult.user;
+      final needsCompletion = user?['phone'] == null || 
+                              user?['base_location'] == null || 
+                              user?['services_offered'] == null ||
+                              (user?['services_offered'] is List && (user?['services_offered'] as List).isEmpty);
       
       if (needsCompletion) {
         // Navegar a completar perfil
@@ -216,8 +220,8 @@ Future<void> _loginWithGoogle() async {
           context,
           MaterialPageRoute(
             builder: (context) => GoogleProfileCompletionScreen(
-              userName: loginResult.user?['name'] ?? 'Usuario',
-              userEmail: loginResult.user?['email'] ?? '',
+              userName: user?['name'] ?? 'Usuario',
+              userEmail: user?['email'] ?? '',
             ),
           ),
         );
@@ -256,6 +260,7 @@ Future<void> _loginWithGoogle() async {
     }
   }
 }
+
 
 
   // ▼▼▼ NUEVO: Helper para crear botones de login social genéricos ▼▼▼

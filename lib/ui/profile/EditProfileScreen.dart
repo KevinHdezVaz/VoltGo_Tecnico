@@ -1,411 +1,827 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:Voltgo_app/data/models/User/UserDetail.dart';
-import 'package:Voltgo_app/data/services/UserCacheService.dart';
-import 'package:Voltgo_app/data/services/UserService.dart';
+import 'package:Voltgo_app/data/models/User/UserModel.dart';
+import 'package:Voltgo_app/data/services/auth_api_service.dart';
+ import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
-import 'package:Voltgo_app/utils/AnimatedTruckProgress.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
-class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({Key? key}) : super(key: key);
+class EditTechnicianProfileScreen extends StatefulWidget {
+  final UserModel? user;
+
+  const EditTechnicianProfileScreen({
+    Key? key,
+    this.user,
+  }) : super(key: key);
 
   @override
-  _EditProfileScreenState createState() => _EditProfileScreenState();
+  State<EditTechnicianProfileScreen> createState() => _EditTechnicianProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen>
-    with SingleTickerProviderStateMixin {
-  late TextEditingController _nameController;
-  late TextEditingController _emailController;
-  late TextEditingController _companyController;
-  File? _selectedImage;
-  bool _isLoading = true;
-  bool _isSaving = false; // Added to track saving state
-  String? _errorMessage;
-  UserDetailResponse? _userDetail;
-  late AnimationController _animationController;
+class _EditTechnicianProfileScreenState extends State<EditTechnicianProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _phoneController = TextEditingController();
+  final _baseLocationController = TextEditingController();
+  final _licenseNumberController = TextEditingController();
+  
+  List<String> _servicesOffered = [];
+  File? _idDocument;
+  bool _isLoading = false;
+  bool _hasChanges = false;
+  UserModel? _currentUser;
+
+  // Servicios disponibles para técnicos
+  final List<String> _availableServices = [
+    'Carga rápida DC',
+    'Carga lenta AC',
+    'Carga de emergencia',
+    'Mantenimiento básico',
+    'Diagnóstico de batería',
+    'Reparación menor',
+    'Asistencia en carretera',
+    'Instalación de cargadores',
+    'Consultoría técnica',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _emailController = TextEditingController();
-    _companyController = TextEditingController();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3), // Animation duration
-    );
-    _loadUserData();
+    _initializeFields();
+  }
+
+  void _initializeFields() async {
+  if (widget.user != null) {
+    _currentUser = widget.user;
+   } else {
+    await _loadUserProfile();
+  }
+}
+ 
+
+// Método auxiliar para cargar el perfil desde el servidor
+Future<void> _loadUserProfile() async {
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final userProfile = await AuthService.fetchUserProfile();
+    if (userProfile != null && mounted) {
+      setState(() {
+        _currentUser = userProfile;
+      });
+     } else {
+      if (mounted) {
+        _showErrorDialog('No se pudo cargar el perfil del usuario');
+      }
+    }
+  } catch (e) {
+    if (mounted) {
+      _showErrorDialog('Error al cargar perfil: $e');
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+}
+
+  void _onFieldChanged() {
+    if (!_hasChanges) {
+      setState(() {
+        _hasChanges = true;
+      });
+    }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _companyController.dispose();
-    _animationController.dispose();
+    _phoneController.dispose();
+    _baseLocationController.dispose();
+    _licenseNumberController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadUserData() async {
+  Future<void> _pickDocument() async {
     try {
-      _animationController.repeat(); // Start animation
-      final userDetail = await UserService.getUserDetail();
-      if (mounted) {
-        setState(() {
-          _userDetail = userDetail;
-          _nameController.text = userDetail.data.name;
-          _emailController.text = userDetail.data.username;
-          _companyController.text = userDetail.data.company.name;
-          _isLoading = false;
-        });
-        _animationController.stop(); // Stop animation
+      final ImagePicker picker = ImagePicker();
+      
+      // Mostrar opciones para seleccionar cámara o galería
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Seleccionar documento',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                title: const Text('Cámara'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: AppColors.primary),
+                title: const Text('Galería'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+      
+      if (source != null) {
+        final XFile? file = await picker.pickImage(
+          source: source,
+          imageQuality: 80,
+          maxWidth: 1920,
+          maxHeight: 1080,
+        );
+        
+        if (file != null) {
+          setState(() {
+            _idDocument = File(file.path);
+            _hasChanges = true;
+          });
+        }
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = "Error al cargar datos: ${e.toString()}";
-          _isLoading = false;
-        });
-        _animationController.stop(); // Stop animation on error
-      }
+      _showErrorDialog('Error al seleccionar documento: $e');
     }
   }
 
-  Future<void> _showImagePickerOptions() async {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20.0),
-              topRight: Radius.circular(20.0),
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_library, color: Colors.black),
-                  title: const Text('Elegir de la galería',
-                      style: TextStyle(color: Colors.black)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.photo_camera, color: Colors.black),
-                  title: const Text('Tomar una foto',
-                      style: TextStyle(color: Colors.black)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-                SizedBox(
-                  height: MediaQuery.of(context).viewInsets.bottom,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // En EditProfileScreen
-
-  Future<void> _pickImage(ImageSource source) async {
-    // --- 1. VERIFICAR PERMISOS PRIMERO ---
-    final hasPermission = await _checkPermissions(source);
-    if (!hasPermission) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Permiso denegado. Habilítalo en la configuración de tu teléfono.')),
-        );
-      }
-      return; // Detiene la ejecución si no hay permiso
-    }
-
-    // --- 2. EL RESTO DE TU CÓDIGO ---
-    final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: source);
-
-    if (pickedFile == null) return;
-
-    final originalFile = File(pickedFile.path);
-    final tempDir = await getTemporaryDirectory();
-    final targetPath = p.join(tempDir.path, "temp_profile.jpg");
-
-    final XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
-      originalFile.absolute.path,
-      targetPath,
-      quality: 60,
-    );
-
-    if (compressedFile != null && mounted) {
-      setState(() {
-        _selectedImage = File(compressedFile.path);
-      });
-      print(
-          'Tamaño original: ${(originalFile.lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB');
-      print(
-          'Tamaño comprimido: ${(_selectedImage!.lengthSync() / 1024).toStringAsFixed(2)} KB');
-    }
-  }
-
-  Future<bool> _checkPermissions(ImageSource source) async {
-    if (Platform.isIOS) {
-      final status = await Permission.photos.status;
-      if (source == ImageSource.camera) {
-        return await Permission.camera.request().isGranted;
-      } else {
-        return await Permission.photos.request().isGranted;
-      }
-    }
-    return true;
-  }
-
-  Future<void> _saveChanges() async {
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No has seleccionado una nueva imagen')),
-      );
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_servicesOffered.isEmpty) {
+      _showErrorDialog('Debes seleccionar al menos un servicio');
       return;
     }
-
+    
     setState(() {
-      _isSaving = true;
+      _isLoading = true;
     });
-    _animationController.repeat(); // Start animation
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => Center(
-        child: AnimatedTruckProgress(
-          animation: _animationController,
-        ),
-      ),
-    );
 
     try {
-      await UserService.updateUserProfile(
-        username: _userDetail!.data.username,
-        name: _userDetail!.data.name,
-        company: _userDetail!.data.company.name,
-        image: _selectedImage!,
-        lastname: _userDetail!.data.lastname,
-        phone: _userDetail!.data.phone,
+      final result = await AuthService.updateTechnicianProfile(
+        phone: _phoneController.text.trim(),
+        baseLocation: _baseLocationController.text.trim(),
+        servicesOffered: _servicesOffered,
+        licenseNumber: _licenseNumberController.text.trim().isEmpty 
+            ? null 
+            : _licenseNumberController.text.trim(),
+        idDocument: _idDocument,
       );
-
-      await UserCacheService.clearUserData(); // Borra la caché actual
-      final updatedUser =
-          await UserService.getUserDetail(); // Obtiene los datos frescos
-      await UserCacheService.saveUserData(
-          updatedUser.data); // Guarda los nuevos datos
-
+      
       if (mounted) {
-        Navigator.of(context).pop(); // Close dialog
-        _animationController.stop(); // Stop animation
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil actualizado correctamente')),
-        );
+        if (result.success) {
+          _showSuccessDialog();
+        } else {
+          _showErrorDialog(result.error ?? 'Error desconocido');
+        }
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // Close dialog
-        _animationController.stop(); // Stop animation
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: ${e.toString()}')),
-        );
+        _showErrorDialog('Error al guardar: $e');
       }
     } finally {
       if (mounted) {
         setState(() {
-          _isSaving = false;
+          _isLoading = false;
         });
-        _animationController.reset(); // Reset animation
       }
     }
   }
 
+  void _showSuccessDialog() {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.profileUpdated ?? 'Perfil actualizado'),
+        content: Text(l10n.profileUpdatedSuccessfully ?? 'Tu perfil se ha actualizado correctamente.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Cerrar diálogo
+              Navigator.pop(context, true); // Volver con resultado
+            },
+            child: Text(l10n.accept ?? 'Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.error),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.accept ?? 'Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _onWillPop() async {
+    if (!_hasChanges) return true;
+    
+    final l10n = AppLocalizations.of(context);
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.unsavedChanges ?? 'Cambios sin guardar'),
+        content: Text(l10n.discardChanges ?? '¿Deseas descartar los cambios realizados?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.discard ?? 'Descartar'),
+          ),
+        ],
+      ),
+    );
+    
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: Image.asset('assets/images/backbtn.png', width: 40, height: 40),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Perfil',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Stack(
-        children: [
-          if (_isLoading)
-            Center(
-              child: AnimatedTruckProgress(
-                animation: _animationController,
+    final l10n = AppLocalizations.of(context);
+    
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: Text(
+            l10n.editProfile,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 22,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+          centerTitle: true,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.brandBlue.withOpacity(0.9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            )
-          else if (_errorMessage != null)
-            Center(child: Text(_errorMessage!))
-          else
-            ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              children: [
-                const SizedBox(height: 20),
-                _buildProfilePicture(),
-                const SizedBox(height: 16),
-                const Center(
-                  child: Text(
-                    '38 móviles asociados',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          elevation: 4,
+          shadowColor: AppColors.gray300.withOpacity(0.4),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () async {
+              if (await _onWillPop()) {
+                Navigator.pop(context);
+              }
+            },
+          ),
+          actions: [
+            if (_hasChanges)
+              TextButton(
+                onPressed: _isLoading ? null : _saveProfile,
+                child: Text(
+                  l10n.save ?? 'Guardar',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 30),
-                _buildTextField(label: 'Nombre', controller: _nameController),
-                const SizedBox(height: 20),
-                _buildTextField(
-                    label: 'Correo electrónico', controller: _emailController),
-                const SizedBox(height: 20),
-                _buildTextField(
-                    label: 'Empresa', controller: _companyController),
-                const SizedBox(height: 120),
-              ],
-            ),
-          if (!_isLoading && _errorMessage == null && !_isSaving)
-            _buildSaveChangesButton(),
-        ],
+              ),
+          ],
+        ),
+        body: _isLoading && _currentUser == null
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTechnicianInfoCard(),
+                      const SizedBox(height: 24),
+                      _buildContactInfoSection(),
+                      const SizedBox(height: 24),
+                      _buildProfessionalInfoSection(),
+                      const SizedBox(height: 24),
+                      _buildServicesSection(),
+                      const SizedBox(height: 24),
+                      _buildDocumentSection(),
+                      const SizedBox(height: 32),
+                      _buildSaveButton(),
+                    ],
+                  ),
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildProfilePicture() {
-    return Center(
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          GestureDetector(
-            onTap: _showImagePickerOptions,
-            child: _buildProfileImage(),
+  Widget _buildTechnicianInfoCard() {
+    final l10n = AppLocalizations.of(context);
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withOpacity(0.1),
+              AppColors.white,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          Positioned(
-            bottom: -5,
-            right: -5,
-            child: GestureDetector(
-              onTap: _showImagePickerOptions,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade700,
-                  shape: BoxShape.circle,
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              child: Icon(
+                Icons.engineering,
+                size: 30,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _currentUser?.name ?? l10n.loading ?? 'Cargando...',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _currentUser?.email ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      l10n.technician ?? 'Técnico Certificado',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContactInfoSection() {
+    final l10n = AppLocalizations.of(context);
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.contact_phone, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.contactInformation ?? 'Información de contacto',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.all(6.0),
-                  child: Icon(Icons.edit, color: Colors.white, size: 18),
+              ],
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _phoneController,
+              decoration: InputDecoration(
+                labelText: l10n.phoneNumber,
+                prefixIcon: const Icon(Icons.phone, color: AppColors.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.background,
+                hintText: '+52 123 456 7890',
+              ),
+              keyboardType: TextInputType.phone,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return l10n.fieldRequired;
+                }
+                if (value.trim().length < 10) {
+                  return l10n.phoneMinLength ?? 'Teléfono debe tener al menos 10 dígitos';
+                }
+                return null;
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfessionalInfoSection() {
+    final l10n = AppLocalizations.of(context);
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.work, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.professionalInformation ?? 'Información profesional',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _baseLocationController,
+              decoration: InputDecoration(
+                labelText: l10n.baseLocation ?? 'Ubicación base',
+                prefixIcon: const Icon(Icons.location_on, color: AppColors.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.background,
+                hintText: 'Ciudad, Estado',
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return l10n.fieldRequired;
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _licenseNumberController,
+              decoration: InputDecoration(
+                labelText: l10n.licenseNumber ?? 'Número de licencia (opcional)',
+                prefixIcon: const Icon(Icons.badge, color: AppColors.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.background,
+                hintText: 'LIC-123456',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServicesSection() {
+    final l10n = AppLocalizations.of(context);
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.build, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.servicesOffered ?? 'Servicios ofrecidos',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.selectServices ?? 'Selecciona los servicios que ofreces:',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _availableServices.map((service) {
+                final isSelected = _servicesOffered.contains(service);
+                return FilterChip(
+                  label: Text(service),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _servicesOffered.add(service);
+                      } else {
+                        _servicesOffered.remove(service);
+                      }
+                      _hasChanges = true;
+                    });
+                    HapticFeedback.lightImpact();
+                  },
+                  selectedColor: AppColors.primary.withOpacity(0.2),
+                  checkmarkColor: AppColors.primary,
+                  labelStyle: TextStyle(
+                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 13,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            if (_servicesOffered.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: AppColors.warning, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.selectAtLeastOneService ?? 'Selecciona al menos un servicio',
+                          style: TextStyle(
+                            color: AppColors.warning,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentSection() {
+    final l10n = AppLocalizations.of(context);
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.description, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.identificationDocument ?? 'Documento de identificación',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_idDocument != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: AppColors.success),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.documentSelected ?? 'Documento seleccionado',
+                            style: const TextStyle(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            _idDocument!.path.split('/').last,
+                            style: const TextStyle(
+                              color: AppColors.success,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _idDocument = null;
+                          _hasChanges = true;
+                        });
+                      },
+                      child: Text(
+                        l10n.remove ?? 'Quitar',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            ElevatedButton.icon(
+              onPressed: _pickDocument,
+              icon: const Icon(Icons.upload_file),
+              label: Text(_idDocument == null 
+                  ? (l10n.uploadDocument ?? 'Subir documento') 
+                  : (l10n.changeDocument ?? 'Cambiar documento')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              l10n.documentInfo ?? 'Formatos soportados: JPG, PNG (máx. 5MB)',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildProfileImage() {
-    if (_selectedImage != null) {
-      return CircleAvatar(
-        radius: 50,
-        backgroundImage: FileImage(_selectedImage!),
-      );
-    }
-    return CircleAvatar(
-      radius: 50,
-      backgroundColor: const Color(0xFFE6E0F8),
-      backgroundImage: _userDetail?.data.userImage != null
-          ? NetworkImage(_userDetail!.data.userImage!)
-          : null,
-      child: _userDetail?.data.userImage == null
-          ? const Icon(Icons.person, size: 50, color: Colors.white)
-          : null,
-    );
-  }
-
-  Widget _buildTextField(
-      {required String label, required TextEditingController controller}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          readOnly: true,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey.shade100,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide.none,
-            ),
+  Widget _buildSaveButton() {
+    final l10n = AppLocalizations.of(context);
+    
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: _hasChanges ? [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSaveChangesButton() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(40, 0, 40, 50),
-        color: Colors.white,
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: (_selectedImage != null && !_isLoading && !_isSaving)
-              ? _saveChanges
-              : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            disabledBackgroundColor: Colors.grey.shade300,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0),
-            ),
+        ] : null,
+      ),
+      child: ElevatedButton(
+        onPressed: _hasChanges && !_isLoading ? _saveProfile : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _hasChanges ? AppColors.primary : AppColors.gray300,
+          foregroundColor: _hasChanges ? Colors.white : AppColors.textSecondary,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: const Text(
-            'Guardar cambios',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          elevation: _hasChanges ? 4 : 0,
         ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _hasChanges ? Icons.save : Icons.check,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _hasChanges 
+                        ? (l10n.saveChanges ?? 'Guardar cambios')
+                        : (l10n.noChanges ?? 'Sin cambios'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }

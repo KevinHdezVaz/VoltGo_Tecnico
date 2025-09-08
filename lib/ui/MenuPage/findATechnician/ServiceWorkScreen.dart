@@ -1,15 +1,16 @@
 // ServiceWorkScreen.dart - Pantalla de trabajo del técnico
 import 'dart:async';
 import 'dart:io';
+import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
+import 'package:Voltgo_app/data/services/TechnicianService.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
+import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
-import 'package:Voltgo_app/data/services/TechnicianService.dart';
-import 'package:Voltgo_app/ui/color/app_colors.dart';
-import 'package:url_launcher/url_launcher.dart';
+ import 'package:url_launcher/url_launcher.dart';
 
 class ServiceWorkScreen extends StatefulWidget {
   final ServiceRequestModel serviceRequest;
@@ -35,6 +36,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
   bool _vehiclePhotoUploaded = false;
   bool _beforePhotoUploaded = false;
   bool _afterPhotoUploaded = false;
+
   // Estados
   bool _isLoading = false;
   bool _serviceStarted = false;
@@ -48,47 +50,57 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
   @override
   void initState() {
     super.initState();
-    _markServiceAsOnSite();
-    _loadServiceProgress();
-    _startService();
-
-    // ✅ CORREGIR: Usar guiones bajos, no asteriscos
+    // Initialize listeners
     _batteryLevelController.addListener(_onTextFieldChanged);
     _chargeTimeController.addListener(_onTextFieldChanged);
     _notesController.addListener(_onTextFieldChanged);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Move context-dependent operations here
+    _markServiceAsOnSite();
+    _loadServiceProgress();
+    _startService();
+  }
+
   Future<void> _markServiceAsOnSite() async {
     try {
+      final localizations = AppLocalizations.of(context);
       await TechnicianService.updateServiceStatus(
-          widget.serviceRequest.id, 'on_site',
-          notes: 'Técnico llegó al sitio del cliente');
+        widget.serviceRequest.id,
+        'on_site',
+        notes: localizations.technicianArrivedMessage,
+      );
     } catch (e) {
       print('Error updating service status: $e');
+      _showErrorSnackbar(AppLocalizations.of(context).errorChangingStatus);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(),
+          _buildAppBar(localizations),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  _buildClientInfoCard(),
+                  _buildClientInfoCard(localizations),
                   const SizedBox(height: 16),
-                  _buildServiceProgressCard(),
+                  _buildServiceProgressCard(localizations),
                   const SizedBox(height: 16),
-                  _buildPhotoSection(),
+                  _buildPhotoSection(localizations),
                   const SizedBox(height: 16),
-                  _buildServiceDetailsSection(),
+                  _buildServiceDetailsSection(localizations),
                   const SizedBox(height: 24),
-                  _buildCompleteServiceButton(),
+                  _buildCompleteServiceButton(localizations),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -99,7 +111,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(AppLocalizations localizations) {
     return SliverAppBar(
       expandedHeight: 120,
       floating: false,
@@ -111,7 +123,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
       ),
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
-          'Servicio en Sitio',
+          localizations.technicianOnSite,
           style: GoogleFonts.inter(
             color: Colors.white,
             fontSize: 18,
@@ -138,7 +150,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  Widget _buildClientInfoCard() {
+  Widget _buildClientInfoCard(AppLocalizations localizations) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -166,7 +178,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.serviceRequest.user?.name ?? 'Cliente',
+                    widget.serviceRequest.user?.name ?? localizations.client,
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -174,7 +186,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Servicio de Recarga Eléctrica',
+                    localizations.chargeServiceRequested,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -189,7 +201,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'EN SITIO',
+                      localizations.onSite,
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -213,7 +225,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  Widget _buildServiceProgressCard() {
+  Widget _buildServiceProgressCard(AppLocalizations localizations) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -226,7 +238,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 Icon(Icons.timeline, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Progreso del Servicio',
+                  localizations.serviceProgress,
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -241,7 +253,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _startService,
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('Iniciar Servicio de Carga'),
+                  label: Text(localizations.serviceInitiatedTitle),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -267,7 +279,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Servicio iniciado: ${_formatTime(_serviceStartTime!)}',
+                            '${localizations.serviceInitiatedTitle}: ${_formatTime(_serviceStartTime!)}',
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.w600,
                               color: Colors.green.shade700,
@@ -278,7 +290,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _buildServiceTimer(),
+                  _buildServiceTimer(localizations),
                 ],
               ),
           ],
@@ -287,7 +299,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  Widget _buildServiceTimer() {
+  Widget _buildServiceTimer(AppLocalizations localizations) {
     if (_serviceStartTime == null) return const SizedBox();
 
     return StreamBuilder<DateTime>(
@@ -311,7 +323,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               Icon(Icons.timer, color: AppColors.brandBlue),
               const SizedBox(width: 8),
               Text(
-                'Tiempo transcurrido: ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                '${localizations.timeElapsed}: ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -325,7 +337,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  Widget _buildPhotoSection() {
+  Widget _buildPhotoSection(AppLocalizations localizations) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -339,7 +351,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 Icon(Icons.photo_camera, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Documentación Fotográfica',
+                  localizations.technicianWillDocumentProgress,
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -351,40 +363,40 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
 
             // Foto del vehículo
             _buildPhotoCard(
-              title: 'Foto del Vehículo',
-              subtitle: 'Captura una foto del vehículo del cliente',
+              title: localizations.serviceVehicle,
+              subtitle: localizations.vehicleNeeded,
               photo: _vehiclePhoto,
               onTap: () => _takePhoto('vehicle'),
               icon: Icons.directions_car,
               color: AppColors.info,
-              uploaded: _vehiclePhotoUploaded, // ✅ AGREGAR
+              uploaded: _vehiclePhotoUploaded,
             ),
 
             const SizedBox(height: 12),
 
             // Foto antes de la carga
             _buildPhotoCard(
-              title: 'Antes de la Carga',
-              subtitle: 'Estado inicial de la batería',
+              title: localizations.initial,
+              subtitle: localizations.batteryLevel,
               photo: _beforePhoto,
               onTap: () => _takePhoto('before'),
               icon: Icons.battery_0_bar,
               color: AppColors.warning,
-              uploaded: _beforePhotoUploaded, // ✅ AGREGAR
+              uploaded: _beforePhotoUploaded,
             ),
 
             const SizedBox(height: 12),
 
             // Foto después de la carga
             _buildPhotoCard(
-              title: 'Después de la Carga',
-              subtitle: 'Estado final de la batería',
+              title: localizations.serviceCompletedTitle,
+              subtitle: localizations.batteryLevel,
               photo: _afterPhoto,
               onTap: () => _takePhoto('after'),
               icon: Icons.battery_full,
               color: AppColors.success,
               enabled: _serviceStarted,
-              uploaded: _afterPhotoUploaded, // ✅ AGREGAR
+              uploaded: _afterPhotoUploaded,
             ),
           ],
         ),
@@ -400,9 +412,9 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     required IconData icon,
     required Color color,
     bool enabled = true,
-    bool uploaded = false, // Nuevo parámetro
+    bool uploaded = false,
   }) {
-    // Determinar si la foto está completa (archivo local O subida al servidor)
+    final localizations = AppLocalizations.of(context);
     final bool isComplete = photo != null || uploaded;
 
     return GestureDetector(
@@ -449,7 +461,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                   ),
                   Text(
                     uploaded && photo == null
-                        ? 'Foto guardada en servidor'
+                        ? localizations.vehicleRegisteredSuccess
                         : subtitle,
                     style: GoogleFonts.inter(
                       fontSize: 12,
@@ -462,7 +474,6 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               ),
             ),
             if (photo != null)
-              // Mostrar miniatura si hay archivo local
               Container(
                 width: 40,
                 height: 40,
@@ -475,7 +486,6 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 ),
               )
             else if (uploaded)
-              // Mostrar icono de "subida" si no hay archivo local pero está en servidor
               Container(
                 width: 40,
                 height: 40,
@@ -490,7 +500,6 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 ),
               )
             else
-              // Mostrar icono de cámara si no hay foto
               Icon(
                 Icons.camera_alt,
                 color: enabled ? color : Colors.grey,
@@ -502,7 +511,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  Widget _buildServiceDetailsSection() {
+  Widget _buildServiceDetailsSection(AppLocalizations localizations) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -516,7 +525,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 Icon(Icons.description, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Detalles del Servicio',
+                  localizations.serviceInformation,
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -531,11 +540,10 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               controller: _batteryLevelController,
               keyboardType: TextInputType.number,
               inputFormatters: [
-                LengthLimitingTextInputFormatter(
-                    2), // This line limits the input to 2 characters
+                LengthLimitingTextInputFormatter(2),
               ],
               decoration: InputDecoration(
-                labelText: 'Nivel de batería inicial (%)',
+                labelText: localizations.batteryLevel,
                 hintText: 'Ej: 15',
                 prefixIcon: Icon(Icons.battery_std, color: AppColors.warning),
                 border: OutlineInputBorder(
@@ -555,11 +563,10 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               controller: _chargeTimeController,
               keyboardType: TextInputType.number,
               inputFormatters: [
-                LengthLimitingTextInputFormatter(
-                    3), // This line limits the input to 2 characters
+                LengthLimitingTextInputFormatter(3),
               ],
               decoration: InputDecoration(
-                labelText: 'Tiempo de carga (minutos)',
+                labelText: localizations.chargingTime,
                 hintText: 'Ej: 45',
                 prefixIcon: Icon(Icons.timer, color: AppColors.info),
                 border: OutlineInputBorder(
@@ -579,8 +586,8 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               controller: _notesController,
               maxLines: 3,
               decoration: InputDecoration(
-                labelText: 'Notas adicionales',
-                hintText: 'Observaciones sobre el servicio...',
+                labelText: localizations.addComment,
+                hintText: localizations.describeService,
                 prefixIcon:
                     Icon(Icons.note_add, color: AppColors.textSecondary),
                 border: OutlineInputBorder(
@@ -598,8 +605,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  Widget _buildCompleteServiceButton() {
-    // ✅ CORREGIR: Considerar tanto archivos locales como fotos subidas
+  Widget _buildCompleteServiceButton(AppLocalizations localizations) {
     final bool hasVehiclePhoto = _vehiclePhoto != null || _vehiclePhotoUploaded;
     final bool hasBeforePhoto = _beforePhoto != null || _beforePhotoUploaded;
     final bool hasAfterPhoto = _afterPhoto != null || _afterPhotoUploaded;
@@ -622,7 +628,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               )
             : const Icon(Icons.check_circle),
         label: Text(
-          _isLoading ? 'Completando...' : 'Completar Servicio',
+          _isLoading ? localizations.processing : localizations.finishService,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -665,7 +671,6 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               : '';
           _notesController.text = progress['service_notes']?.toString() ?? '';
 
-          // ✅ DETECTAR FOTOS SUBIDAS CORRECTAMENTE
           _vehiclePhotoUploaded = progress['vehicle_photo_url'] != null &&
               progress['vehicle_photo_url'].toString().isNotEmpty;
           _beforePhotoUploaded = progress['before_photo_url'] != null &&
@@ -683,10 +688,10 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
       }
     } catch (e) {
       print('Error cargando progreso: $e');
+      _showErrorSnackbar(AppLocalizations.of(context).errorLoadingData);
     }
   }
 
-  // NUEVO: Método para guardar progreso automáticamente
   Future<void> _saveProgress() async {
     final photosTaken = <String>[];
     if (_vehiclePhoto != null) photosTaken.add('vehicle');
@@ -709,33 +714,33 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     );
   }
 
-  // NUEVO: Callback para cuando cambian los campos de texto
   void _onTextFieldChanged() {
-    // Guardar con un pequeño delay para evitar muchas llamadas
     Timer(const Duration(milliseconds: 1000), () {
       _saveProgress();
     });
   }
 
-// ✅ CORREGIR _startService - AGREGAR _saveProgress()
-  void _startService() async {
+  Future<void> _startService() async {
     try {
+      final localizations = AppLocalizations.of(context);
       await TechnicianService.updateServiceStatus(
-          widget.serviceRequest.id, 'charging',
-          notes: 'Servicio de carga iniciado');
+        widget.serviceRequest.id,
+        'charging',
+        notes: localizations.serviceInitiatedMessage,
+      );
 
       setState(() {
         _serviceStarted = true;
         _serviceStartTime = DateTime.now();
       });
 
-      // ✅ AGREGAR: Guardar progreso después de iniciar servicio
       await _saveProgress();
 
       HapticFeedback.lightImpact();
-      _showSuccessSnackbar('Servicio de carga iniciado');
+      _showSuccessSnackbar(localizations.serviceInitiatedMessage);
     } catch (e) {
-      _showErrorSnackbar('Error al iniciar servicio: $e');
+      _showErrorSnackbar(
+          '${AppLocalizations.of(context).errorChangingStatus}: $e');
     }
   }
 
@@ -763,33 +768,32 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
           }
         });
 
-        // ✅ SUBIR LA FOTO INMEDIATAMENTE AL SERVIDOR
         try {
           final success = await TechnicianService.uploadServicePhotos(
             serviceId: widget.serviceRequest.id,
             photos: [File(image.path)],
-            photoTypes: [type], // 'vehicle', 'before', o 'after'
+            photoTypes: [type],
           );
 
           if (success) {
             print('✅ Foto $type subida exitosamente');
           } else {
             print('❌ Error subiendo foto $type');
-            _showErrorSnackbar('Error al subir la foto');
+            _showErrorSnackbar(AppLocalizations.of(context).errorLoadingData);
           }
         } catch (e) {
           print('❌ Error en upload de foto: $e');
-          _showErrorSnackbar('Error al subir la foto: $e');
+          _showErrorSnackbar(
+              '${AppLocalizations.of(context).errorLoadingData}: $e');
         }
 
-        // Guardar progreso después de subir la foto
         await _saveProgress();
 
         HapticFeedback.lightImpact();
-        _showSuccessSnackbar('Foto capturada y guardada exitosamente');
+        _showSuccessSnackbar(AppLocalizations.of(context).vehicleRegisteredSuccess);
       }
     } catch (e) {
-      _showErrorSnackbar('Error al tomar foto: $e');
+      _showErrorSnackbar('${AppLocalizations.of(context).errorLoadingData}: $e');
     }
   }
 
@@ -797,7 +801,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Preparar datos para guardar
+      final localizations = AppLocalizations.of(context);
       final photos = <File>[];
       final photoTypes = <String>[];
 
@@ -814,7 +818,6 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
         photoTypes.add('after');
       }
 
-      // Guardar fotos y detalles del servicio
       await TechnicianService.saveServiceDetails(
         serviceId: widget.serviceRequest.id,
         initialBatteryLevel: int.tryParse(_batteryLevelController.text),
@@ -825,46 +828,48 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
         photoTypes: photoTypes.isNotEmpty ? photoTypes : null,
       );
 
-      // Actualizar estado del servicio a completado
       await TechnicianService.updateServiceStatus(
-          widget.serviceRequest.id, 'completed',
-          notes: _buildServiceNotes());
+        widget.serviceRequest.id,
+        'completed',
+        notes: _buildServiceNotes(localizations),
+      );
 
       HapticFeedback.heavyImpact();
 
-      // Mostrar diálogo de confirmación
-      _showCompletionDialog();
+      _showCompletionDialog(localizations);
     } catch (e) {
-      _showErrorSnackbar('Error al completar servicio: $e');
+      _showErrorSnackbar(
+          '${AppLocalizations.of(context).serviceCompleted}: $e');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  String _buildServiceNotes() {
+  String _buildServiceNotes(AppLocalizations localizations) {
     final buffer = StringBuffer();
-    buffer.writeln('Servicio completado exitosamente');
+    buffer.writeln(localizations.serviceCompletedSuccessfully);
 
     if (_batteryLevelController.text.isNotEmpty) {
       buffer.writeln(
-          'Nivel inicial de batería: ${_batteryLevelController.text}%');
+          '${localizations.batteryLevel}: ${_batteryLevelController.text}%');
     }
 
     if (_chargeTimeController.text.isNotEmpty) {
-      buffer.writeln('Tiempo de carga: ${_chargeTimeController.text} minutos');
+      buffer.writeln(
+          '${localizations.chargingTime}: ${_chargeTimeController.text} ${localizations.min}');
     }
 
     if (_notesController.text.isNotEmpty) {
-      buffer.writeln('Notas: ${_notesController.text}');
+      buffer.writeln('${localizations.addComment}: ${_notesController.text}');
     }
 
     buffer.writeln(
-        'Fotos documentadas: ${_vehiclePhoto != null ? '✓' : '✗'} Vehículo, ${_beforePhoto != null ? '✓' : '✗'} Antes, ${_afterPhoto != null ? '✓' : '✗'} Después');
+        '${localizations.technicianWillDocumentProgress}: ${_vehiclePhoto != null ? '✓' : '✗'} ${localizations.serviceVehicle}, ${_beforePhoto != null ? '✓' : '✗'} ${localizations.initial}, ${_afterPhoto != null ? '✓' : '✗'} ${localizations.serviceCompletedTitle}');
 
     return buffer.toString();
   }
 
-  void _showCompletionDialog() {
+  void _showCompletionDialog(AppLocalizations localizations) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -881,14 +886,14 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               child: Icon(Icons.check_circle, color: Colors.green, size: 30),
             ),
             const SizedBox(width: 12),
-            const Expanded(child: Text('¡Servicio Completado!')),
+            Expanded(child: Text(localizations.serviceCompletedTitle)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'El servicio de recarga ha sido completado exitosamente.',
+              localizations.serviceCompletedMessage,
               style: GoogleFonts.inter(fontSize: 16),
             ),
             const SizedBox(height: 16),
@@ -899,7 +904,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'El cliente recibirá una notificación y podrá calificar tu servicio.',
+                localizations.thankYouForYourRating,
                 style: GoogleFonts.inter(fontSize: 14),
                 textAlign: TextAlign.center,
               ),
@@ -909,15 +914,12 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
         actions: [
           ElevatedButton(
             onPressed: () {
-              // Cerrar diálogo primero
               Navigator.of(context).pop();
-
-              // ✅ NAVEGAR AL BOTTOM NAV Y LIMPIAR STACK COMPLETO
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
-                  builder: (context) => BottomNavBar(), // Tu widget principal
+                  builder: (context) => BottomNavBar(),
                 ),
-                (route) => false, // Elimina todas las rutas anteriores
+                (route) => false,
               );
             },
             style: ElevatedButton.styleFrom(
@@ -928,7 +930,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
               ),
             ),
             child: Text(
-              'Continuar',
+              localizations.continueText,
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -941,6 +943,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
   }
 
   void _callClient() async {
+    final localizations = AppLocalizations.of(context);
     final clientPhone = widget.serviceRequest.user?.phone;
     if (clientPhone != null && clientPhone.isNotEmpty) {
       final Uri phoneUri = Uri(scheme: 'tel', path: clientPhone);
@@ -948,13 +951,13 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
         if (await canLaunchUrl(phoneUri)) {
           await launchUrl(phoneUri);
         } else {
-          _showErrorSnackbar('No se pudo abrir la aplicación de teléfono');
+          _showErrorSnackbar(localizations.couldNotOpenPhoneApp);
         }
       } catch (e) {
-        _showErrorSnackbar('Error al intentar llamar: $e');
+        _showErrorSnackbar('${localizations.errorMakingCall}: $e');
       }
     } else {
-      _showErrorSnackbar('No hay número de teléfono disponible');
+      _showErrorSnackbar(localizations.noPhoneNumberAvailable);
     }
   }
 
@@ -988,10 +991,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
 
   @override
   void dispose() {
-    // ✅ GUARDAR PROGRESO FINAL AL SALIR
     _saveProgress();
-
-    // ✅ CORREGIR: Usar guiones bajos, no asteriscos
     _batteryLevelController.removeListener(_onTextFieldChanged);
     _chargeTimeController.removeListener(_onTextFieldChanged);
     _notesController.removeListener(_onTextFieldChanged);

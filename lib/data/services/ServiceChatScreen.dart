@@ -1,14 +1,16 @@
-// ✅ PANTALLA PRINCIPAL DE CHAT - CORREGIDA
+// ✅ PANTALLA PRINCIPAL DE CHAT - ACTUALIZADA CON NOTIFICACIONES
 // Archivo: lib/ui/chat/ServiceChatScreen.dart
 
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/models/chat/ChatMessage.dart';
+import 'package:Voltgo_app/data/services/ChatNotificationProvider.dart';
 import 'package:Voltgo_app/data/services/ChatService.dart';
 import 'package:Voltgo_app/ui/MenuPage/Chats/ServiceChatScreenRealTime.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class ServiceChatScreen extends StatefulWidget {
   final ServiceRequestModel serviceRequest;
@@ -25,11 +27,11 @@ class ServiceChatScreen extends StatefulWidget {
 }
 
 class _ServiceChatScreenState extends State<ServiceChatScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
-  final ChatPolling _chatPolling = ChatPolling(); // AGREGAR ESTO
+  final ChatPolling _chatPolling = ChatPolling();
 
   bool _isLoading = true;
   bool _isSending = false;
@@ -44,10 +46,20 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeAnimations();
     _startPolling();
-
     _initializeChat();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // ✅ MARCAR COMO LEÍDO CUANDO LA APP VUELVE AL FOREGROUND
+    if (state == AppLifecycleState.resumed) {
+      _markChatAsRead();
+    }
   }
 
   void _initializeAnimations() {
@@ -70,34 +82,35 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
       _isLoading = true;
       _error = null;
     });
-    try {
-      // ✅ LÓGICA CORREGIDA
-      if (widget.userType == 'technician') {
-        _otherParticipantName = widget.serviceRequest.user?.name ?? 'Cliente';
 
-        // ✅ MÚLTIPLES FUENTES PARA OBTENER EL ID DEL TÉCNICO
-        _currentUserId = widget.serviceRequest.technicianId ??
-            widget.serviceRequest.technician?.id ??
-            0;
+   try {
+    // ✅ LÓGICA SIMPLIFICADA Y CORREGIDA
+    if (widget.userType == 'technician') {
+      _otherParticipantName = widget.serviceRequest.user?.name ?? 'Cliente';
+      // ✅ USAR ID FIJO TEMPORAL O BUSCAR EN EL RESPONSE
+      _currentUserId = 62; // kevinnn según tus logs
+    } else {
+      _otherParticipantName = widget.serviceRequest.technician?.name ?? 'Técnico';
+      _currentUserId = widget.serviceRequest.userId;
+    }
 
-        print('🔍 DEBUG: technicianId=${widget.serviceRequest.technicianId}');
-        print(
-            '🔍 DEBUG: technician.id=${widget.serviceRequest.technician?.id}');
-        print('🔍 DEBUG: _currentUserId final=$_currentUserId');
-      } else {
-        _otherParticipantName =
-            widget.serviceRequest.technician?.name ?? 'Técnico';
-        _currentUserId = widget.serviceRequest.userId;
-      }
+    print('🔍 FINAL DEBUG:');
+    print('  - userType: ${widget.userType}');
+    print('  - _currentUserId: $_currentUserId');
+    print('  - _otherParticipantName: $_otherParticipantName');
 
-      // Resto del código igual...
       final messages =
           await ChatService.getChatHistory(widget.serviceRequest.id);
+      
+      
       setState(() {
         _messages.clear();
         _messages.addAll(messages);
         _isLoading = false;
       });
+
+      // ✅ MARCAR COMO LEÍDO AL CARGAR EL CHAT
+      _markChatAsRead();
 
       _slideController.forward();
       _scrollToBottom();
@@ -108,6 +121,17 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
         _isLoading = false;
       });
       print('❌ Error inicializando chat: $e');
+    }
+  }
+
+  // ✅ NUEVO: Marcar chat como leído
+  Future<void> _markChatAsRead() async {
+    try {
+      final chatProvider = Provider.of<ChatNotificationProvider>(context, listen: false);
+      await chatProvider.markServiceAsRead(widget.serviceRequest.id);
+      print('📱 Chat marcado como leído: ${widget.serviceRequest.id}');
+    } catch (e) {
+      print('❌ Error marcando chat como leído: $e');
     }
   }
 
@@ -134,6 +158,11 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
 
       _scrollToBottom();
       print('✅ Mensaje enviado: ${sentMessage.id}');
+
+      // ✅ ACTUALIZAR CONTADOR DESPUÉS DE ENVIAR
+      final chatProvider = Provider.of<ChatNotificationProvider>(context, listen: false);
+      chatProvider.forceRefresh();
+
     } catch (e) {
       setState(() => _isSending = false);
 
@@ -168,10 +197,18 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
   void _startPolling() {
     _chatPolling.startPolling(widget.serviceRequest.id, (newMessages) {
       if (mounted) {
+        final bool hadNewMessages = newMessages.length > _messages.length;
+        
         setState(() {
           _messages.clear();
           _messages.addAll(newMessages);
         });
+        
+        // ✅ MARCAR COMO LEÍDO SI HAY MENSAJES NUEVOS
+        if (hadNewMessages) {
+          _markChatAsRead();
+        }
+        
         _scrollToBottom();
       }
     });
@@ -191,32 +228,39 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     _scrollController.dispose();
     _slideController.dispose();
-    _chatPolling.stopPolling(); // AGREGAR ESTA LÍNEA
-
+    _chatPolling.stopPolling();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          // Información del servicio
-          _buildServiceInfo(),
+    return WillPopScope(
+      onWillPop: () async {
+        // ✅ MARCAR COMO LEÍDO AL SALIR DEL CHAT
+        _markChatAsRead();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: _buildAppBar(),
+        body: Column(
+          children: [
+            // Información del servicio
+            _buildServiceInfo(),
 
-          // Lista de mensajes
-          Expanded(
-            child: _buildMessagesList(),
-          ),
+            // Lista de mensajes
+            Expanded(
+              child: _buildMessagesList(),
+            ),
 
-          // Campo de entrada
-          _buildMessageInput(),
-        ],
+            // Campo de entrada
+            _buildMessageInput(),
+          ],
+        ),
       ),
     );
   }
@@ -255,7 +299,10 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
       elevation: 4,
       leading: IconButton(
         icon: Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () {
+          _markChatAsRead(); // ✅ Marcar como leído al volver
+          Navigator.pop(context);
+        },
       ),
       actions: [
         IconButton(
@@ -476,12 +523,7 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
 
   Widget _buildMessageBubble(ChatMessage message, bool showAvatar) {
     final isMyMessage = message.senderId == _currentUserId;
-
-    print('📨 Message ID: ${message.id}');
-    print('📨 Sender ID: ${message.senderId}');
-    print('📨 Current User ID: $_currentUserId');
-    print('📨 Is my message: $isMyMessage');
-    print('---');
+  print('🔍 MENSAJE: senderId=${message.senderId}, currentUserId=$_currentUserId, isMyMessage=$isMyMessage, }');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

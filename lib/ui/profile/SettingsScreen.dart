@@ -4,6 +4,9 @@ import 'package:Voltgo_app/data/services/auth_api_service.dart';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
+import 'package:Voltgo_app/ui/profile/EditProfileScreen.dart';
+import 'package:Voltgo_app/ui/profile/PrivacyPolicyScreen.dart';
+import 'package:Voltgo_app/ui/profile/TermsAndConditionsScreen.dart';
 import 'package:Voltgo_app/utils/EditVehicleScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -175,6 +178,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+        final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -236,30 +241,8 @@ class _SettingsScreenState extends State<SettingsScreen>
             const SizedBox(height: 24),
             _buildSectionHeader(
                 AppLocalizations.of(context).account), // Usa AppLocalizations
-            _buildSettingsItem(
-              icon: Icons.person_outline,
-              title: AppLocalizations.of(context)
-                  .editProfile, // Usa AppLocalizations
-              onTap: () {},
-            ),
-            _buildSettingsItem(
-              icon: Icons.lock_outline,
-              title: AppLocalizations.of(context)
-                  .securityAndPassword, // Usa AppLocalizations
-              onTap: () {},
-            ),
-            _buildSettingsItem(
-              icon: Icons.directions_car_outlined,
-              title: AppLocalizations.of(context)
-                  .chatHistory, // Usa AppLocalizations
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (context) => const ChatHistoryScreen()),
-                );
-              },
-            ),
-            _buildSettingsItem(
+             
+             _buildSettingsItem(
               icon: Icons.account_balance_wallet_outlined,
               title: AppLocalizations.of(context)
                   .paymentMethods, // Usa AppLocalizations
@@ -285,6 +268,37 @@ class _SettingsScreenState extends State<SettingsScreen>
                   .documents, // Usa AppLocalizations
               onTap: () {},
             ),
+              const Divider(height: 32, color: AppColors.gray300),
+                // Vehicle Section
+                _buildSectionHeader(l10n.otros),
+                _buildSettingsItem(
+                  icon: Icons.bookmark_outline,
+                  title: l10n.tyc,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TermsAndConditionsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildSettingsItem(
+                  icon: Icons.privacy_tip_outlined,
+                  title: l10n.politicadeprivacidad, // ✅ CAMBIAR de 'Documentos'
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PrivacyPolicyScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                const Divider(height: 32, color: AppColors.gray300),
+                const SizedBox(height: 24),
+                
             const Divider(height: 32, color: AppColors.gray300),
             const SizedBox(height: 24),
             _buildLogoutButton(),

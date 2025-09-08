@@ -1,55 +1,52 @@
-// ✅ SERVICIO DE CHAT
+// ✅ SERVICIO DE CHAT COMPLETO CON NOTIFICACIONES
 // Archivo: lib/data/services/ChatService.dart
 
 import 'dart:convert';
-import 'package:Voltgo_app/data/models/chat/ChatHistoryItem.dart';
+import 'package:http/http.dart' as http;
 import 'package:Voltgo_app/data/models/chat/ChatMessage.dart';
 import 'package:Voltgo_app/utils/TokenStorage.dart';
 import 'package:Voltgo_app/utils/constants.dart';
-import 'package:http/http.dart' as http;
 
 class ChatService {
-  static const String _baseUrl = Constants.baseUrl;
+  static const String _tag = 'ChatService';
 
-  // ✅ OBTENER HISTORIAL DE MENSAJES DE UN SERVICIO
+  // ✅ OBTENER HISTORIAL DE MENSAJES
   static Future<List<ChatMessage>> getChatHistory(int serviceRequestId) async {
     try {
-      print('🔍 Obteniendo historial de chat para servicio: $serviceRequestId');
-
       final token = await TokenStorage.getToken();
-      if (token == null) {
-        throw Exception('Token no encontrado');
+      if (token == null || token.isEmpty) {
+        throw Exception('Token de autenticación no encontrado');
       }
 
-      final url = Uri.parse('$_baseUrl/chat/service/$serviceRequestId');
-      final headers = {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/service/$serviceRequestId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 15));
 
-      final response = await http.get(url, headers: headers);
-      print('📡 Respuesta del servidor: ${response.statusCode}');
+      print('$_tag: Chat history response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final messagesData = data['messages'] as List;
-
-        final messages = messagesData
-            .map((messageJson) => ChatMessage.fromJson(messageJson))
+        final List<dynamic> messagesJson = data['messages'] ?? [];
+        
+        return messagesJson
+            .map((json) => ChatMessage.fromJson(json))
             .toList();
-
-        print('✅ Historial obtenido: ${messages.length} mensajes');
-        return messages;
+      } else if (response.statusCode == 401) {
+        throw Exception('No autorizado - token inválido');
       } else if (response.statusCode == 403) {
-        throw Exception('No autorizado para ver este chat');
+        throw Exception('Sin permisos para acceder a este chat');
       } else if (response.statusCode == 404) {
         throw Exception('Servicio no encontrado');
       } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? 'Error al obtener historial');
+        throw Exception('Error del servidor: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error obteniendo historial: $e');
+      print('$_tag: Error en getChatHistory: $e');
       rethrow;
     }
   }
@@ -60,176 +57,241 @@ class ChatService {
     required String message,
   }) async {
     try {
-      print(
-          '📤 Enviando mensaje: ${message.substring(0, message.length.clamp(0, 50))}...');
-
       final token = await TokenStorage.getToken();
-      if (token == null) {
-        throw Exception('Token no encontrado');
+      if (token == null || token.isEmpty) {
+        throw Exception('Token de autenticación no encontrado');
       }
 
-      final url = Uri.parse('$_baseUrl/chat/service/$serviceRequestId');
-      final headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+      if (message.trim().isEmpty) {
+        throw Exception('El mensaje no puede estar vacío');
+      }
 
-      final body = jsonEncode({
-        'message': message.trim(),
-      });
+      final response = await http.post(
+        Uri.parse('${Constants.baseUrl}/chat/service/$serviceRequestId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'message': message.trim(),
+        }),
+      ).timeout(const Duration(seconds: 15));
 
-      final response = await http.post(url, headers: headers, body: body);
-      print('📡 Respuesta de envío: ${response.statusCode}');
+      print('$_tag: Send message response: ${response.statusCode}');
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final sentMessage = ChatMessage.fromJson(data['message']);
-
-        print('✅ Mensaje enviado exitosamente: ${sentMessage.id}');
-        return sentMessage;
+        return ChatMessage.fromJson(data['message']);
+      } else if (response.statusCode == 401) {
+        throw Exception('No autorizado - token inválido');
       } else if (response.statusCode == 403) {
-        throw Exception('No autorizado para enviar mensajes en este chat');
-      } else if (response.statusCode == 409) {
-        throw Exception('El chat no está disponible para este servicio');
-      } else if (response.statusCode == 422) {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? 'Mensaje inválido');
-      } else if (response.statusCode == 429) {
-        final errorData = jsonDecode(response.body);
-        throw Exception(
-            'Demasiados mensajes. ${errorData['message'] ?? 'Espera un momento.'}');
+        throw Exception('Sin permisos para enviar mensajes en este chat');
+      } else if (response.statusCode == 404) {
+        throw Exception('Servicio no encontrado');
       } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? 'Error al enviar mensaje');
+        throw Exception('Error del servidor: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error enviando mensaje: $e');
-      rethrow;
-    }
-  }
-
-  // ✅ MARCAR MENSAJES COMO LEÍDOS
-  static Future<void> markAsRead(int serviceRequestId) async {
-    try {
-      print(
-          '👀 Marcando mensajes como leídos para servicio: $serviceRequestId');
-
-      final token = await TokenStorage.getToken();
-      if (token == null) return;
-
-      final url = Uri.parse('$_baseUrl/chat/service/$serviceRequestId/read');
-      final headers = {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-
-      final response = await http.patch(url, headers: headers);
-
-      if (response.statusCode == 200) {
-        print('✅ Mensajes marcados como leídos');
-      } else {
-        print('⚠️ Error marcando como leído: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ Error marcando como leído: $e');
-      // No lanzar excepción, es una operación secundaria
-    }
-  }
-
-  // ✅ OBTENER HISTORIAL COMPLETO DE CHATS DEL USUARIO
-  static Future<List<ChatHistoryItem>> getUserChatHistory() async {
-    try {
-      print('🔍 Obteniendo historial completo de chats del usuario');
-
-      final token = await TokenStorage.getToken();
-      if (token == null) {
-        throw Exception('Token no encontrado');
-      }
-
-      final url = Uri.parse('$_baseUrl/chat/history');
-      final headers = {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-
-      final response = await http.get(url, headers: headers);
-      print('📡 Respuesta del historial: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final chatHistoryData = data['chat_history'] as List;
-
-        final chatHistory = chatHistoryData
-            .map((chatJson) => ChatHistoryItem.fromJson(chatJson))
-            .toList();
-
-        print(
-            '✅ Historial de chats obtenido: ${chatHistory.length} conversaciones');
-        return chatHistory;
-      } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(
-            errorData['message'] ?? 'Error al obtener historial de chats');
-      }
-    } catch (e) {
-      print('❌ Error obteniendo historial de chats: $e');
+      print('$_tag: Error en sendMessage: $e');
       rethrow;
     }
   }
 
   // ✅ OBTENER CONTADOR DE MENSAJES NO LEÍDOS
-  static Future<int> getUnreadCount() async {
+  static Future<int> getUnreadMessagesCount() async {
     try {
       final token = await TokenStorage.getToken();
-      if (token == null) return 0;
+      if (token == null || token.isEmpty) {
+        return 0; // Retornar 0 en lugar de error para el contador
+      }
 
-      final url = Uri.parse('$_baseUrl/chat/unread');
-      final headers = {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-
-      final response = await http.get(url, headers: headers);
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/unread-count'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final unreadCount = data['unread_count'] ?? 0;
-        print('📊 Mensajes no leídos: $unreadCount');
-        return unreadCount;
+        return data['unread_count'] ?? 0;
       } else {
-        print('⚠️ Error obteniendo contador: ${response.statusCode}');
+        print('$_tag: Error obteniendo contador: ${response.statusCode}');
         return 0;
       }
     } catch (e) {
-      print('❌ Error obteniendo contador de no leídos: $e');
+      print('$_tag: Error en getUnreadMessagesCount: $e');
       return 0;
     }
   }
 
-  // ✅ VERIFICAR SI UN SERVICIO PUEDE CHATEAR
-  static Future<bool> canChatForService(int serviceRequestId) async {
+  // ✅ OBTENER MENSAJES NO LEÍDOS POR SERVICIO
+  static Future<Map<int, int>> getUnreadMessagesByService() async {
     try {
       final token = await TokenStorage.getToken();
-      if (token == null) return false;
+      if (token == null || token.isEmpty) {
+        return {};
+      }
 
-      final url =
-          Uri.parse('$_baseUrl/service/request/$serviceRequestId/status');
-      final headers = {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-
-      final response = await http.get(url, headers: headers);
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/unread-by-service'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['chat_available'] ?? false;
+        final Map<String, dynamic> unreadByService = data['unread_by_service'] ?? {};
+        
+        // Convertir a Map<int, int>
+        return unreadByService.map((key, value) => 
+          MapEntry(int.parse(key), value as int)
+        );
+      } else {
+        print('$_tag: Error obteniendo no leídos por servicio: ${response.statusCode}');
+        return {};
       }
-      return false;
     } catch (e) {
-      print('❌ Error verificando disponibilidad de chat: $e');
+      print('$_tag: Error en getUnreadMessagesByService: $e');
+      return {};
+    }
+  }
+
+  // ✅ MARCAR CHAT COMO LEÍDO
+  static Future<bool> markChatAsRead(int serviceRequestId) async {
+    try {
+      final token = await TokenStorage.getToken();
+      if (token == null || token.isEmpty) {
+        return false;
+      }
+
+      final response = await http.post(
+        Uri.parse('${Constants.baseUrl}/chat/service/$serviceRequestId/mark-read'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] ?? false;
+      } else {
+        print('$_tag: Error marcando como leído: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('$_tag: Error en markChatAsRead: $e');
       return false;
     }
   }
+
+  // ✅ OBTENER HISTORIAL DE CHATS
+  static Future<List<ChatHistory>> getUserChatHistory() async {
+    try {
+      final token = await TokenStorage.getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('Token de autenticación no encontrado');
+      }
+
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/history'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> historyJson = data['chat_history'] ?? [];
+        
+        return historyJson
+            .map((json) => ChatHistory.fromJson(json))
+            .toList();
+      } else if (response.statusCode == 401) {
+        throw Exception('No autorizado - token inválido');
+      } else {
+        throw Exception('Error del servidor: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('$_tag: Error en getUserChatHistory: $e');
+      rethrow;
+    }
+  }
+
+  // ✅ OBTENER ESTADÍSTICAS DEL CHAT
+  static Future<Map<String, dynamic>> getChatStats(int serviceRequestId) async {
+    try {
+      final token = await TokenStorage.getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('Token de autenticación no encontrado');
+      }
+
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/service/$serviceRequestId/stats'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        print('$_tag: Error obteniendo estadísticas: ${response.statusCode}');
+        return {};
+      }
+    } catch (e) {
+      print('$_tag: Error en getChatStats: $e');
+      return {};
+    }
+  }
+}
+
+// ✅ MODELO PARA HISTORIAL DE CHAT
+class ChatHistory {
+  final int serviceId;
+  final Map<String, dynamic>? otherParticipant;
+  final Map<String, dynamic>? lastMessage;
+  final String serviceDate;
+  final int unreadCount;
+  final String serviceStatus;
+
+  ChatHistory({
+    required this.serviceId,
+    this.otherParticipant,
+    this.lastMessage,
+    required this.serviceDate,
+    required this.unreadCount,
+    required this.serviceStatus,
+  });
+
+  factory ChatHistory.fromJson(Map<String, dynamic> json) {
+    return ChatHistory(
+      serviceId: json['service_id'],
+      otherParticipant: json['other_participant'],
+      lastMessage: json['last_message'],
+      serviceDate: json['service_date'],
+      unreadCount: json['unread_count'] ?? 0,
+      serviceStatus: json['service_status'] ?? 'unknown',
+    );
+  }
+
+  String get otherParticipantName => otherParticipant?['name'] ?? 'Usuario';
+  
+  String get lastMessageText => lastMessage?['message'] ?? '';
+  
+  String get lastMessageTime => lastMessage?['sent_at'] ?? '';
+  
+  bool get hasUnreadMessages => unreadCount > 0;
 }
