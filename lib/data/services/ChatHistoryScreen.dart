@@ -131,7 +131,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'Mis Chats',
+          'Chats',
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w700,
             fontSize: 22,
@@ -215,7 +215,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Cargando chats...',
+            'Loading chats...',
             style: GoogleFonts.inter(
               color: AppColors.textSecondary,
               fontSize: 14,
@@ -247,7 +247,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'Error al cargar chats',
+              'Error to loading chats',
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -273,7 +273,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                 ),
               ),
               child: Text(
-                'Intentar nuevamente',
+                'Try Again',
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -307,7 +307,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
             ),
             const SizedBox(height: 24),
             Text(
-              'No hay chats aún',
+              'No chats available',
               style: GoogleFonts.inter(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -316,7 +316,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'Los chats con los técnicos aparecerán aquí una vez que tengas servicios activos.',
+              'The chat history will appear here once you have conversations with technicians regarding your service requests.',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
@@ -330,7 +330,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                 Navigator.pop(context);
               },
               icon: Icon(Icons.electric_bolt, size: 20),
-              label: Text('Solicitar Servicio'),
+              label: Text('Request a Service'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -354,7 +354,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Card(
-        elevation: unreadCount > 0 ? 4 : 2, // ✅ Mayor elevación si hay no leídos
+        elevation: unreadCount > 0 ? 4 : 2, 
+        color: Colors.white.withOpacity(0.9), 
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: unreadCount > 0 
@@ -438,19 +439,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                       // Información del servicio
                       Row(
                         children: [
-                          Icon(
-                            Icons.electric_bolt,
-                            size: 14,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Servicio #${chatItem.serviceId}',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
+                        
+                          
                           const Spacer(),
                           // ✅ INDICADOR DE ESTADO DEL SERVICIO
                           Container(
@@ -527,25 +517,24 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
         return AppColors.textSecondary;
     }
   }
-
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Pendiente';
-      case 'accepted':
-        return 'Aceptado';
-      case 'en_route':
-        return 'En camino';
-      case 'on_site':
-        return 'En sitio';
-      case 'charging':
-        return 'Cargando';
-      case 'completed':
-        return 'Completado';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
-    }
+String _getStatusText(String status) {
+  switch (status) {
+    case 'pending':
+      return 'Pending';
+    case 'accepted':
+      return 'Accepted';
+    case 'en_route':
+      return 'On the way';
+    case 'on_site':
+      return 'On site';
+    case 'charging':
+      return 'Charging';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return status;
   }
+}
 }

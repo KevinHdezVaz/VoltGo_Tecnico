@@ -5,6 +5,7 @@ import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/models/chat/ChatMessage.dart';
 import 'package:Voltgo_app/data/services/ChatNotificationProvider.dart';
 import 'package:Voltgo_app/data/services/ChatService.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/MenuPage/Chats/ServiceChatScreenRealTime.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
  import 'package:flutter/material.dart';
@@ -135,64 +136,63 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
     }
   }
 
-  Future<void> _sendMessage() async {
-    final message = _messageController.text.trim();
-    if (message.isEmpty || _isSending) return;
 
-    // Limpiar campo inmediatamente
-    _messageController.clear();
-    HapticFeedback.lightImpact();
+// Actualizar el método de error en _sendMessage()
+Future<void> _sendMessage() async {
+  final localizations = AppLocalizations.of(context);
+  final message = _messageController.text.trim();
+  if (message.isEmpty || _isSending) return;
 
-    setState(() => _isSending = true);
+  _messageController.clear();
+  HapticFeedback.lightImpact();
 
-    try {
-      final sentMessage = await ChatService.sendMessage(
-        serviceRequestId: widget.serviceRequest.id,
-        message: message,
-      );
+  setState(() => _isSending = true);
 
-      setState(() {
-        _messages.add(sentMessage);
-        _isSending = false;
-      });
+  try {
+    final sentMessage = await ChatService.sendMessage(
+      serviceRequestId: widget.serviceRequest.id,
+      message: message,
+    );
 
-      _scrollToBottom();
-      print('✅ Mensaje enviado: ${sentMessage.id}');
+    setState(() {
+      _messages.add(sentMessage);
+      _isSending = false;
+    });
 
-      // ✅ ACTUALIZAR CONTADOR DESPUÉS DE ENVIAR
-      final chatProvider = Provider.of<ChatNotificationProvider>(context, listen: false);
-      chatProvider.forceRefresh();
+    _scrollToBottom();
+    print('✅ Mensaje enviado: ${sentMessage.id}');
 
-    } catch (e) {
-      setState(() => _isSending = false);
+    final chatProvider = Provider.of<ChatNotificationProvider>(context, listen: false);
+    chatProvider.forceRefresh();
 
-      // Mostrar error al usuario
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Error al enviar mensaje: ${e.toString()}',
-                  style: GoogleFonts.inter(color: Colors.white),
-                ),
+  } catch (e) {
+    setState(() => _isSending = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                localizations.errorSendingMessage(e.toString()),
+                style: GoogleFonts.inter(color: Colors.white),
               ),
-            ],
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ],
         ),
-      );
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
 
-      // Restaurar el mensaje en el campo
-      _messageController.text = message;
-      print('❌ Error enviando mensaje: $e');
-    }
+    _messageController.text = message;
+    print('❌ Error enviando mensaje: $e');
   }
+}
+
 
   void _startPolling() {
     _chatPolling.startPolling(widget.serviceRequest.id, (newMessages) {
@@ -265,55 +265,57 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Chat con $_otherParticipantName',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          Text(
-            'Servicio #${widget.serviceRequest.id}',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: Colors.white.withOpacity(0.9),
-            ),
-          ),
-        ],
-      ),
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.brandBlue],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+
+PreferredSizeWidget _buildAppBar() {
+  final localizations = AppLocalizations.of(context);
+  
+  return AppBar(
+    title: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          localizations.chatWith(_otherParticipantName),
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-      ),
-      elevation: 4,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () {
-          _markChatAsRead(); // ✅ Marcar como leído al volver
-          Navigator.pop(context);
-        },
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.refresh, color: Colors.white),
-          onPressed: _refreshMessages,
-          tooltip: 'Actualizar mensajes',
+        Text(
+          localizations.serviceNumber(widget.serviceRequest.id.toString()),
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            color: Colors.white.withOpacity(0.9),
+          ),
         ),
       ],
-    );
-  }
-
+    ),
+    flexibleSpace: Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.brandBlue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    ),
+    elevation: 4,
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back, color: Colors.white),
+      onPressed: () {
+        _markChatAsRead();
+        Navigator.pop(context);
+      },
+    ),
+    actions: [
+      IconButton(
+        icon: Icon(Icons.refresh, color: Colors.white),
+        onPressed: _refreshMessages,
+        tooltip: localizations.updateMessages,
+      ),
+    ],
+  );
+}
   Widget _buildServiceInfo() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -373,110 +375,32 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
     );
   }
 
-  Widget _buildMessagesList() {
-    if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Cargando mensajes...',
-              style: GoogleFonts.inter(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
 
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: AppColors.error,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Error al cargar el chat',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _initializeChat,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Intentar nuevamente',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+Widget _buildMessagesList() {
+  final localizations = AppLocalizations.of(context);
+  
+  if (_isLoading) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
-        ),
-      );
-    }
-
-    if (_messages.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return SlideTransition(
-      position: _slideAnimation,
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        itemCount: _messages.length,
-        itemBuilder: (context, index) {
-          final message = _messages[index];
-          final showAvatar =
-              index == 0 || _messages[index - 1].senderId != message.senderId;
-
-          return _buildMessageBubble(message, showAvatar);
-        },
+          const SizedBox(height: 16),
+          Text(
+            localizations.loadingMessages,
+            style: GoogleFonts.inter(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  if (_error != null) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -484,20 +408,20 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.error.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.chat_bubble_outline,
+                Icons.error_outline,
                 size: 48,
-                color: AppColors.primary,
+                color: AppColors.error,
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              'Inicia la conversación',
+              localizations.errorLoadingChat,
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -506,13 +430,28 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              widget.userType == 'user'
-                  ? 'Comunícate con tu técnico para coordinar el servicio'
-                  : 'Comunícate con el cliente para coordinar el servicio',
+              _error!,
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _initializeChat,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                localizations.tryAgain,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -520,6 +459,75 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
       ),
     );
   }
+
+  if (_messages.isEmpty) {
+    return _buildEmptyState();
+  }
+
+  return SlideTransition(
+    position: _slideAnimation,
+    child: ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final message = _messages[index];
+        final showAvatar =
+            index == 0 || _messages[index - 1].senderId != message.senderId;
+
+        return _buildMessageBubble(message, showAvatar);
+      },
+    ),
+  );
+}
+
+
+Widget _buildEmptyState() {
+  final localizations = AppLocalizations.of(context);
+  
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.chat_bubble_outline,
+              size: 48,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            localizations.startConversation,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.userType == 'user'
+                ? localizations.communicateWithTechnician
+                : localizations.communicateWithClient,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildMessageBubble(ChatMessage message, bool showAvatar) {
     final isMyMessage = message.senderId == _currentUserId;
@@ -617,118 +625,121 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
     );
   }
 
-  Widget _buildMessageInput() {
-    final canSendMessages = !_isSending;
+  
+Widget _buildMessageInput() {
+  final localizations = AppLocalizations.of(context);
+  final canSendMessages = !_isSending;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade300),
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border(
+        top: BorderSide(color: Colors.grey.shade300),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, -2),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+      ],
+    ),
+    child: SafeArea(
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              enabled: canSendMessages,
+              maxLines: null,
+              maxLength: 1000,
+              textInputAction: TextInputAction.send,
+              onSubmitted: canSendMessages ? (_) => _sendMessage() : null,
+              style: GoogleFonts.inter(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: canSendMessages 
+                    ? localizations.writeMessage 
+                    : localizations.sending,
+                hintStyle: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: AppColors.primary, width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                counterText: '',
+                filled: true,
+                fillColor:
+                    canSendMessages ? Colors.white : Colors.grey.shade50,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              color:
+                  canSendMessages ? AppColors.primary : Colors.grey.shade400,
+              shape: BoxShape.circle,
+              boxShadow: canSendMessages
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: canSendMessages ? _sendMessage : null,
+                borderRadius: BorderRadius.circular(24),
+                child: Center(
+                  child: _isSending
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Icon(
+                          Icons.send,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _messageController,
-                enabled: canSendMessages,
-                maxLines: null,
-                maxLength: 1000,
-                textInputAction: TextInputAction.send,
-                onSubmitted: canSendMessages ? (_) => _sendMessage() : null,
-                style: GoogleFonts.inter(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText:
-                      canSendMessages ? 'Escribe un mensaje...' : 'Enviando...',
-                  hintStyle: GoogleFonts.inter(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: AppColors.primary, width: 2),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  counterText: '',
-                  filled: true,
-                  fillColor:
-                      canSendMessages ? Colors.white : Colors.grey.shade50,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              height: 48,
-              width: 48,
-              decoration: BoxDecoration(
-                color:
-                    canSendMessages ? AppColors.primary : Colors.grey.shade400,
-                shape: BoxShape.circle,
-                boxShadow: canSendMessages
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: canSendMessages ? _sendMessage : null,
-                  borderRadius: BorderRadius.circular(24),
-                  child: Center(
-                    child: _isSending
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Icon(
-                            Icons.send,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    ),
+  );
+}
 
   // ✅ MÉTODOS AUXILIARES
 
@@ -757,24 +768,27 @@ class _ServiceChatScreenState extends State<ServiceChatScreen>
     }
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Cliente asignado';
-      case 'accepted':
-        return 'Cliente asignado';
-      case 'en_route':
-        return 'Técnico en camino';
-      case 'on_site':
-        return 'Técnico en sitio';
-      case 'charging':
-        return 'Cargando vehículo';
-      case 'completed':
-        return 'Servicio completado';
-      case 'cancelled':
-        return 'Servicio cancelado';
-      default:
-        return status;
-    }
+
+// Actualizar el método _getStatusText()
+String _getStatusText(String status) {
+  final localizations = AppLocalizations.of(context);
+  
+  switch (status) {
+    case 'pending': 
+      return localizations.statusPending;
+    case 'accepted':
+      return localizations.statusAccepted;
+    case 'en_route':
+      return localizations.statusEnRoute;
+    case 'on_site':
+      return localizations.statusOnSite;
+    case 'charging':
+      return localizations.statusCharging;
+    case 'completed':
+      return localizations.statusCompleted;
+    case 'cancelled':
+      return localizations.statusCancelled;
+    default:
+      return status;
   }
-}
+}}

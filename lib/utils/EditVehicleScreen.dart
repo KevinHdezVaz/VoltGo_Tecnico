@@ -1,9 +1,10 @@
-import 'dart:convert';
+ import 'dart:convert';
 import 'package:Voltgo_app/data/services/TechnicianService.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+ 
 class EditVehicleScreen extends StatefulWidget {
   const EditVehicleScreen({super.key});
 
@@ -54,14 +55,14 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
   ];
 
   final List<Map<String, dynamic>> _colors = [
-    {'name': 'Blanco', 'color': Colors.white},
-    {'name': 'Negro', 'color': Colors.black},
-    {'name': 'Gris', 'color': Colors.grey},
-    {'name': 'Plata', 'color': Colors.grey.shade300},
-    {'name': 'Rojo', 'color': Colors.red},
-    {'name': 'Azul', 'color': Colors.blue},
-    {'name': 'Verde', 'color': Colors.green},
-    {'name': 'Amarillo', 'color': Colors.yellow},
+    {'name': 'white', 'color': Colors.white},
+    {'name': 'black', 'color': Colors.black},
+    {'name': 'gray', 'color': Colors.grey},
+    {'name': 'silver', 'color': Colors.grey.shade300},
+    {'name': 'red', 'color': Colors.red},
+    {'name': 'blue', 'color': Colors.blue},
+    {'name': 'green', 'color': Colors.green},
+    {'name': 'yellow', 'color': Colors.yellow},
   ];
 
   String? _selectedConnectorType;
@@ -104,26 +105,15 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
         Map<String, dynamic> vehicleData;
 
         // --- INICIA LA LÓGICA INTELIGENTE ---
-
-        // 1. Revisa si el dato es un String (la "caja cerrada" 📦)
         if (profile['vehicle_details'] is String) {
-          // Si es un String, lo "abrimos" o decodificamos para obtener el Map
           vehicleData = json.decode(profile['vehicle_details']);
-        }
-        // 2. Si no es String, revisa si ya es un Map (el "mapa abierto" 🗺️)
-        else if (profile['vehicle_details'] is Map<String, dynamic>) {
-          // Si ya es un Map, simplemente lo usamos
+        } else if (profile['vehicle_details'] is Map<String, dynamic>) {
           vehicleData = profile['vehicle_details'];
-        }
-        // 3. Si no es ninguno de los dos, es un formato inesperado
-        else {
+        } else {
           throw Exception("El formato de vehicle_details es inválido.");
         }
-
         // --- TERMINA LA LÓGICA INTELIGENTE ---
 
-        // ✅ Ahora, 'vehicleData' siempre será un Map, sin importar cómo llegó.
-        // El resto de tu código funciona sin cambios.
         setState(() {
           _makeController.text = vehicleData['make'] ?? '';
           _modelController.text = vehicleData['model'] ?? '';
@@ -141,7 +131,8 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
       _animationController.forward();
     } catch (e) {
       setState(() {
-        _errorMessage = "Error al cargar los datos: ${e.toString()}";
+      _errorMessage = AppLocalizations.of(context)
+    .errorMessage(e.toString());
       });
     } finally {
       setState(() {
@@ -168,7 +159,6 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
         await TechnicianService.updateVehicle(vehicleData);
 
         if (mounted) {
-          // Mostrar diálogo de éxito
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -188,7 +178,12 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                 children: [
                   const Icon(Icons.error_outline, color: Colors.white),
                   const SizedBox(width: 12),
-                  Expanded(child: Text('Error: ${e.toString()}')),
+                  Expanded(
+                    child: Text(
+  AppLocalizations.of(context)
+      .errorMessage(e.toString()),
+),
+                  ),
                 ],
               ),
               backgroundColor: AppColors.error,
@@ -209,6 +204,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -255,7 +251,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Información del vehículo',
+                            localizations.vehicleInformation,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
                               fontSize: 14,
@@ -295,7 +291,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Cargando información...',
+                            localizations.loadingInformation,
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 14,
@@ -342,9 +338,9 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Reintentar',
-                                  style: TextStyle(color: Colors.white),
+                                child: Text(
+                                  localizations.retry,
+                                  style: const TextStyle(color: Colors.white),
                                 ),
                               ),
                             ],
@@ -362,7 +358,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                               children: [
                                 // Sección de información básica
                                 _buildSectionHeader(
-                                  'Información básica',
+                                  localizations.basicInformation,
                                   Icons.directions_car,
                                 ),
                                 const SizedBox(height: 16),
@@ -370,23 +366,23 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                                 _buildCard([
                                   _buildEnhancedTextField(
                                     controller: _makeController,
-                                    label: 'Marca',
-                                    hint: 'Ej: Tesla, Nissan',
+                                    label: localizations.brand,
+                                    hint: localizations.brandHint,
                                     icon: Icons.business,
                                     suggestions: _popularMakes,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildEnhancedTextField(
                                     controller: _modelController,
-                                    label: 'Modelo',
-                                    hint: 'Ej: Model 3, Leaf',
+                                    label: localizations.model,
+                                    hint: localizations.modelExampleHint,
                                     icon: Icons.car_rental,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildEnhancedTextField(
                                     controller: _yearController,
-                                    label: 'Año',
-                                    hint: 'Ej: 2024',
+                                    label: localizations.year,
+                                    hint: localizations.yearHint,
                                     icon: Icons.calendar_today,
                                     keyboardType: TextInputType.number,
                                     inputFormatters: [
@@ -400,7 +396,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
 
                                 // Sección de identificación
                                 _buildSectionHeader(
-                                  'Identificación',
+                                  localizations.identification,
                                   Icons.badge,
                                 ),
                                 const SizedBox(height: 16),
@@ -408,8 +404,8 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                                 _buildCard([
                                   _buildEnhancedTextField(
                                     controller: _plateController,
-                                    label: 'Placa',
-                                    hint: 'Ej: ABC-123',
+                                    label: localizations.plate,
+                                    hint: localizations.plateExampleHint,
                                     icon: Icons.pin,
                                     textCapitalization:
                                         TextCapitalization.characters,
@@ -422,7 +418,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
 
                                 // Sección técnica
                                 _buildSectionHeader(
-                                  'Especificaciones técnicas',
+                                  localizations.technicalSpecifications,
                                   Icons.electrical_services,
                                 ),
                                 const SizedBox(height: 16),
@@ -575,14 +571,14 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Este campo es requerido';
+              return AppLocalizations.of(context).requiredField;
             }
-            if (label == 'Año') {
+            if (label == AppLocalizations.of(context).year) {
               final year = int.tryParse(value);
               if (year == null ||
                   year < 1900 ||
                   year > DateTime.now().year + 1) {
-                return 'Ingrese un año válido';
+                return AppLocalizations.of(context).validYearMessage;
               }
             }
             return null;
@@ -623,7 +619,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Color',
+          AppLocalizations.of(context).color,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -676,7 +672,11 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      colorData['name'],
+              
+
+ AppLocalizations.of(context).getColorName(colorData['name']),
+
+
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight:
@@ -701,7 +701,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Tipo de conector',
+          AppLocalizations.of(context).connectorType,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -736,7 +736,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
               ),
             ),
             hint: Text(
-              'Selecciona el tipo de conector',
+              AppLocalizations.of(context).selectConnectorMessage,
               style: TextStyle(
                 color: AppColors.textSecondary.withOpacity(0.5),
               ),
@@ -765,7 +765,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
             },
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Seleccione un tipo de conector';
+                return AppLocalizations.of(context).selectConnectorMessage;
               }
               return null;
             },
@@ -818,9 +818,9 @@ class _EditVehicleScreenState extends State<EditVehicleScreen>
                         size: 20,
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Guardar cambios',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context).saveChanges,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -866,9 +866,9 @@ class _SuccessDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              '¡Actualización exitosa!',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).updateSuccessful,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -876,7 +876,7 @@ class _SuccessDialog extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'La información de tu vehículo ha sido actualizada correctamente.',
+              AppLocalizations.of(context).vehicleUpdateSuccessMessage,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -895,9 +895,9 @@ class _SuccessDialog extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Continuar',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context).continueButton,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -911,3 +911,4 @@ class _SuccessDialog extends StatelessWidget {
     );
   }
 }
+ 

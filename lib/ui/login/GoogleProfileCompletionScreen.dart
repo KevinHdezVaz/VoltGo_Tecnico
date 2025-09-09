@@ -8,6 +8,7 @@ import 'package:Voltgo_app/utils/map_picker_screen.dart';
 import 'package:Voltgo_app/utils/AnimatedTruckProgress.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:Voltgo_app/data/services/auth_api_service.dart';
+import 'dart:developer' as developer;
 
 class GoogleProfileCompletionScreen extends StatefulWidget {
   final String userName;
@@ -101,6 +102,14 @@ class _GoogleProfileCompletionScreenState
   Future<void> _completeProfile() async {
     if (!_isButtonEnabled || _isLoading) return;
 
+
+// ✅ AGREGAR ESTE DEBUG
+  developer.log('=== PROFILE COMPLETION DEBUG ===');
+  developer.log('_fullPhoneNumber: "$_fullPhoneNumber"');
+  developer.log('_baseLocationController.text: "${_baseLocationController.text}"');
+  developer.log('_baseLocationController.text.trim(): "${_baseLocationController.text.trim()}"');
+  developer.log('_selectedServices: $_selectedServices');
+ 
     final localizations = AppLocalizations.of(context);
 
     setState(() => _isLoading = true);
@@ -133,7 +142,7 @@ class _GoogleProfileCompletionScreenState
       if (response.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text( 'Perfil agrgado.'),
+            content: Text( 'Profile add.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -212,7 +221,7 @@ class _GoogleProfileCompletionScreenState
         backgroundColor: AppColors.white,
         elevation: 0,
         title: Text(
-          'Completar Perfil',
+          'Complete Profile',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -248,7 +257,7 @@ class _GoogleProfileCompletionScreenState
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '¡Hola, ${widget.userName}!',
+                          'Hi, ${widget.userName}!',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -257,7 +266,7 @@ class _GoogleProfileCompletionScreenState
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Completa tu perfil de técnico para continuar',
+                          'Complete your technician profile to continue',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.textSecondary,
@@ -272,7 +281,7 @@ class _GoogleProfileCompletionScreenState
                   
                   // Campos obligatorios
                   Text(
-                    'Información Requerida',
+                    'Required Information',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -302,7 +311,7 @@ class _GoogleProfileCompletionScreenState
                   
                   // Información opcional
                   Text(
-                    'Información Opcional',
+                    'Optional Information',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -338,7 +347,7 @@ class _GoogleProfileCompletionScreenState
                         elevation: 0,
                       ),
                       child: Text(
-                        'Completar Perfil',
+                        'Complete Profile',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

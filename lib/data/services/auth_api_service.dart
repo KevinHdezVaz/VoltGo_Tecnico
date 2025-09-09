@@ -31,111 +31,149 @@ class AuthService {
     return await TokenStorage.getToken();
   }
 
-  // ✅ MÉTODO UPDATETECHNICIANPROFILE CORREGIDO
-  static Future<ApiResult> updateTechnicianProfile({
-    required String phone,
-    required String baseLocation,
-    required List<String> servicesOffered,
-    String? licenseNumber,
-    File? idDocument,
-  }) async {
-    try {
-      final token = await getAuthToken();
-      if (token == null) {
-        return ApiResult(
-          success: false, 
-          error: 'Token de autenticación no encontrado'
-        );
-      }
-
-      // Crear FormData para enviar archivos
-      var request = http.MultipartRequest(
-        'POST', // Usar POST para multipart
-        Uri.parse('${Constants.baseUrl}/technician/profile/update'),
-      );
-
-      // Agregar headers
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      });
-
-      // Agregar campos de texto
-      request.fields.addAll({
-        'phone': phone,
-        'base_location': baseLocation,
-      });
-
-      // Agregar servicios como array
-      for (int i = 0; i < servicesOffered.length; i++) {
-        request.fields['services_offered[$i]'] = servicesOffered[i];
-      }
-
-      // Agregar license_number si no está vacío
-      if (licenseNumber != null && licenseNumber.isNotEmpty) {
-        request.fields['license_number'] = licenseNumber;
-      }
-
-      // Agregar documento de identificación si se seleccionó
-      if (idDocument != null) {
-        // Detectar el tipo de archivo
-        String extension = idDocument.path.split('.').last.toLowerCase();
-        MediaType contentType;
-        
-        switch (extension) {
-          case 'png':
-            contentType = MediaType('image', 'png');
-            break;
-          case 'jpg':
-          case 'jpeg':
-            contentType = MediaType('image', 'jpeg');
-            break;
-          default:
-            contentType = MediaType('image', 'jpeg'); // Por defecto
-        }
-
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'id_document',
-            idDocument.path,
-            contentType: contentType,
-          ),
-        );
-      }
-
-      developer.log('Sending technician profile update request...');
-      developer.log('Fields: ${request.fields}');
-      developer.log('Files: ${request.files.map((f) => f.field).toList()}');
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      developer.log('Response status: ${response.statusCode}');
-      developer.log('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return ApiResult(
-          success: true,
-          data: data,
-          message: data['message'] ?? 'Perfil actualizado exitosamente',
-        );
-      } else {
-        final errorData = jsonDecode(response.body);
-        return ApiResult(
-          success: false,
-          error: errorData['message'] ?? 'Error al actualizar el perfil',
-          statusCode: response.statusCode,
-        );
-      }
-    } catch (e) {
-      developer.log('Error updating technician profile: $e');
+ // ✅ SOLUCIÓN DEFINITIVA - usar POST con _method
+static Future<ApiResult> updateTechnicianProfile({
+  required String phone,
+  required String baseLocation,
+  required List<String> servicesOffered,
+  String? licenseNumber,
+  File? idDocument,
+}) async {
+  try {
+    final token = await getAuthToken();
+    if (token == null) {
       return ApiResult(
-        success: false,
-        error: 'Error de conexión: $e',
+        success: false, 
+        error: 'Token de autenticación no encontrado'
       );
     }
+
+    developer.log('=== DEBUGGING PROFILE UPDATE ===');
+    developer.log('phone: "$phone"');
+    developer.log('baseLocation: "$baseLocation"');
+    developer.log('servicesOffered: $servicesOffered');
+
+    // ✅ VALIDACIÓN EN FLUTTER ANTES DE ENVIAR
+    if (baseLocation.trim().isEmpty) {
+      return ApiResult(
+        success: false,
+        error: 'La ubicación base no puede estar vacía'
+      );
+    }
+
+    if (servicesOffered.isEmpty) {
+      return ApiResult(
+        success: false,
+        error: 'Debe seleccionar al menos un servicio'
+      );
+    }
+
+    // ✅ USAR POST EN LUGAR DE PUT PARA MULTIPART
+    var request = http.MultipartRequest(
+      'POST', // ✅ CAMBIO CRÍTICO: POST en lugar de PUT
+      Uri.parse('${Constants.baseUrl}/technician/profile'),
+    );
+
+    // ✅ SIMULAR PUT con _method (Laravel lo interpretará como PUT)
+    request.fields['_method'] = 'PUT';
+
+    // Agregar headers
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    });
+
+    // ✅ AGREGAR CAMPOS PRINCIPALES
+    request.fields['phone'] = phone.trim();
+    request.fields['base_location'] = baseLocation.trim();
+
+    // ✅ AGREGAR SERVICIOS
+    for (int i = 0; i < servicesOffered.length; i++) {
+      request.fields['services_offered[$i]'] = servicesOffered[i].trim();
+    }
+
+    // Agregar license_number si no está vacío
+    if (licenseNumber != null && licenseNumber.trim().isNotEmpty) {
+      request.fields['license_number'] = licenseNumber.trim();
+    }
+
+    // Agregar documento de identificación si se seleccionó
+    if (idDocument != null) {
+      String extension = idDocument.path.split('.').last.toLowerCase();
+      MediaType contentType;
+      
+      switch (extension) {
+        case 'png':
+          contentType = MediaType('image', 'png');
+          break;
+        case 'jpg':
+        case 'jpeg':
+          contentType = MediaType('image', 'jpeg');
+          break;
+        default:
+          contentType = MediaType('image', 'jpeg');
+      }
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'id_document',
+          idDocument.path,
+          contentType: contentType,
+        ),
+      );
+    }
+
+    developer.log('=== REQUEST DEBUG ===');
+    developer.log('URL: ${request.url}');
+    developer.log('Method: ${request.method}');
+    developer.log('Fields: ${request.fields}');
+    developer.log('Files: ${request.files.map((f) => f.field).toList()}');
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    developer.log('Response status: ${response.statusCode}');
+    developer.log('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return ApiResult(
+        success: true,
+        data: data,
+        message: data['message'] ?? 'Perfil actualizado exitosamente',
+      );
+    } else {
+      String errorMessage = 'Error al actualizar el perfil';
+      
+      try {
+        final errorData = jsonDecode(response.body);
+        errorMessage = errorData['message'] ?? errorMessage;
+        
+        if (errorData['errors'] != null) {
+          final errors = errorData['errors'] as Map<String, dynamic>;
+          final firstError = errors.values.first;
+          if (firstError is List && firstError.isNotEmpty) {
+            errorMessage = firstError.first.toString();
+          }
+        }
+      } catch (e) {
+        developer.log('Error parsing error response: $e');
+      }
+      
+      return ApiResult(
+        success: false,
+        error: errorMessage,
+        statusCode: response.statusCode,
+      );
+    }
+  } catch (e) {
+    developer.log('Error updating technician profile: $e');
+    return ApiResult(
+      success: false,
+      error: 'Error de conexión: $e',
+    );
   }
+}
 
   // TU MÉTODO LOGIN EXISTENTE (sin cambios)
   static Future<LoginResult> login({

@@ -57,7 +57,7 @@ class _EarningsScreenState extends State<EarningsScreen>
       print('Error cargando datos: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-        _showErrorSnackBar('Error cargando datos de ganancias');
+        _showErrorSnackBar(AppLocalizations.of(context).loadingEarningsError);
       }
     }
   }
@@ -152,6 +152,7 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   void _showWithdrawModal() {
+    final l10n = AppLocalizations.of(context);
     final availableBalance = double.tryParse(
             _earningsSummary?['wallet']?['balance']?.toString() ?? '0') ??
         0.0;
@@ -186,7 +187,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               ),
               const SizedBox(height: 20),
               Text(
-                'Retirar Fondos',
+                l10n.withdrawFunds,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -195,7 +196,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'Saldo disponible: \$${availableBalance.toStringAsFixed(2)}',
+                '${l10n.availableBalance}: \$${availableBalance.toStringAsFixed(2)}',
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 14,
@@ -206,9 +207,9 @@ class _EarningsScreenState extends State<EarningsScreen>
                 controller: _withdrawAmountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: 'Monto a retirar',
+                  labelText: l10n.withdrawalAmount,
                   prefixText: '\$',
-                  hintText: 'Mínimo \$10',
+                  hintText: l10n.minimumWithdrawal,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -221,7 +222,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               ),
               const SizedBox(height: 16),
               Text(
-                'Método de pago',
+                l10n.paymentMethod,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -231,12 +232,12 @@ class _EarningsScreenState extends State<EarningsScreen>
               const SizedBox(height: 8),
               _buildPaymentMethodOption(
                 'bank_transfer',
-                'Transferencia bancaria',
+                l10n.bankTransfer,
                 Icons.account_balance,
               ),
               _buildPaymentMethodOption(
                 'debit_card',
-                'Tarjeta de débito',
+                l10n.debitCard,
                 Icons.credit_card,
               ),
               const SizedBox(height: 20),
@@ -252,7 +253,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                     ),
                   ),
                   child: Text(
-                    'Confirmar retiro',
+                    l10n.confirmWithdrawal,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -313,10 +314,11 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   Future<void> _processWithdrawal() async {
+    final l10n = AppLocalizations.of(context);
     final amount = double.tryParse(_withdrawAmountController.text) ?? 0;
 
     if (amount < 10) {
-      _showErrorSnackBar('El monto mínimo para retirar es \$10');
+      _showErrorSnackBar(l10n.minimumWithdrawalError);
       return;
     }
 
@@ -325,7 +327,7 @@ class _EarningsScreenState extends State<EarningsScreen>
         0.0;
 
     if (amount > availableBalance) {
-      _showErrorSnackBar('Saldo insuficiente');
+      _showErrorSnackBar(l10n.insufficientBalance);
       return;
     }
 
@@ -340,22 +342,21 @@ class _EarningsScreenState extends State<EarningsScreen>
     Navigator.pop(context); // Cerrar loading
 
     if (success) {
-      _showSuccessSnackBar('Retiro procesado exitosamente');
+      _showSuccessSnackBar(l10n.withdrawalSuccess);
       _withdrawAmountController.clear();
       _loadEarningsData();
     } else {
-      _showErrorSnackBar('Error al procesar el retiro');
+      _showErrorSnackBar(l10n.withdrawalError);
     }
   }
 
-  // ✅ MÉTODO PARA CONSTRUIR ITEMS DEL HISTORIAL
   Widget _buildHistoryItem(Map<String, dynamic> earning) {
+    final l10n = AppLocalizations.of(context);
     final netAmount = double.tryParse(earning['net_amount']?.toString() ?? '0') ?? 0.0;
     final tips = double.tryParse(earning['tips']?.toString() ?? '0') ?? 0.0;
     final status = earning['status'] ?? 'pending';
     final createdAt = earning['created_at'] ?? '';
     
-    // Formatear fecha
     String formattedDate = 'Fecha no disponible';
     if (createdAt.isNotEmpty) {
       try {
@@ -366,7 +367,6 @@ class _EarningsScreenState extends State<EarningsScreen>
       }
     }
 
-    // Determinar color del estado
     Color statusColor;
     String statusText;
     IconData statusIcon;
@@ -379,7 +379,7 @@ class _EarningsScreenState extends State<EarningsScreen>
         break;
       case 'pending':
         statusColor = AppColors.warning;
-        statusText = 'Pendiente';
+        statusText = l10n.pending;
         statusIcon = Icons.schedule;
         break;
       case 'withdrawn':
@@ -453,7 +453,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                 Icon(Icons.card_giftcard, size: 16, color: AppColors.warning),
                 const SizedBox(width: 4),
                 Text(
-                  'Propinas: \$${tips.toStringAsFixed(2)}',
+                  '${l10n.tips}: \$${tips.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.warning,
@@ -470,6 +470,8 @@ class _EarningsScreenState extends State<EarningsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -502,9 +504,11 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final l10n = AppLocalizations.of(context);
+    
     return AppBar(
       title: Text(
-        'Mis Ganancias',
+        l10n.myEarnings,
         style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 20,
@@ -533,6 +537,8 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   Widget _buildTabBar() {
+    final l10n = AppLocalizations.of(context);
+    
     return Container(
       color: AppColors.white,
       child: TabBar(
@@ -542,9 +548,9 @@ class _EarningsScreenState extends State<EarningsScreen>
         indicatorColor: AppColors.primary,
         indicatorWeight: 3,
         tabs: [
-          Tab(text: 'Hoy'),
-          Tab(text: 'Semana'),
-          Tab(text: 'Historial'),
+          Tab(text: l10n.today),
+          Tab(text: l10n.week),
+          Tab(text: l10n.history),
         ],
       ),
     );
@@ -566,8 +572,6 @@ class _EarningsScreenState extends State<EarningsScreen>
             const SizedBox(height: 20),
             _buildTodayStats(todayData),
             const SizedBox(height: 20),
-            _buildQuickStats(todayData),
-            const SizedBox(height: 20),
             _buildRecentEarnings(),
           ],
         ),
@@ -576,6 +580,7 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   Widget _buildWeekTab() {
+    final l10n = AppLocalizations.of(context);
     final weekData = _earningsSummary?['week'];
     final monthData = _earningsSummary?['month'];
 
@@ -587,9 +592,9 @@ class _EarningsScreenState extends State<EarningsScreen>
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildPeriodCard('Esta Semana', weekData, AppColors.info),
+            _buildPeriodCard(l10n.thisWeek, weekData, AppColors.info),
             const SizedBox(height: 16),
-            _buildPeriodCard('Este Mes', monthData, AppColors.success),
+            _buildPeriodCard(l10n.thisMonth, monthData, AppColors.success),
             const SizedBox(height: 20),
           ],
         ),
@@ -609,7 +614,7 @@ class _EarningsScreenState extends State<EarningsScreen>
         onRefresh: _loadEarningsData,
         color: AppColors.primary,
         child: ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
           itemCount: _earningsHistory.length + (_isLoadingHistory ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == _earningsHistory.length) {
@@ -621,7 +626,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               );
             }
             final earning = _earningsHistory[index];
-            return _buildHistoryItem(earning); // ✅ AHORA SÍ FUNCIONA
+            return _buildHistoryItem(earning);
           },
         ),
       ),
@@ -629,6 +634,7 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   Widget _buildBalanceCard(Map<String, dynamic>? walletData) {
+    final l10n = AppLocalizations.of(context);
     final balance =
         double.tryParse(walletData?['balance']?.toString() ?? '0') ?? 0.0;
     final pendingBalance =
@@ -663,7 +669,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Saldo Disponible',
+                    l10n.availableBalance,
                     style: TextStyle(
                       color: AppColors.textOnPrimary.withOpacity(0.9),
                       fontSize: 14,
@@ -711,7 +717,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Pendiente: \$${pendingBalance.toStringAsFixed(2)}',
+                    '${l10n.pending}: \$${pendingBalance.toStringAsFixed(2)}',
                     style: TextStyle(
                       color: AppColors.textOnPrimary.withOpacity(0.9),
                       fontSize: 12,
@@ -740,7 +746,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                   const Icon(Icons.arrow_downward, color: AppColors.black),
                   const SizedBox(width: 8),
                   Text(
-                    balance >= 10 ? 'Retirar Fondos' : 'Mínimo \$10',
+                    balance >= 10 ? l10n.withdrawFunds : l10n.minimumWithdrawal,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -757,6 +763,7 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   Widget _buildTodayStats(Map<String, dynamic>? todayData) {
+    final l10n = AppLocalizations.of(context);
     final earnings =
         double.tryParse(todayData?['earnings']?.toString() ?? '0') ?? 0.0;
     final services =
@@ -784,7 +791,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               Icon(Icons.today, color: AppColors.primary, size: 24),
               const SizedBox(width: 8),
               Text(
-                'Resumen de Hoy',
+                l10n.todaySummary,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -799,14 +806,14 @@ class _EarningsScreenState extends State<EarningsScreen>
             children: [
               _buildStatItem(
                 '\$${earnings.toStringAsFixed(2)}',
-                'Ganancias',
+                l10n.earnings,
                 AppColors.success,
                 Icons.attach_money,
               ),
               Container(width: 1, height: 40, color: AppColors.gray300),
               _buildStatItem(
                 services.toString(),
-                'Servicios',
+                l10n.services,
                 AppColors.info,
                 Icons.electric_bolt,
               ),
@@ -817,7 +824,7 @@ class _EarningsScreenState extends State<EarningsScreen>
               ),
               _buildStatItem(
                 '\$${tips.toStringAsFixed(2)}',
-                'Propinas',
+                l10n.tips,
                 AppColors.warning,
                 Icons.card_giftcard,
               ),
@@ -847,35 +854,6 @@ class _EarningsScreenState extends State<EarningsScreen>
           style: TextStyle(
             fontSize: 12,
             color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickStats(Map<String, dynamic>? todayData) {
-    final distance =
-        double.tryParse(todayData?['distance']?.toString() ?? '0') ?? 0.0;
-    final rating =
-        double.tryParse(todayData?['rating']?.toString() ?? '0') ?? 0.0;
-
-    return Row(
-      children: [
-        Expanded(
-          child: _buildQuickStatCard(
-            'Distancia',
-            '${distance.toStringAsFixed(1)} km',
-            Icons.route,
-            AppColors.primary,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildQuickStatCard(
-            'Rating',
-            rating > 0 ? rating.toStringAsFixed(1) : 'N/A',
-            Icons.star,
-            AppColors.warning,
           ),
         ),
       ],
@@ -922,6 +900,7 @@ class _EarningsScreenState extends State<EarningsScreen>
 
   Widget _buildPeriodCard(
       String title, Map<String, dynamic>? data, Color color) {
+    final l10n = AppLocalizations.of(context);
     final earnings =
         double.tryParse(data?['earnings']?.toString() ?? '0') ?? 0.0;
     final services = int.tryParse(data?['services']?.toString() ?? '0') ?? 0;
@@ -973,7 +952,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                     ),
                   ),
                   Text(
-                    'Total Ganado',
+                    l10n.totalEarned,
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.white.withOpacity(0.9),
@@ -998,7 +977,7 @@ class _EarningsScreenState extends State<EarningsScreen>
                       ),
                     ),
                     Text(
-                      'Servicios',
+                      l10n.services,
                       style: TextStyle(
                         fontSize: 10,
                         color: AppColors.white.withOpacity(0.9),
@@ -1014,13 +993,13 @@ class _EarningsScreenState extends State<EarningsScreen>
             children: [
               _buildMiniStat(
                   Icons.card_giftcard,
-                  '\${tips.toStringAsFixed(2)}',
-                  'Propinas'),
+                  '\$${tips.toStringAsFixed(2)}',
+                  l10n.tips),
               const SizedBox(width: 20),
               _buildMiniStat(
                   Icons.route,
                   '${distance.toStringAsFixed(1)} km',
-                  'Distancia'),
+                  l10n.distance),
             ],
           ),
         ],
@@ -1054,6 +1033,8 @@ class _EarningsScreenState extends State<EarningsScreen>
   }
 
   Widget _buildRecentEarnings() {
+    final l10n = AppLocalizations.of(context);
+    
     if (_earningsHistory.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(32),
@@ -1071,7 +1052,7 @@ class _EarningsScreenState extends State<EarningsScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'No hay servicios recientes',
+              l10n.noRecentServices,
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -1082,54 +1063,60 @@ class _EarningsScreenState extends State<EarningsScreen>
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      height: 200, // Ajusta esta altura según tus necesidades
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Actividad Reciente',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            TextButton(
-              onPressed: () => _navigateToFullHistory(),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Ver todo',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  l10n.recentActivity,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 14,
-                    color: AppColors.primary,
+                ),
+                TextButton(
+                  onPressed: () => _navigateToFullHistory(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
-                ],
-              ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.viewAll,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+            ...(_earningsHistory
+                .take(3)
+                .map((earning) => _buildHistoryItem(earning))
+                .toList()),
           ],
         ),
-        const SizedBox(height: 12),
-        ...(_earningsHistory
-            .take(3) // Mostrar solo 3 en lugar de 5 para que no ocupe tanto espacio
-            .map((earning) => _buildHistoryItem(earning))
-            .toList()),
-      ],
+      ),
     );
   }
 

@@ -50,15 +50,16 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   String _getStatusDisplayText(String status) {
+    final localizations = AppLocalizations.of(context);
     switch (status.toLowerCase()) {
       case 'completed':
-        return 'Completado';
+        return localizations.completed;
       case 'cancelled':
-        return 'Cancelado';
+        return localizations.cancelled;
       case 'pending':
-        return 'Pendiente';
+        return localizations.pending;
       case 'in_progress':
-        return 'En Progreso';
+        return localizations.inProgress;
       default:
         return status;
     }
@@ -66,12 +67,14 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Detalles del Servicio',
-          style: TextStyle(
+        title: Text(
+          localizations.serviceDetails,
+          style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 22,
             color: Colors.white,
@@ -160,6 +163,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildErrorState(String error) {
+    final localizations = AppLocalizations.of(context);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -173,7 +178,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Error al cargar los detalles',
+              localizations.errorLoadingDetails,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -201,9 +206,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: const Text(
-                'Reintentar',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              child: Text(
+                localizations.retry,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -247,6 +252,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildNoDetailsCard() {
+    final localizations = AppLocalizations.of(context);
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -264,9 +271,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               size: 48,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Detalles adicionales no disponibles',
-              style: TextStyle(
+            Text(
+              localizations.additionalDetailsNotAvailable,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
@@ -274,9 +281,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Los detalles técnicos del servicio serán agregados por el técnico durante o después del servicio.',
-              style: TextStyle(
+            Text(
+              localizations.technicalDetailsWillBeAdded,
+              style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
               ),
@@ -289,6 +296,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildStatusCard() {
+    final localizations = AppLocalizations.of(context);
     IconData icon;
     Color statusColor;
     String statusText = _getStatusDisplayText(widget.serviceRequest.status);
@@ -361,6 +369,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildServiceInfo() {
+    final localizations = AppLocalizations.of(context);
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -373,20 +383,20 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Información del Servicio',
-              style: TextStyle(
+            Text(
+              localizations.serviceInformation,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
-            _buildInfoRow(Icons.event, 'Fecha', widget.serviceRequest.formattedDate),
-            _buildInfoRow(Icons.access_time, 'Hora', widget.serviceRequest.formattedTime),
-            _buildInfoRow(Icons.info_outline, 'Estado', _getStatusDisplayText(widget.serviceRequest.status)),
+            _buildInfoRow(Icons.event, localizations.date, widget.serviceRequest.formattedDate),
+            _buildInfoRow(Icons.access_time, localizations.time, widget.serviceRequest.formattedTime),
+            _buildInfoRow(Icons.info_outline, localizations.status, _getStatusDisplayText(widget.serviceRequest.status)),
             if (widget.serviceRequest.id != null)
-              _buildInfoRow(Icons.confirmation_number, 'ID del Servicio', '#${widget.serviceRequest.id}'),
+              _buildInfoRow(Icons.confirmation_number, localizations.serviceId, '#${widget.serviceRequest.id}'),
           ],
         ),
       ),
@@ -394,6 +404,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildServiceTimeline(ServiceDetailsModel details) {
+    final localizations = AppLocalizations.of(context);
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -406,9 +418,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Cronología del Servicio',
-              style: TextStyle(
+            Text(
+              localizations.serviceTimeline,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -416,9 +428,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             ),
             const SizedBox(height: 16),
             if (details.serviceStartTime != null)
-              _buildInfoRow(Icons.play_arrow, 'Iniciado', details.formattedServiceStartTime),
+              _buildInfoRow(Icons.play_arrow, localizations.started, details.formattedServiceStartTime),
             if (details.serviceCompletedAt != null)
-              _buildInfoRow(Icons.check, 'Completado', details.formattedServiceCompletedTime),
+              _buildInfoRow(Icons.check, localizations.completed, details.formattedServiceCompletedTime),
           ],
         ),
       ),
@@ -426,6 +438,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildBatteryInfo(ServiceDetailsModel details) {
+    final localizations = AppLocalizations.of(context);
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -438,9 +452,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Información de Batería',
-              style: TextStyle(
+            Text(
+              localizations.batteryInformation,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -448,9 +462,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             ),
             const SizedBox(height: 16),
             if (details.initialBatteryLevel != null)
-              _buildInfoRow(Icons.battery_std, 'Nivel Inicial', details.batteryLevelDisplay),
+              _buildInfoRow(Icons.battery_std, localizations.initialLevel, details.batteryLevelDisplay),
             if (details.chargeTimeMinutes != null)
-              _buildInfoRow(Icons.timer, 'Tiempo de Carga', details.formattedChargeTime),
+              _buildInfoRow(Icons.timer, localizations.chargeTime, details.formattedChargeTime),
           ],
         ),
       ),
@@ -458,6 +472,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildServiceNotes(ServiceDetailsModel details) {
+    final localizations = AppLocalizations.of(context);
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -470,9 +486,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Notas del Servicio',
-              style: TextStyle(
+            Text(
+              localizations.serviceNotes,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -507,20 +523,21 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildPhotosSection(ServiceDetailsModel details) {
+    final localizations = AppLocalizations.of(context);
     List<Widget> photoWidgets = [];
     
     if (details.vehiclePhotoUrl != null) {
-      photoWidgets.add(Expanded(child: _buildPhotoCard('Vehículo', details.vehiclePhotoUrl!)));
+      photoWidgets.add(Expanded(child: _buildPhotoCard(localizations.vehicle, details.vehiclePhotoUrl!)));
     }
     
     if (details.beforePhotoUrl != null) {
       if (photoWidgets.isNotEmpty) photoWidgets.add(const SizedBox(width: 8));
-      photoWidgets.add(Expanded(child: _buildPhotoCard('Antes', details.beforePhotoUrl!)));
+      photoWidgets.add(Expanded(child: _buildPhotoCard(localizations.before, details.beforePhotoUrl!)));
     }
     
     if (details.afterPhotoUrl != null) {
       if (photoWidgets.isNotEmpty) photoWidgets.add(const SizedBox(width: 8));
-      photoWidgets.add(Expanded(child: _buildPhotoCard('Después', details.afterPhotoUrl!)));
+      photoWidgets.add(Expanded(child: _buildPhotoCard(localizations.after, details.afterPhotoUrl!)));
     }
 
     return Card(
@@ -535,9 +552,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Fotos del Servicio',
-              style: TextStyle(
+            Text(
+              localizations.servicePhotos,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -552,6 +569,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildPhotoCard(String title, String photoUrl) {
+    final localizations = AppLocalizations.of(context);
+    
     return Column(
       children: [
         Text(
@@ -587,7 +606,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: AppColors.lightGrey,
-                    child: const Column(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
@@ -595,10 +614,10 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                           color: AppColors.textSecondary,
                           size: 24,
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Error',
-                          style: TextStyle(
+                          localizations.error,
+                          style: const TextStyle(
                             fontSize: 10,
                             color: AppColors.textSecondary,
                           ),
@@ -628,6 +647,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   void _showPhotoDialog(String photoUrl, String title) {
+    final localizations = AppLocalizations.of(context);
+    
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -659,9 +680,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                                 size: 48,
                               ),
                               const SizedBox(height: 16),
-                              const Text(
-                                'Error al cargar la imagen',
-                                style: TextStyle(
+                              Text(
+                                localizations.errorLoadingImage,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -686,7 +707,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Cargando $title...',
+                                '${localizations.loading} $title...',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
@@ -777,6 +798,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Widget _buildCostInfo() {
+    final localizations = AppLocalizations.of(context);
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -797,9 +820,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Información de Pago',
-              style: TextStyle(
+            Text(
+              localizations.paymentInformation,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -819,16 +842,16 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Costo Total:',
-                    style: TextStyle(
+                  Text(
+                    localizations.totalCost,
+                    style: const TextStyle(
                       fontSize: 16,
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
-                    '\${widget.serviceRequest.finalCost!.toStringAsFixed(2)}',
+                    "\$${widget.serviceRequest.finalCost!.toStringAsFixed(2)}",
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,

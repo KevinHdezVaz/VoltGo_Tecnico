@@ -1,7 +1,9 @@
 import 'package:Voltgo_app/data/models/User/UserModel.dart';
 import 'package:Voltgo_app/data/services/ChatHistoryScreen.dart';
+import 'package:Voltgo_app/data/services/EarningsService.dart';
 import 'package:Voltgo_app/data/services/auth_api_service.dart';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
+import 'package:Voltgo_app/ui/MenuPage/TechnicianReviewsScreen.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
 import 'package:Voltgo_app/ui/profile/EditProfileScreen.dart';
@@ -238,6 +240,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                 return _buildProfileHeader(name: user.name, email: user.email);
               },
             ),
+            const SizedBox(height: 16),
+
+                      _buildRatingCard(), // ✅ NUEVO CARD DEL RATING
+
+
             const SizedBox(height: 24),
             _buildSectionHeader(
                 AppLocalizations.of(context).account), // Usa AppLocalizations
@@ -247,6 +254,16 @@ class _SettingsScreenState extends State<SettingsScreen>
               title: AppLocalizations.of(context)
                   .paymentMethods, // Usa AppLocalizations
               onTap: () {},
+            ),
+               _buildSettingsItem(
+              icon: Icons.star_outline,
+              title: "Reviews", // Usa AppLocalizations
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const TechnicianReviewsScreen()),
+                );
+              },
             ),
             const Divider(height: 32, color: AppColors.gray300),
             _buildSectionHeader(
@@ -299,8 +316,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                 const Divider(height: 32, color: AppColors.gray300),
                 const SizedBox(height: 24),
                 
-            const Divider(height: 32, color: AppColors.gray300),
-            const SizedBox(height: 24),
             _buildLogoutButton(),
           ],
         ),
@@ -324,56 +339,180 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  Widget _buildProfileHeader({required String name, required String email}) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.lightGrey, AppColors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
+Widget _buildProfileHeader({required String name, required String email}) {
+  return Card(
+    elevation: 3,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.lightGrey, AppColors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              radius: 30,
-              backgroundColor: AppColors.primary,
-              child:
-                  Icon(Icons.person, size: 32, color: AppColors.textOnPrimary),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  email,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(16),
       ),
-    );
-  }
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 30,
+            backgroundColor: AppColors.primary,
+            child: Icon(Icons.person, size: 32, color: AppColors.textOnPrimary),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                email,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
+// ✅ NUEVO WIDGET PARA EL CARD DEL RATING
+Widget _buildRatingCard() {
+
+  final l10n = AppLocalizations.of(context);
+  return FutureBuilder<Map<String, dynamic>?>(
+    future: EarningsService.getEarningsSummary(),
+    builder: (context, snapshot) {
+      double rating = 5.0;
+      bool isLoading = snapshot.connectionState == ConnectionState.waiting;
+      
+      if (snapshot.hasData && snapshot.data != null) {
+        rating = double.tryParse(
+          snapshot.data!['technician_rating']?.toString() ?? '5.0'
+        ) ?? 5.0;
+      }
+      
+      return Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.warning.withOpacity(0.1),
+                AppColors.warning.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.warning.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              // Lado izquierdo - Rating grande
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.star,
+                      color: AppColors.warning,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 4),
+                    if (isLoading)
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(AppColors.warning),
+                        ),
+                      )
+                    else
+                      Text(
+                        rating.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.black,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              // Lado derecho - Información
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                     l10n.yourRating,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.averageRating,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Estrellas visuales
+                    Row(
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          index < rating.floor() 
+                            ? Icons.star
+                            : (index < rating && rating % 1 >= 0.5)
+                              ? Icons.star_half
+                              : Icons.star_border,
+                          color: AppColors.warning,
+                          size: 20,
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0, top: 16.0),

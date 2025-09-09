@@ -48,28 +48,45 @@ class VehicleDetails {
   final String model;
   final String year;
   final String connectorType;
-  final String plate;
-  final String color;
+  final String? plate;  // ✅ CAMBIAR: Opcional
+  final String? color;  // ✅ CAMBIAR: Opcional
 
   VehicleDetails({
     required this.make,
     required this.model,
     required this.year,
     required this.connectorType,
-    required this.plate,
-    required this.color,
+    this.plate,  // ✅ CAMBIAR: Sin required
+    this.color,  // ✅ CAMBIAR: Sin required
   });
 
-  factory VehicleDetails.fromJson(Map<String, dynamic> json) {
-    return VehicleDetails(
+factory VehicleDetails.fromJson(Map<String, dynamic> json) {
+  print('=== PARSING VEHICLE DETAILS ===');
+  print('Vehicle JSON: $json');
+  print('Make: ${json['make']}');
+  print('Model: ${json['model']}');
+  print('Year: ${json['year']}');
+  
+  try {
+    final vehicle = VehicleDetails(
       make: json['make']?.toString() ?? '',
       model: json['model']?.toString() ?? '',
       year: json['year']?.toString() ?? '',
       connectorType: json['connector_type']?.toString() ?? '',
-      plate: json['plate']?.toString() ?? '',
-      color: json['color']?.toString() ?? '',
+      plate: json['plate']?.toString(),
+      color: json['color']?.toString(),
     );
+    
+    print('✅ VehicleDetails created successfully: ${vehicle.make} ${vehicle.model}');
+    print('==============================');
+    return vehicle;
+    
+  } catch (e) {
+    print('❌ ERROR creating VehicleDetails: $e');
+    print('==============================');
+    rethrow;
   }
+}
 
   Map<String, dynamic> toJson() {
     return {
@@ -82,7 +99,6 @@ class VehicleDetails {
     };
   }
 }
-
 // -----------------------------------------------------------------------------
 // Modelo para el Técnico
 // -----------------------------------------------------------------------------
@@ -205,8 +221,8 @@ class TechnicianProfile {
     };
   }
 }
+// En ServiceRequestModel - agregar la propiedad clientVehicle
 
-// ✅ ServiceRequestModel CORREGIDO
 class ServiceRequestModel {
   final int id;
   final int userId;
@@ -222,7 +238,10 @@ class ServiceRequestModel {
   final UserModel? user;
   final TechnicianModel? technician;
 
-  // ✅ PROPIEDADES para la UI del técnico
+  // ✅ NUEVO: Vehículo del cliente
+  final VehicleDetails? clientVehicle;
+
+  // Propiedades para la UI del técnico
   final String? clientName;
   final String? formattedDistance;
   final String? formattedEarnings;
@@ -241,53 +260,98 @@ class ServiceRequestModel {
     this.completedAt,
     this.user,
     this.technician,
+    this.clientVehicle, // ✅ NUEVO
     this.clientName,
     this.formattedDistance,
     this.formattedEarnings,
   });
 
-  // ✅ GETTERS calculados para retrocompatibilidad
+  // ✅ GETTERS para información del vehículo
+  String get clientVehicleInfo {
+    if (clientVehicle != null) {
+      return '${clientVehicle!.make} ${clientVehicle!.model} ${clientVehicle!.year}';
+    }
+    return 'Vehículo no especificado';
+  }
+
+  String get clientVehicleShort {
+    if (clientVehicle != null) {
+      return '${clientVehicle!.make} ${clientVehicle!.model}';
+    }
+    return 'N/A';
+  }
+
+  // Getters calculados para retrocompatibilidad
   String get clientNameDisplay => clientName ?? user?.name ?? 'Cliente';
   String get formattedDistanceDisplay => formattedDistance ?? '0 km';
   String get formattedEarningsDisplay =>
       formattedEarnings ?? '\$${(estimatedCost ?? 5.0).toStringAsFixed(2)}';
 
   factory ServiceRequestModel.fromJson(Map<String, dynamic> json) {
-    return ServiceRequestModel(
-      id: json['id'],
-      userId: json['user_id'],
-      technicianId: json['technician_id'] is String
-          ? int.tryParse(json['technician_id'])
-          : json['technician_id'],
-      status: json['status'],
-      requestLat: double.parse(json['request_lat'].toString()),
-      requestLng: double.parse(json['request_lng'].toString()),
-      estimatedCost: json['estimated_cost'] != null
-          ? double.parse(json['estimated_cost'].toString())
-          : null,
-      finalCost: json['final_cost'] != null
-          ? double.parse(json['final_cost'].toString())
-          : null,
-      requestedAt: DateTime.parse(json['requested_at']),
-      acceptedAt: json['accepted_at'] != null
-          ? DateTime.parse(json['accepted_at'])
-          : null,
-      completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'])
-          : null,
-      user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
-      technician: json['technician'] != null
-          ? TechnicianModel.fromJson(json['technician'])
-          : null,
-      clientName: json['user_name'],
-      formattedDistance: json['distance'],
-      formattedEarnings: json['base_cost'] != null
-          ? '\$${double.parse(json['base_cost'].toString()).toStringAsFixed(2)}'
-          : null,
-    );
+  print('🚗 VEHICLE_DEBUG: ServiceRequestModel parsing started');
+  print('🚗 VEHICLE_DEBUG: client_vehicle exists: ${json['client_vehicle'] != null}');
+  print('🚗 VEHICLE_DEBUG: client_vehicle raw: ${json['client_vehicle']}');
+
+  VehicleDetails? parsedClientVehicle;
+  
+  try {
+    if (json['client_vehicle'] != null) {
+      print('🚗 VEHICLE_DEBUG: Attempting to parse client_vehicle...');
+      parsedClientVehicle = VehicleDetails.fromJson(json['client_vehicle']);
+      print('🚗 VEHICLE_DEBUG: ServiceRequestModel - Vehicle parsed: ${parsedClientVehicle.make} ${parsedClientVehicle.model}');
+    } else {
+      print('🚗 VEHICLE_DEBUG: client_vehicle is null in JSON');
+    }
+  } catch (e) {
+    print('🚗 VEHICLE_DEBUG: ERROR in ServiceRequestModel parsing: $e');
+    parsedClientVehicle = null;
   }
 
-  // ✅ MÉTODO: Para verificar si el chat está disponible
+  final serviceRequest = ServiceRequestModel(
+    id: json['id'],
+    userId: json['user_id'],
+    technicianId: json['technician_id'] is String
+        ? int.tryParse(json['technician_id'])
+        : json['technician_id'],
+    status: json['status'],
+    requestLat: double.parse(json['request_lat'].toString()),
+    requestLng: double.parse(json['request_lng'].toString()),
+    estimatedCost: json['estimated_cost'] != null
+        ? double.parse(json['estimated_cost'].toString())
+        : null,
+    finalCost: json['final_cost'] != null
+        ? double.parse(json['final_cost'].toString())
+        : null,
+    requestedAt: DateTime.parse(json['requested_at']),
+    acceptedAt: json['accepted_at'] != null
+        ? DateTime.parse(json['accepted_at'])
+        : null,
+    completedAt: json['completed_at'] != null
+        ? DateTime.parse(json['completed_at'])
+        : null,
+    user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
+    technician: json['technician'] != null
+        ? TechnicianModel.fromJson(json['technician'])
+        : null,
+    // ✅ USAR LA VARIABLE PARSEADA CON MANEJO DE ERRORES
+    clientVehicle: parsedClientVehicle,
+    clientName: json['user_name'],
+    formattedDistance: json['distance'],
+    formattedEarnings: json['base_cost'] != null
+        ? '\$${double.parse(json['base_cost'].toString()).toStringAsFixed(2)}'
+        : null,
+  );
+
+  // 🚗 AGREGAR ESTOS DEBUG:
+  print('🚗 VEHICLE_DEBUG: ServiceRequestModel created - clientVehicle is null: ${serviceRequest.clientVehicle == null}');
+  if (serviceRequest.clientVehicle != null) {
+    print('🚗 VEHICLE_DEBUG: Final vehicle in model: ${serviceRequest.clientVehicle!.make} ${serviceRequest.clientVehicle!.model}');
+  }
+
+  return serviceRequest;
+}
+
+  // Método para verificar si el chat está disponible
   bool canChat() {
     return ['accepted', 'en_route', 'on_site', 'charging'].contains(status);
   }
@@ -307,10 +371,11 @@ class ServiceRequestModel {
       'completed_at': completedAt?.toIso8601String(),
       'user': user?.toJson(),
       'technician': technician?.toJson(),
+      'client_vehicle': clientVehicle?.toJson(), // ✅ NUEVO
     };
   }
 
-  // ✅ MÉTODO para crear copia con nuevas propiedades
+  // Método para crear copia con nuevas propiedades
   ServiceRequestModel copyWith({
     int? id,
     int? userId,
@@ -325,6 +390,7 @@ class ServiceRequestModel {
     DateTime? completedAt,
     UserModel? user,
     TechnicianModel? technician,
+    VehicleDetails? clientVehicle, // ✅ NUEVO
     String? clientName,
     String? formattedDistance,
     String? formattedEarnings,
@@ -343,13 +409,14 @@ class ServiceRequestModel {
       completedAt: completedAt ?? this.completedAt,
       user: user ?? this.user,
       technician: technician ?? this.technician,
+      clientVehicle: clientVehicle ?? this.clientVehicle, // ✅ NUEVO
       clientName: clientName ?? this.clientName,
       formattedDistance: formattedDistance ?? this.formattedDistance,
       formattedEarnings: formattedEarnings ?? this.formattedEarnings,
     );
   }
 
-  // --- Helpers para formatear ---
+  // Helpers para formatear
   String get formattedTime {
     return DateFormat('h:mm a', 'es_ES').format(requestedAt);
   }

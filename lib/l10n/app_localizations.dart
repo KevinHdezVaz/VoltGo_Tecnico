@@ -14,7 +14,7 @@ class AppLocalizations {
   static const LocalizationsDelegate<AppLocalizations> delegate =
       _AppLocalizationsDelegate();
 
-  static final Map<String, Map<String, String>> _localizedValues = {
+static final Map<String, Map<String, String>> localizedValues = {
     'en': {
       'appTitle': 'VoltGo',
       'searchingTechnician': 'Searching for technician',
@@ -28,6 +28,35 @@ class AppLocalizations {
     'client': 'Client',
     'verified': 'Verified',
     'serviceLocation': 'Service location',
+    'serviceDetails': 'Service Details',
+'completed': 'Completed',
+'cancelled': 'Cancelled',
+'pending': 'Pending',
+'inProgress': 'In Progress',
+'errorLoadingDetails': 'Error loading details',
+'retry': 'Retry',
+'additionalDetailsNotAvailable': 'Additional details not available',
+'technicalDetailsWillBeAdded': 'Technical details of the service will be added by the technician during or after the service.',
+'serviceInformation': 'Service Information',
+'date': 'Date',
+'time': 'Time',
+'status': 'Status',
+'serviceId': 'Service ID',
+'serviceTimeline': 'Service Timeline',
+'started': 'Started',
+'batteryInformation': 'Battery Information',
+'initialLevel': 'Initial Level',
+'chargeTime': 'Charge Time',
+'serviceNotes': 'Service Notes',
+'servicePhotos': 'Service Photos',
+'vehicle': 'Vehicle',
+'before': 'Before',
+'after': 'After',
+'error': 'Error',
+'loading': 'Loading',
+'errorLoadingImage': 'Error loading image',
+'paymentInformation': 'Payment Information',
+'totalCost': 'Total Cost:',
     'reject': 'Reject',
     'accept': 'Accept',
     'veryClose': 'Very close',
@@ -127,7 +156,27 @@ class AppLocalizations {
       'distance': 'Distance',
       'rating': 'Rating',
        'termsAndConditions': 'Terms and Conditions',
+"chatWith": "Chat with {name}",
+"serviceNumber": "Service #{id}",
+"loadingMessages": "Loading messages...",
+"errorLoadingChat": "Error loading chat",
+"tryAgain": "Try again",
+"startConversation": "Start the conversation",
+"communicateWithTechnician": "Communicate with your technician to coordinate the service",
+"communicateWithClient": "Communicate with the client to coordinate the service",
+"writeMessage": "Write a message...",
+"sending": "Sending...",
+"errorSendingMessage": "Error sending message: {error}",
+"updateMessages": "Update messages",
 
+// Service status
+"statusPending": "Client assigned",
+"statusAccepted": "Client assigned",
+"statusEnRoute": "Technician on the way",
+"statusOnSite": "Technician on site",
+"statusCharging": "Charging vehicle",
+"statusCompleted": "Service completed",
+"statusCancelled": "Service cancelled",
          'privacyPolicy': 'Privacy Policy',
     'dataCollection': '1. Information We Collect',
     'dataCollectionContent': 'Here will go the text about what personal data VoltGo collects, including profile information, location and app usage.',
@@ -252,7 +301,19 @@ class AppLocalizations {
       'offline': 'OFFLINE',
       'serviceActive': 'SERVICE ACTIVE',
       'disconnected': 'DISCONNECTED',
-
+'loadingInformation': 'Loading information...',
+    'errorMessage': 'Error: {error}',
+     'basicInformation': 'Basic Information',
+    'identification': 'Identification',
+    'technicalSpecifications': 'Technical Specifications',
+    'brandHint': 'E.g., Tesla, Nissan',
+    'modelExampleHint': 'E.g., Model 3, Leaf',
+    'yearHint': 'E.g., 2024',
+    'plateExampleHint': 'E.g., ABC-123',
+    'requiredField': 'This field is required',
+    'updateSuccessful': 'Update Successful!',
+    'vehicleUpdateSuccessMessage': 'Your vehicle information has been updated successfully.',
+    'continueButton': 'Continue',
       // ===== Service Cancellation Dialog (FALTANTES) =====
       'serviceCancelledTitle': 'Service Cancelled',
       'clientCancelledService': 'The client has cancelled the service.',
@@ -262,11 +323,21 @@ class AppLocalizations {
       'willContinueReceivingRequests':
           'You will continue receiving new requests automatically.',
       'serviceCancelledByClient': 'Service cancelled by client',
-
+'myRatings': 'My Ratings',
+    'summary': 'Summary',
+    'allReviews': 'All Reviews',
+    'ratingDistribution': 'Rating Distribution',
+    'recentReviews': 'Recent Reviews',
+    'viewAll': 'View All',
+    'noReviewsYet': 'No reviews yet',
+    'completeServices': 'Complete more services to receive ratings from your clients',
+    'errorLoadingReviews': 'Error loading reviews: {error}',
+    'reviewsCount': '{count} reviews',
       // ===== Service Expiration (FALTANTE) =====
       'serviceAutoCancelledAfterHour':
           'Your service has been automatically cancelled after 1 hour.',
-
+'yourRating': 'Your Rating',
+    'averageRating': 'Average of all your ratings',
       'noActiveServiceFound': 'No active service found',
       'serviceTrackingLocation': 'Tracking location every 30 seconds...',
       'locationTrackingStopped': 'Location tracking stopped.',
@@ -929,7 +1000,20 @@ class AppLocalizations {
       'willContinueReceivingRequests':
           'Continuarás recibiendo nuevas solicitudes automáticamente.',
       'serviceCancelledByClient': 'Servicio cancelado por cliente',
-
+'loadingInformation': 'Cargando información...',
+    'errorMessage': 'Error: {error}',
+    'retry': 'Reintentar',
+    'basicInformation': 'Información básica',
+    'identification': 'Identificación',
+    'technicalSpecifications': 'Especificaciones técnicas',
+    'brandHint': 'Ej: Tesla, Nissan',
+    'modelExampleHint': 'Ej: Model 3, Leaf',
+    'yearHint': 'Ej: 2024',
+    'plateExampleHint': 'Ej: ABC-123',
+    'requiredField': 'Este campo es requerido',
+    'updateSuccessful': '¡Actualización exitosa!',
+    'vehicleUpdateSuccessMessage': 'La información de tu vehículo ha sido actualizada correctamente.',
+    'continueButton': 'Continuar',
       // Service Expiration específica para técnico (faltante)
       'serviceAutoCancelledAfterHour':
           'Tu servicio ha sido cancelado automáticamente después de 1 hora.',
@@ -1029,7 +1113,27 @@ class AppLocalizations {
      'mediumDistance': 'Distancia media',
     'far': 'Lejos',
      'hours': 'h',
+"chatWith": "Chat con {name}",
+"serviceNumber": "Servicio #{id}",
+"loadingMessages": "Cargando mensajes...",
+"errorLoadingChat": "Error al cargar el chat",
+"tryAgain": "Intentar nuevamente",
+"startConversation": "Inicia la conversación",
+"communicateWithTechnician": "Comunícate con tu técnico para coordinar el servicio",
+"communicateWithClient": "Comunícate con el cliente para coordinar el servicio",
+"writeMessage": "Escribe un mensaje...",
+"sending": "Enviando...",
+"errorSendingMessage": "Error al enviar mensaje: {error}",
+"updateMessages": "Actualizar mensajes",
 
+// Estados del servicio
+"statusPending": "Cliente asignado",
+"statusAccepted": "Cliente asignado", 
+"statusEnRoute": "Técnico en camino",
+"statusOnSite": "Técnico en sitio",
+"statusCharging": "Cargando vehículo",
+"statusCompleted": "Servicio completado",
+"statusCancelled": "Servicio cancelado",
     // Política de Privacidad - ESPAÑOL
     'privacyPolicy': 'Política de Privacidad',
     'dataCollection': '1. Información que Recopilamos',
@@ -1222,6 +1326,8 @@ class AppLocalizations {
       'registerElectricVehicle': 'Registra tu Vehículo Eléctrico',
       'step': 'Paso',
       'of': 'de',
+            'step': 'Paso',
+
       'vehicleInformation': 'Información del Vehículo',
       'brand': 'Marca',
       'model': 'Modelo',
@@ -1236,8 +1342,49 @@ class AppLocalizations {
       'gray': 'Gris',
       'silver': 'Plata',
       'red': 'Rojo',
-                        'otros': 'Otros',
 
+'serviceDetails': 'Detalles del Servicio',
+'completed': 'Completado',
+'cancelled': 'Cancelado',
+'pending': 'Pendiente',
+'inProgress': 'En Progreso',
+'errorLoadingDetails': 'Error al cargar los detalles',
+'retry': 'Reintentar',
+'additionalDetailsNotAvailable': 'Detalles adicionales no disponibles',
+'technicalDetailsWillBeAdded': 'Los detalles técnicos del servicio serán agregados por el técnico durante o después del servicio.',
+'serviceInformation': 'Información del Servicio',
+'date': 'Fecha',
+'time': 'Hora',
+'status': 'Estado',
+'serviceId': 'ID del Servicio',
+'serviceTimeline': 'Cronología del Servicio',
+'started': 'Iniciado',
+'batteryInformation': 'Información de Batería',
+'initialLevel': 'Nivel Inicial',
+'chargeTime': 'Tiempo de Carga',
+'serviceNotes': 'Notas del Servicio',
+'servicePhotos': 'Fotos del Servicio',
+'vehicle': 'Vehículo',
+'before': 'Antes',
+'after': 'Después',
+'error': 'Error',
+'myRatings': 'Mis Calificaciones',
+    'summary': 'Resumen',
+    'allReviews': 'Todas las Reseñas',
+    'ratingDistribution': 'Distribución de Calificaciones',
+    'recentReviews': 'Reseñas Recientes',
+    'viewAll': 'Ver todas',
+    'noReviewsYet': 'Sin reseñas aún',
+    'completeServices': 'Completa más servicios para recibir calificaciones de tus clientes',
+    'errorLoadingReviews': 'Error al cargar las reseñas: {error}',
+    'reviewsCount': '{count} reseñas',
+'loading': 'Cargando',
+'errorLoadingImage': 'Error al cargar la imagen',
+'paymentInformation': 'Información de Pago',
+'totalCost': 'Costo Total:',
+                        'otros': 'Otros',
+'yourRating': 'Tu Calificación',
+    'averageRating': 'Promedio de todas tus calificaciones',
       'blue': 'Azul',
       'green': 'Verde',
       'writeBrandHint': 'Escribe una marca si no está en la lista',
@@ -1295,1039 +1442,1138 @@ class AppLocalizations {
   };
 
   String get onboardingTitle2 =>
-      _localizedValues[locale.languageCode]!['onboardingTitle2']!;
+      localizedValues[locale.languageCode]!['onboardingTitle2']!;
   String get onboardingSubtitle2 =>
-      _localizedValues[locale.languageCode]!['onboardingSubtitle2']!;
+      localizedValues[locale.languageCode]!['onboardingSubtitle2']!;
   String get onboardingTitle3 =>
-      _localizedValues[locale.languageCode]!['onboardingTitle3']!;
+      localizedValues[locale.languageCode]!['onboardingTitle3']!;
   String get onboardingSubtitle3 =>
-      _localizedValues[locale.languageCode]!['onboardingSubtitle3']!;
+      localizedValues[locale.languageCode]!['onboardingSubtitle3']!;
 
   String get voltgoTechnician =>
-      _localizedValues[locale.languageCode]!['voltgoTechnician']!;
+      localizedValues[locale.languageCode]!['voltgoTechnician']!;
   String get searchingRequestsText =>
-      _localizedValues[locale.languageCode]!['searchingRequests']!;
+      localizedValues[locale.languageCode]!['searchingRequests']!;
   String get newRequest =>
-      _localizedValues[locale.languageCode]!['newRequest']!;
+      localizedValues[locale.languageCode]!['newRequest']!;
   String get enRouteToClientPanel =>
-      _localizedValues[locale.languageCode]!['enRouteToClient']!;
+      localizedValues[locale.languageCode]!['enRouteToClient']!;
   String get serviceInProgressPanel =>
-      _localizedValues[locale.languageCode]!['serviceInProgressPanel']!;
+      localizedValues[locale.languageCode]!['serviceInProgressPanel']!;
   String get loadingEarningsError =>
-      _localizedValues[locale.languageCode]!['loadingEarningsError']!;
-  String get logout => _localizedValues[locale.languageCode]!['logout']!;
+      localizedValues[locale.languageCode]!['loadingEarningsError']!;
+  String get logout => localizedValues[locale.languageCode]!['logout']!;
   String get logoutConfirmationMessage =>
-      _localizedValues[locale.languageCode]!['logoutConfirmationMessage']!;
-  String get cancel => _localizedValues[locale.languageCode]!['cancel']!;
-  String get settings => _localizedValues[locale.languageCode]!['settings']!;
-  String get error => _localizedValues[locale.languageCode]!['error']!;
+      localizedValues[locale.languageCode]!['logoutConfirmationMessage']!;
+  String get cancel => localizedValues[locale.languageCode]!['cancel']!;
+  String get settings => localizedValues[locale.languageCode]!['settings']!;
+  String get error => localizedValues[locale.languageCode]!['error']!;
   String get couldNotLoadProfile =>
-      _localizedValues[locale.languageCode]!['couldNotLoadProfile']!;
-  String get account => _localizedValues[locale.languageCode]!['account']!;
+      localizedValues[locale.languageCode]!['couldNotLoadProfile']!;
+  String get account => localizedValues[locale.languageCode]!['account']!;
   String get editProfile =>
-      _localizedValues[locale.languageCode]!['editProfile']!;
+      localizedValues[locale.languageCode]!['editProfile']!;
   String get securityAndPassword =>
-      _localizedValues[locale.languageCode]!['securityAndPassword']!;
+      localizedValues[locale.languageCode]!['securityAndPassword']!;
   String get chatHistory =>
-      _localizedValues[locale.languageCode]!['chatHistory']!;
+      localizedValues[locale.languageCode]!['chatHistory']!;
   String get paymentMethods =>
-      _localizedValues[locale.languageCode]!['paymentMethods']!;
-  String get vehicle => _localizedValues[locale.languageCode]!['vehicle']!;
+      localizedValues[locale.languageCode]!['paymentMethods']!;
+  String get vehicle => localizedValues[locale.languageCode]!['vehicle']!;
   String get manageVehicles =>
-      _localizedValues[locale.languageCode]!['manageVehicles']!;
-  String get documents => _localizedValues[locale.languageCode]!['documents']!;
+      localizedValues[locale.languageCode]!['manageVehicles']!;
+  String get documents => localizedValues[locale.languageCode]!['documents']!;
   String get logoutError =>
-      _localizedValues[locale.languageCode]!['logoutError']!;
+      localizedValues[locale.languageCode]!['logoutError']!;
   String get myEarnings =>
-      _localizedValues[locale.languageCode]!['myEarnings']!;
-  String get today => _localizedValues[locale.languageCode]!['today']!;
-  String get week => _localizedValues[locale.languageCode]!['week']!;
-  String get history => _localizedValues[locale.languageCode]!['history']!;
+      localizedValues[locale.languageCode]!['myEarnings']!;
+  String get today => localizedValues[locale.languageCode]!['today']!;
+  String get week => localizedValues[locale.languageCode]!['week']!;
+  String get history => localizedValues[locale.languageCode]!['history']!;
   String get withdrawFunds =>
-      _localizedValues[locale.languageCode]!['withdrawFunds']!;
+      localizedValues[locale.languageCode]!['withdrawFunds']!;
   String get availableBalance =>
-      _localizedValues[locale.languageCode]!['availableBalance']!;
+      localizedValues[locale.languageCode]!['availableBalance']!;
   String get withdrawalAmount =>
-      _localizedValues[locale.languageCode]!['withdrawalAmount']!;
+      localizedValues[locale.languageCode]!['withdrawalAmount']!;
   String get minimumWithdrawal =>
-      _localizedValues[locale.languageCode]!['minimumWithdrawal']!;
+      localizedValues[locale.languageCode]!['minimumWithdrawal']!;
   String get paymentMethod =>
-      _localizedValues[locale.languageCode]!['paymentMethod']!;
+      localizedValues[locale.languageCode]!['paymentMethod']!;
   String get bankTransfer =>
-      _localizedValues[locale.languageCode]!['bankTransfer']!;
-  String get debitCard => _localizedValues[locale.languageCode]!['debitCard']!;
+      localizedValues[locale.languageCode]!['bankTransfer']!;
+  String get debitCard => localizedValues[locale.languageCode]!['debitCard']!;
   String get confirmWithdrawal =>
-      _localizedValues[locale.languageCode]!['confirmWithdrawal']!;
+      localizedValues[locale.languageCode]!['confirmWithdrawal']!;
   String get minimumWithdrawalError =>
-      _localizedValues[locale.languageCode]!['minimumWithdrawalError']!;
+      localizedValues[locale.languageCode]!['minimumWithdrawalError']!;
   String get insufficientBalance =>
-      _localizedValues[locale.languageCode]!['insufficientBalance']!;
+      localizedValues[locale.languageCode]!['insufficientBalance']!;
   String get withdrawalSuccess =>
-      _localizedValues[locale.languageCode]!['withdrawalSuccess']!;
+      localizedValues[locale.languageCode]!['withdrawalSuccess']!;
   String get withdrawalError =>
-      _localizedValues[locale.languageCode]!['withdrawalError']!;
+      localizedValues[locale.languageCode]!['withdrawalError']!;
   String get todaySummary =>
-      _localizedValues[locale.languageCode]!['todaySummary']!;
-  String get earnings => _localizedValues[locale.languageCode]!['earnings']!;
-  String get services => _localizedValues[locale.languageCode]!['services']!;
-  String get tips => _localizedValues[locale.languageCode]!['tips']!;
-  String get distance => _localizedValues[locale.languageCode]!['distance']!;
-  String get rating => _localizedValues[locale.languageCode]!['rating']!;
-  String get thisWeek => _localizedValues[locale.languageCode]!['thisWeek']!;
-  String get thisMonth => _localizedValues[locale.languageCode]!['thisMonth']!;
+      localizedValues[locale.languageCode]!['todaySummary']!;
+  String get earnings => localizedValues[locale.languageCode]!['earnings']!;
+  String get services => localizedValues[locale.languageCode]!['services']!;
+  String get tips => localizedValues[locale.languageCode]!['tips']!;
+  String get distance => localizedValues[locale.languageCode]!['distance']!;
+  String get rating => localizedValues[locale.languageCode]!['rating']!;
+  String get thisWeek => localizedValues[locale.languageCode]!['thisWeek']!;
+  String get thisMonth => localizedValues[locale.languageCode]!['thisMonth']!;
   String get totalEarned =>
-      _localizedValues[locale.languageCode]!['totalEarned']!;
-  String get pending => _localizedValues[locale.languageCode]!['pending']!;
+      localizedValues[locale.languageCode]!['totalEarned']!;
+  String get pending => localizedValues[locale.languageCode]!['pending']!;
   String get noRecentServices =>
-      _localizedValues[locale.languageCode]!['noRecentServices']!;
+      localizedValues[locale.languageCode]!['noRecentServices']!;
   String get recentActivity =>
-      _localizedValues[locale.languageCode]!['recentActivity']!;
+      localizedValues[locale.languageCode]!['recentActivity']!;
   String get realTimeTracking =>
-      _localizedValues[locale.languageCode]!['realTimeTracking']!;
+      localizedValues[locale.languageCode]!['realTimeTracking']!;
 
 // GETTERS NECESARIOS PARA AppLocalizations:
   String get createAccount =>
-      _localizedValues[locale.languageCode]!['createAccount']!;
+      localizedValues[locale.languageCode]!['createAccount']!;
   String get completeFormToStart =>
-      _localizedValues[locale.languageCode]!['completeFormToStart']!;
-  String get fullName => _localizedValues[locale.languageCode]!['fullName']!;
+      localizedValues[locale.languageCode]!['completeFormToStart']!;
+  String get fullName => localizedValues[locale.languageCode]!['fullName']!;
   String get yourNameAndSurname =>
-      _localizedValues[locale.languageCode]!['yourNameAndSurname']!;
-  String get emailHint => _localizedValues[locale.languageCode]!['emailHint']!;
+      localizedValues[locale.languageCode]!['yourNameAndSurname']!;
+  String get emailHint => localizedValues[locale.languageCode]!['emailHint']!;
   String get mobilePhone =>
-      _localizedValues[locale.languageCode]!['mobilePhone']!;
+      localizedValues[locale.languageCode]!['mobilePhone']!;
   String get phoneNumber =>
-      _localizedValues[locale.languageCode]!['phoneNumber']!;
+      localizedValues[locale.languageCode]!['phoneNumber']!;
   String get confirmPassword =>
-      _localizedValues[locale.languageCode]!['confirmPassword']!;
+      localizedValues[locale.languageCode]!['confirmPassword']!;
   String get minimumCharacters =>
-      _localizedValues[locale.languageCode]!['minimumCharacters']!;
+      localizedValues[locale.languageCode]!['minimumCharacters']!;
   String get signUpWithGoogle =>
-      _localizedValues[locale.languageCode]!['signUpWithGoogle']!;
+      localizedValues[locale.languageCode]!['signUpWithGoogle']!;
   String get signUpWithApple =>
-      _localizedValues[locale.languageCode]!['signUpWithApple']!;
+      localizedValues[locale.languageCode]!['signUpWithApple']!;
   String get welcomeSuccessfulRegistration =>
-      _localizedValues[locale.languageCode]!['welcomeSuccessfulRegistration']!;
+      localizedValues[locale.languageCode]!['welcomeSuccessfulRegistration']!;
   String get errorOccurred =>
-      _localizedValues[locale.languageCode]!['errorOccurred']!;
+      localizedValues[locale.languageCode]!['errorOccurred']!;
   String get alreadyHaveAccount =>
-      _localizedValues[locale.languageCode]!['alreadyHaveAccount']!;
+      localizedValues[locale.languageCode]!['alreadyHaveAccount']!;
   String get signInHere =>
-      _localizedValues[locale.languageCode]!['signInHere']!;
+      localizedValues[locale.languageCode]!['signInHere']!;
   String get welcomeUser =>
-      _localizedValues[locale.languageCode]!['welcomeUser']!;
-  String get email => _localizedValues[locale.languageCode]!['email']!;
+      localizedValues[locale.languageCode]!['welcomeUser']!;
+  String get email => localizedValues[locale.languageCode]!['email']!;
   String get enterEmail =>
-      _localizedValues[locale.languageCode]!['enterEmail']!;
-  String get password => _localizedValues[locale.languageCode]!['password']!;
+      localizedValues[locale.languageCode]!['enterEmail']!;
+  String get password => localizedValues[locale.languageCode]!['password']!;
   String get enterPassword =>
-      _localizedValues[locale.languageCode]!['enterPassword']!;
-  String get signIn => _localizedValues[locale.languageCode]!['signIn']!;
+      localizedValues[locale.languageCode]!['enterPassword']!;
+  String get signIn => localizedValues[locale.languageCode]!['signIn']!;
   String get incorrectUserPassword =>
-      _localizedValues[locale.languageCode]!['incorrectUserPassword']!;
+      localizedValues[locale.languageCode]!['incorrectUserPassword']!;
   String get serverConnectionError =>
-      _localizedValues[locale.languageCode]!['serverConnectionError']!;
-  String get or => _localizedValues[locale.languageCode]!['or']!;
+      localizedValues[locale.languageCode]!['serverConnectionError']!;
+  String get or => localizedValues[locale.languageCode]!['or']!;
   String get signInWithGoogle =>
-      _localizedValues[locale.languageCode]!['signInWithGoogle']!;
+      localizedValues[locale.languageCode]!['signInWithGoogle']!;
   String get signInWithApple =>
-      _localizedValues[locale.languageCode]!['signInWithApple']!;
-  String get noAccount => _localizedValues[locale.languageCode]!['noAccount']!;
+      localizedValues[locale.languageCode]!['signInWithApple']!;
+  String get noAccount => localizedValues[locale.languageCode]!['noAccount']!;
   String get createHere =>
-      _localizedValues[locale.languageCode]!['createHere']!;
+      localizedValues[locale.languageCode]!['createHere']!;
 
   String get onboardingTitle1 =>
-      _localizedValues[locale.languageCode]!['onboardingTitle1']!;
+      localizedValues[locale.languageCode]!['onboardingTitle1']!;
   String get onboardingSubtitle1 =>
-      _localizedValues[locale.languageCode]!['onboardingSubtitle1']!;
+      localizedValues[locale.languageCode]!['onboardingSubtitle1']!;
 
-  String get appTitle => _localizedValues[locale.languageCode]!['appTitle']!;
+  String get appTitle => localizedValues[locale.languageCode]!['appTitle']!;
   String get searchingTechnician =>
-      _localizedValues[locale.languageCode]!['searchingTechnician']!;
+      localizedValues[locale.languageCode]!['searchingTechnician']!;
   String get technicianArriving =>
-      _localizedValues[locale.languageCode]!['technicianArriving']!;
-  String get minutes => _localizedValues[locale.languageCode]!['minutes']!;
-  String get estimated => _localizedValues[locale.languageCode]!['estimated']!;
-  String get arrival => _localizedValues[locale.languageCode]!['arrival']!;
-  String get connector => _localizedValues[locale.languageCode]!['connector']!;
+      localizedValues[locale.languageCode]!['technicianArriving']!;
+  String get minutes => localizedValues[locale.languageCode]!['minutes']!;
+  String get estimated => localizedValues[locale.languageCode]!['estimated']!;
+  String get arrival => localizedValues[locale.languageCode]!['arrival']!;
+  String get connector => localizedValues[locale.languageCode]!['connector']!;
   String get estimatedTime =>
-      _localizedValues[locale.languageCode]!['estimatedTime']!;
+      localizedValues[locale.languageCode]!['estimatedTime']!;
   String get estimatedCost =>
-      _localizedValues[locale.languageCode]!['estimatedCost']!;
+      localizedValues[locale.languageCode]!['estimatedCost']!;
   String get cancelSearch =>
-      _localizedValues[locale.languageCode]!['cancelSearch']!;
+      localizedValues[locale.languageCode]!['cancelSearch']!;
 
 // Technician Registration getters
   String get createTechnicianAccount =>
-      _localizedValues[locale.languageCode]!['createTechnicianAccount']!;
+      localizedValues[locale.languageCode]!['createTechnicianAccount']!;
   String get completeTechnicianForm =>
-      _localizedValues[locale.languageCode]!['completeTechnicianForm']!;
+      localizedValues[locale.languageCode]!['completeTechnicianForm']!;
   String get emailAddress =>
-      _localizedValues[locale.languageCode]!['emailAddress']!;
+      localizedValues[locale.languageCode]!['emailAddress']!;
   String get baseLocation =>
-      _localizedValues[locale.languageCode]!['baseLocation']!;
+      localizedValues[locale.languageCode]!['baseLocation']!;
   String get selectLocationOnMap =>
-      _localizedValues[locale.languageCode]!['selectLocationOnMap']!;
+      localizedValues[locale.languageCode]!['selectLocationOnMap']!;
 
 // Optional Documentation
   String get optionalDocumentation =>
-      _localizedValues[locale.languageCode]!['optionalDocumentation']!;
+      localizedValues[locale.languageCode]!['optionalDocumentation']!;
   String get driverLicenseNumber =>
-      _localizedValues[locale.languageCode]!['driverLicenseNumber']!;
+      localizedValues[locale.languageCode]!['driverLicenseNumber']!;
   String get enterLicenseNumber =>
-      _localizedValues[locale.languageCode]!['enterLicenseNumber']!;
+      localizedValues[locale.languageCode]!['enterLicenseNumber']!;
   String get idPhotoOrCertification =>
-      _localizedValues[locale.languageCode]!['idPhotoOrCertification']!;
+      localizedValues[locale.languageCode]!['idPhotoOrCertification']!;
   String get selectFile =>
-      _localizedValues[locale.languageCode]!['selectFile']!;
+      localizedValues[locale.languageCode]!['selectFile']!;
 
 // Services
   String get servicesOffered =>
-      _localizedValues[locale.languageCode]!['servicesOffered']!;
-  String get jumpStart => _localizedValues[locale.languageCode]!['jumpStart']!;
+      localizedValues[locale.languageCode]!['servicesOffered']!;
+  String get jumpStart => localizedValues[locale.languageCode]!['jumpStart']!;
   String get evCharging =>
-      _localizedValues[locale.languageCode]!['evCharging']!;
+      localizedValues[locale.languageCode]!['evCharging']!;
   String get tireChange =>
-      _localizedValues[locale.languageCode]!['tireChange']!;
-  String get lockout => _localizedValues[locale.languageCode]!['lockout']!;
+      localizedValues[locale.languageCode]!['tireChange']!;
+  String get lockout => localizedValues[locale.languageCode]!['lockout']!;
   String get fuelDelivery =>
-      _localizedValues[locale.languageCode]!['fuelDelivery']!;
-  String get other => _localizedValues[locale.languageCode]!['other']!;
+      localizedValues[locale.languageCode]!['fuelDelivery']!;
+  String get other => localizedValues[locale.languageCode]!['other']!;
   String get otherService =>
-      _localizedValues[locale.languageCode]!['otherService']!;
+      localizedValues[locale.languageCode]!['otherService']!;
   String get describeService =>
-      _localizedValues[locale.languageCode]!['describeService']!;
+      localizedValues[locale.languageCode]!['describeService']!;
 
+
+// Agregar estos getters a tu clase AppLocalizations:
+
+// Loading and error states
+String get loadingInformation => localizedValues[locale.languageCode]?['loadingInformation'] ?? 'Loading information...';
+
+String errorMessage(String error) => 
+    (localizedValues[locale.languageCode]?['errorMessage'] ?? 'Error: {error}')
+    .replaceAll('{error}', error);
+
+String get retry => localizedValues[locale.languageCode]?['retry'] ?? 'Retry';
+
+// Form sections
+String get basicInformation => localizedValues[locale.languageCode]?['basicInformation'] ?? 'Basic Information';
+String get identification => localizedValues[locale.languageCode]?['identification'] ?? 'Identification';
+String get technicalSpecifications => localizedValues[locale.languageCode]?['technicalSpecifications'] ?? 'Technical Specifications';
+
+// Form hints
+String get brandHint => localizedValues[locale.languageCode]?['brandHint'] ?? 'E.g., Tesla, Nissan';
+String get modelExampleHint => localizedValues[locale.languageCode]?['modelExampleHint'] ?? 'E.g., Model 3, Leaf';
+String get yearHint => localizedValues[locale.languageCode]?['yearHint'] ?? 'E.g., 2024';
+String get plateExampleHint => localizedValues[locale.languageCode]?['plateExampleHint'] ?? 'E.g., ABC-123';
+
+// Validation
+String get requiredField => localizedValues[locale.languageCode]?['requiredField'] ?? 'This field is required';
+
+// Success messages
+String get updateSuccessful => localizedValues[locale.languageCode]?['updateSuccessful'] ?? 'Update Successful!';
+String get vehicleUpdateSuccessMessage => localizedValues[locale.languageCode]?['vehicleUpdateSuccessMessage'] ?? 'Your vehicle information has been updated successfully.';
+String get continueButton => localizedValues[locale.languageCode]?['continueButton'] ?? 'Continue';
+
+// Agregar también los campos básicos del formulario que necesitarás:
+String get vehicleInformation => localizedValues[locale.languageCode]?['vehicleInformation'] ?? 'Vehicle Information';
+String get make => localizedValues[locale.languageCode]?['make'] ?? 'Make';
+String get model => localizedValues[locale.languageCode]?['model'] ?? 'Model';
+String get year => localizedValues[locale.languageCode]?['year'] ?? 'Year';
+String get plate => localizedValues[locale.languageCode]?['plate'] ?? 'License Plate';
+String get color => localizedValues[locale.languageCode]?['color'] ?? 'Color';
+String get connectorType => localizedValues[locale.languageCode]?['connectorType'] ?? 'Connector Type';
+String get selectConnectorType => localizedValues[locale.languageCode]?['selectConnectorType'] ?? 'Select connector type';
+String get validYearRequired => localizedValues[locale.languageCode]?['validYearRequired'] ?? 'Enter a valid year';
+String get selectConnectorRequired => localizedValues[locale.languageCode]?['selectConnectorRequired'] ?? 'Select a connector type';
+String get saveChanges => localizedValues[locale.languageCode]?['saveChanges'] ?? 'Save Changes';
+String get errorLoadingData => localizedValues[locale.languageCode]?['errorLoadingData'] ?? 'Error loading data';
+
+// Colores
+String get white => localizedValues[locale.languageCode]?['white'] ?? 'White';
+String get black => localizedValues[locale.languageCode]?['black'] ?? 'Black';
+String get gray => localizedValues[locale.languageCode]?['gray'] ?? 'Gray';
+String get silver => localizedValues[locale.languageCode]?['silver'] ?? 'Silver';
+String get red => localizedValues[locale.languageCode]?['red'] ?? 'Red';
+String get blue => localizedValues[locale.languageCode]?['blue'] ?? 'Blue';
+String get green => localizedValues[locale.languageCode]?['green'] ?? 'Green';
+String get yellow => localizedValues[locale.languageCode]?['yellow'] ?? 'Yellow';
+ 
 // Actions
   String get selectLocation =>
-      _localizedValues[locale.languageCode]!['selectLocation']!;
+      localizedValues[locale.languageCode]!['selectLocation']!;
   String get uploadFile =>
-      _localizedValues[locale.languageCode]!['uploadFile']!;
+      localizedValues[locale.languageCode]!['uploadFile']!;
 
 // Messages
   String get registrationSuccessful =>
-      _localizedValues[locale.languageCode]!['registrationSuccessful']!;
+      localizedValues[locale.languageCode]!['registrationSuccessful']!;
   String get registrationError =>
-      _localizedValues[locale.languageCode]!['registrationError']!;
+      localizedValues[locale.languageCode]!['registrationError']!;
   String get fileSelectionError =>
-      _localizedValues[locale.languageCode]!['fileSelectionError']!;
+      localizedValues[locale.languageCode]!['fileSelectionError']!;
 
   String get technicianConfirmed =>
-      _localizedValues[locale.languageCode]!['technicianConfirmed']!;
+      localizedValues[locale.languageCode]!['technicianConfirmed']!;
   String get serviceInProgress =>
-      _localizedValues[locale.languageCode]!['serviceInProgress']!;
+      localizedValues[locale.languageCode]!['serviceInProgress']!;
   String get chargingVehicle =>
-      _localizedValues[locale.languageCode]!['chargingVehicle']!;
+      localizedValues[locale.languageCode]!['chargingVehicle']!;
   String get requestCharge =>
-      _localizedValues[locale.languageCode]!['requestCharge']!;
+      localizedValues[locale.languageCode]!['requestCharge']!;
   String get viewActiveService =>
-      _localizedValues[locale.languageCode]!['viewActiveService']!;
+      localizedValues[locale.languageCode]!['viewActiveService']!;
   String get youHaveActiveService =>
-      _localizedValues[locale.languageCode]!['youHaveActiveService']!;
+      localizedValues[locale.languageCode]!['youHaveActiveService']!;
   String get tapToFindTechnician =>
-      _localizedValues[locale.languageCode]!['tapToFindTechnician']!;
+      localizedValues[locale.languageCode]!['tapToFindTechnician']!;
   String get cancelService =>
-      _localizedValues[locale.languageCode]!['cancelService']!;
+      localizedValues[locale.languageCode]!['cancelService']!;
   String get followRealTime =>
-      _localizedValues[locale.languageCode]!['followRealTime']!;
+      localizedValues[locale.languageCode]!['followRealTime']!;
   String get serviceCompleted =>
-      _localizedValues[locale.languageCode]!['serviceCompleted']!;
+      localizedValues[locale.languageCode]!['serviceCompleted']!;
   String get howWasExperience =>
-      _localizedValues[locale.languageCode]!['howWasExperience']!;
+      localizedValues[locale.languageCode]!['howWasExperience']!;
   String get addComment =>
-      _localizedValues[locale.languageCode]!['addComment']!;
-  String get skip => _localizedValues[locale.languageCode]!['skip']!;
-  String get send => _localizedValues[locale.languageCode]!['send']!;
+      localizedValues[locale.languageCode]!['addComment']!;
+  String get skip => localizedValues[locale.languageCode]!['skip']!;
+  String get send => localizedValues[locale.languageCode]!['send']!;
   String get locationRequired =>
-      _localizedValues[locale.languageCode]!['locationRequired']!;
+      localizedValues[locale.languageCode]!['locationRequired']!;
   String get locationNeeded =>
-      _localizedValues[locale.languageCode]!['locationNeeded']!;
-  String get activate => _localizedValues[locale.languageCode]!['activate']!;
+      localizedValues[locale.languageCode]!['locationNeeded']!;
+  String get activate => localizedValues[locale.languageCode]!['activate']!;
   String get permissionDenied =>
-      _localizedValues[locale.languageCode]!['permissionDenied']!;
+      localizedValues[locale.languageCode]!['permissionDenied']!;
   String get cannotContinue =>
-      _localizedValues[locale.languageCode]!['cannotContinue']!;
+      localizedValues[locale.languageCode]!['cannotContinue']!;
   String get goToSettings =>
-      _localizedValues[locale.languageCode]!['goToSettings']!;
+      localizedValues[locale.languageCode]!['goToSettings']!;
   String get vehicleRegistration =>
-      _localizedValues[locale.languageCode]!['vehicleRegistration']!;
+      localizedValues[locale.languageCode]!['vehicleRegistration']!;
   String get vehicleNeeded =>
-      _localizedValues[locale.languageCode]!['vehicleNeeded']!;
-  String get whyNeeded => _localizedValues[locale.languageCode]!['whyNeeded']!;
+      localizedValues[locale.languageCode]!['vehicleNeeded']!;
+  String get whyNeeded => localizedValues[locale.languageCode]!['whyNeeded']!;
   String get whyNeededDetails =>
-      _localizedValues[locale.languageCode]!['whyNeededDetails']!;
+      localizedValues[locale.languageCode]!['whyNeededDetails']!;
   String get registerVehicle =>
-      _localizedValues[locale.languageCode]!['registerVehicle']!;
+      localizedValues[locale.languageCode]!['registerVehicle']!;
   String get activeService =>
-      _localizedValues[locale.languageCode]!['activeService']!;
+      localizedValues[locale.languageCode]!['activeService']!;
   String get youHaveActiveServiceDialog =>
-      _localizedValues[locale.languageCode]!['youHaveActiveServiceDialog']!;
-  String get request => _localizedValues[locale.languageCode]!['request']!;
-  String get status => _localizedValues[locale.languageCode]!['status']!;
-  String get requested => _localizedValues[locale.languageCode]!['requested']!;
-  String get whatToDo => _localizedValues[locale.languageCode]!['whatToDo']!;
+      localizedValues[locale.languageCode]!['youHaveActiveServiceDialog']!;
+  String get request => localizedValues[locale.languageCode]!['request']!;
+  String get status => localizedValues[locale.languageCode]!['status']!;
+  String get requested => localizedValues[locale.languageCode]!['requested']!;
+  String get whatToDo => localizedValues[locale.languageCode]!['whatToDo']!;
   String get viewService =>
-      _localizedValues[locale.languageCode]!['viewService']!;
+      localizedValues[locale.languageCode]!['viewService']!;
   String get timeExpired =>
-      _localizedValues[locale.languageCode]!['timeExpired']!;
+      localizedValues[locale.languageCode]!['timeExpired']!;
   String get cannotCancelNow =>
-      _localizedValues[locale.languageCode]!['cannotCancelNow']!;
+      localizedValues[locale.languageCode]!['cannotCancelNow']!;
   String get technicianOnWay =>
-      _localizedValues[locale.languageCode]!['technicianOnWay']!;
+      localizedValues[locale.languageCode]!['technicianOnWay']!;
   String get understood =>
-      _localizedValues[locale.languageCode]!['understood']!;
+      localizedValues[locale.languageCode]!['understood']!;
   String cancellationFee(String fee) =>
-      _localizedValues[locale.languageCode]!['cancellationFee']!
+      localizedValues[locale.languageCode]!['cancellationFee']!
           .replaceAll('{fee}', fee);
   String feeApplied(String fee) =>
-      _localizedValues[locale.languageCode]!['feeApplied']!
+      localizedValues[locale.languageCode]!['feeApplied']!
           .replaceAll('{fee}', fee);
   String get technicianAssigned =>
-      _localizedValues[locale.languageCode]!['technicianAssigned']!;
+      localizedValues[locale.languageCode]!['technicianAssigned']!;
   String get technicianAccepted =>
-      _localizedValues[locale.languageCode]!['technicianAccepted']!;
+      localizedValues[locale.languageCode]!['technicianAccepted']!;
   String get seeProgress =>
-      _localizedValues[locale.languageCode]!['seeProgress']!;
+      localizedValues[locale.languageCode]!['seeProgress']!;
   String get serviceExpired =>
-      _localizedValues[locale.languageCode]!['serviceExpired']!;
+      localizedValues[locale.languageCode]!['serviceExpired']!;
   String get serviceAutoCancelled =>
-      _localizedValues[locale.languageCode]!['serviceAutoCancelled']!;
+      localizedValues[locale.languageCode]!['serviceAutoCancelled']!;
   String get timeLimitExceeded =>
-      _localizedValues[locale.languageCode]!['timeLimitExceeded']!;
+      localizedValues[locale.languageCode]!['timeLimitExceeded']!;
   String get serviceActiveHour =>
-      _localizedValues[locale.languageCode]!['serviceActiveHour']!;
+      localizedValues[locale.languageCode]!['serviceActiveHour']!;
   String get noChargesApplied =>
-      _localizedValues[locale.languageCode]!['noChargesApplied']!;
+      localizedValues[locale.languageCode]!['noChargesApplied']!;
   String get requestNew =>
-      _localizedValues[locale.languageCode]!['requestNew']!;
+      localizedValues[locale.languageCode]!['requestNew']!;
   String get technicianCancelled =>
-      _localizedValues[locale.languageCode]!['technicianCancelled']!;
+      localizedValues[locale.languageCode]!['technicianCancelled']!;
   String get technicianHasCancelled =>
-      _localizedValues[locale.languageCode]!['technicianHasCancelled']!;
-  String get dontWorry => _localizedValues[locale.languageCode]!['dontWorry']!;
+      localizedValues[locale.languageCode]!['technicianHasCancelled']!;
+  String get dontWorry => localizedValues[locale.languageCode]!['dontWorry']!;
   String get technicianCancellationReason =>
-      _localizedValues[locale.languageCode]!['technicianCancellationReason']!;
-  String get nextStep => _localizedValues[locale.languageCode]!['nextStep']!;
+      localizedValues[locale.languageCode]!['technicianCancellationReason']!;
+  String get nextStep => localizedValues[locale.languageCode]!['nextStep']!;
   String get requestImmediately =>
-      _localizedValues[locale.languageCode]!['requestImmediately']!;
+      localizedValues[locale.languageCode]!['requestImmediately']!;
   String get findAnotherTechnician =>
-      _localizedValues[locale.languageCode]!['findAnotherTechnician']!;
+      localizedValues[locale.languageCode]!['findAnotherTechnician']!;
   String get timeWarning =>
-      _localizedValues[locale.languageCode]!['timeWarning']!;
+      localizedValues[locale.languageCode]!['timeWarning']!;
   String get serviceWillExpire =>
-      _localizedValues[locale.languageCode]!['serviceWillExpire']!;
+      localizedValues[locale.languageCode]!['serviceWillExpire']!;
   String get viewDetails =>
-      _localizedValues[locale.languageCode]!['viewDetails']!;
+      localizedValues[locale.languageCode]!['viewDetails']!;
   String get finalWarning =>
-      _localizedValues[locale.languageCode]!['finalWarning']!;
+      localizedValues[locale.languageCode]!['finalWarning']!;
   String serviceExpireMinutes(String minutes) =>
-      _localizedValues[locale.languageCode]!['serviceExpireMinutes']!
+      localizedValues[locale.languageCode]!['serviceExpireMinutes']!
           .replaceAll('{minutes}', minutes);
   String get contactTechnician =>
-      _localizedValues[locale.languageCode]!['contactTechnician']!;
+      localizedValues[locale.languageCode]!['contactTechnician']!;
   String get timeDetails =>
-      _localizedValues[locale.languageCode]!['timeDetails']!;
+      localizedValues[locale.languageCode]!['timeDetails']!;
   String get timeRemaining =>
-      _localizedValues[locale.languageCode]!['timeRemaining']!;
+      localizedValues[locale.languageCode]!['timeRemaining']!;
   String get systemInfo =>
-      _localizedValues[locale.languageCode]!['systemInfo']!;
+      localizedValues[locale.languageCode]!['systemInfo']!;
   String get serviceInfo =>
-      _localizedValues[locale.languageCode]!['serviceInfo']!;
+      localizedValues[locale.languageCode]!['serviceInfo']!;
+      String get myRatings => localizedValues[locale.languageCode]!['myRatings']!;
+String get summary => localizedValues[locale.languageCode]!['summary']!;
+String get allReviews => localizedValues[locale.languageCode]!['allReviews']!;
+String get ratingDistribution => localizedValues[locale.languageCode]!['ratingDistribution']!;
+String get recentReviews => localizedValues[locale.languageCode]!['recentReviews']!;
+String get viewAll => localizedValues[locale.languageCode]!['viewAll']!;
+String get noReviewsYet => localizedValues[locale.languageCode]!['noReviewsYet']!;
+String get completeServices => localizedValues[locale.languageCode]!['completeServices']!;
+String errorLoadingReviews(String error) => 
+    localizedValues[locale.languageCode]!['errorLoadingReviews']!.replaceAll('{error}', error);
+String reviewsCount(String count) => 
+    localizedValues[locale.languageCode]!['reviewsCount']!.replaceAll('{count}', count);
 
   // Additional getters for new strings
   String get chatWithTechnician =>
-      _localizedValues[locale.languageCode]!['chatWithTechnician']!;
+      localizedValues[locale.languageCode]!['chatWithTechnician']!;
   String get cancellationTimeExpired =>
-      _localizedValues[locale.languageCode]!['cancellationTimeExpired']!;
+      localizedValues[locale.languageCode]!['cancellationTimeExpired']!;
   String get serviceCancelled =>
-      _localizedValues[locale.languageCode]!['serviceCancelled']!;
+      localizedValues[locale.languageCode]!['serviceCancelled']!;
   String get serviceCancelledSuccessfully =>
-      _localizedValues[locale.languageCode]!['serviceCancelledSuccessfully']!;
+      localizedValues[locale.languageCode]!['serviceCancelledSuccessfully']!;
   String get preparingEquipment =>
-      _localizedValues[locale.languageCode]!['preparingEquipment']!;
+      localizedValues[locale.languageCode]!['preparingEquipment']!;
   String get technicianOnSite =>
-      _localizedValues[locale.languageCode]!['technicianOnSite']!;
+      localizedValues[locale.languageCode]!['technicianOnSite']!;
   String get equipmentStatus =>
-      _localizedValues[locale.languageCode]!['equipmentStatus']!;
+      localizedValues[locale.languageCode]!['equipmentStatus']!;
   String get preparingCharge =>
-      _localizedValues[locale.languageCode]!['preparingCharge']!;
+      localizedValues[locale.languageCode]!['preparingCharge']!;
   String get notCancellable =>
-      _localizedValues[locale.languageCode]!['notCancellable']!;
+      localizedValues[locale.languageCode]!['notCancellable']!;
   String get timeToCancel =>
-      _localizedValues[locale.languageCode]!['timeToCancel']!;
+      localizedValues[locale.languageCode]!['timeToCancel']!;
   String get lastMinute =>
-      _localizedValues[locale.languageCode]!['lastMinute']!;
+      localizedValues[locale.languageCode]!['lastMinute']!;
   String get minutesRemaining =>
-      _localizedValues[locale.languageCode]!['minutesRemaining']!;
+      localizedValues[locale.languageCode]!['minutesRemaining']!;
   String get findingBestTechnician =>
-      _localizedValues[locale.languageCode]!['findingBestTechnician']!;
+      localizedValues[locale.languageCode]!['findingBestTechnician']!;
   String get thankYouForUsingVoltGo =>
-      _localizedValues[locale.languageCode]!['thankYouForUsingVoltGo']!;
-  String get total => _localizedValues[locale.languageCode]!['total']!;
-  String get close => _localizedValues[locale.languageCode]!['close']!;
+      localizedValues[locale.languageCode]!['thankYouForUsingVoltGo']!;
+  String get total => localizedValues[locale.languageCode]!['total']!;
+  String get close => localizedValues[locale.languageCode]!['close']!;
   String get technicianWorkingOnVehicle =>
-      _localizedValues[locale.languageCode]!['technicianWorkingOnVehicle']!;
-  String get since => _localizedValues[locale.languageCode]!['since']!;
-  String get initial => _localizedValues[locale.languageCode]!['initial']!;
-  String get time => _localizedValues[locale.languageCode]!['time']!;
+      localizedValues[locale.languageCode]!['technicianWorkingOnVehicle']!;
+  String get since => localizedValues[locale.languageCode]!['since']!;
+  String get initial => localizedValues[locale.languageCode]!['initial']!;
+  String get time => localizedValues[locale.languageCode]!['time']!;
   String get technicianPreparingEquipment =>
-      _localizedValues[locale.languageCode]!['technicianPreparingEquipment']!;
+      localizedValues[locale.languageCode]!['technicianPreparingEquipment']!;
   String get viewTechnicianOnSite =>
-      _localizedValues[locale.languageCode]!['viewTechnicianOnSite']!;
-  String get chat => _localizedValues[locale.languageCode]!['chat']!;
+      localizedValues[locale.languageCode]!['viewTechnicianOnSite']!;
+  String get chat => localizedValues[locale.languageCode]!['chat']!;
   String get thankYouForRating =>
-      _localizedValues[locale.languageCode]!['thankYouForRating']!;
+      localizedValues[locale.languageCode]!['thankYouForRating']!;
 // Add these getter methods to your AppLocalizations class after the existing ones:
 
 // Processing and loading
   String get processingRequest =>
-      _localizedValues[locale.languageCode]!['processingRequest']!;
+      localizedValues[locale.languageCode]!['processingRequest']!;
   String get errorLoadingMap =>
-      _localizedValues[locale.languageCode]!['errorLoadingMap']!;
+      localizedValues[locale.languageCode]!['errorLoadingMap']!;
   String get processing =>
-      _localizedValues[locale.languageCode]!['processing']!;
+      localizedValues[locale.languageCode]!['processing']!;
 
 // Vehicle verification
   String get vehicleVerification =>
-      _localizedValues[locale.languageCode]!['vehicleVerification']!;
+      localizedValues[locale.languageCode]!['vehicleVerification']!;
   String get checkingVehicle =>
-      _localizedValues[locale.languageCode]!['checkingVehicle']!;
+      localizedValues[locale.languageCode]!['checkingVehicle']!;
   String get verifyingInformation =>
-      _localizedValues[locale.languageCode]!['verifyingInformation']!;
+      localizedValues[locale.languageCode]!['verifyingInformation']!;
   String get verificationNeeded =>
-      _localizedValues[locale.languageCode]!['verificationNeeded']!;
+      localizedValues[locale.languageCode]!['verificationNeeded']!;
   String get couldNotVerifyVehicle =>
-      _localizedValues[locale.languageCode]!['couldNotVerifyVehicle']!;
+      localizedValues[locale.languageCode]!['couldNotVerifyVehicle']!;
   String get goToRegistration =>
-      _localizedValues[locale.languageCode]!['goToRegistration']!;
+      localizedValues[locale.languageCode]!['goToRegistration']!;
 
 // ▼▼▼ AGREGAR ESTOS GETTERS AL FINAL DE TU CLASE ▼▼▼
  
+// Getters para agregar a la clase AppLocalizations:
+String get serviceDetails => localizedValues[locale.languageCode]!['serviceDetails']!;
+String get completed => localizedValues[locale.languageCode]!['completed']!;
+String get cancelled => localizedValues[locale.languageCode]!['cancelled']!;
+ String get inProgress => localizedValues[locale.languageCode]!['inProgress']!;
+String get errorLoadingDetails => localizedValues[locale.languageCode]!['errorLoadingDetails']!;
+ String get additionalDetailsNotAvailable => localizedValues[locale.languageCode]!['additionalDetailsNotAvailable']!;
+String get technicalDetailsWillBeAdded => localizedValues[locale.languageCode]!['technicalDetailsWillBeAdded']!;
+String get serviceInformation => localizedValues[locale.languageCode]!['serviceInformation']!;
+String get date => localizedValues[locale.languageCode]!['date']!;
+  String get serviceId => localizedValues[locale.languageCode]!['serviceId']!;
+String get serviceTimeline => localizedValues[locale.languageCode]!['serviceTimeline']!;
+String get started => localizedValues[locale.languageCode]!['started']!;
+String get batteryInformation => localizedValues[locale.languageCode]!['batteryInformation']!;
+String get initialLevel => localizedValues[locale.languageCode]!['initialLevel']!;
+String get chargeTime => localizedValues[locale.languageCode]!['chargeTime']!;
+String get serviceNotes => localizedValues[locale.languageCode]!['serviceNotes']!;
+String get servicePhotos => localizedValues[locale.languageCode]!['servicePhotos']!;
+ String get before => localizedValues[locale.languageCode]!['before']!;
+String get after => localizedValues[locale.languageCode]!['after']!;
+ String get loading => localizedValues[locale.languageCode]!['loading']!;
+String get errorLoadingImage => localizedValues[locale.languageCode]!['errorLoadingImage']!;
+String get paymentInformation => localizedValues[locale.languageCode]!['paymentInformation']!;
+String get totalCost => localizedValues[locale.languageCode]!['totalCost']!;
 
- 
+ String get yourRating => localizedValues[locale.languageCode]!['yourRating']!;
+String get averageRating => localizedValues[locale.languageCode]!['averageRating']!;
 
 // TÉRMINOS Y CONDICIONES - GETTERS
 String get termsAndConditions => 
-    _localizedValues[locale.languageCode]!['termsAndConditions']!;
+    localizedValues[locale.languageCode]!['termsAndConditions']!;
 String get lastUpdated => 
-    _localizedValues[locale.languageCode]!['lastUpdated']!;
+    localizedValues[locale.languageCode]!['lastUpdated']!;
 String get acceptance => 
-    _localizedValues[locale.languageCode]!['acceptance']!;
+    localizedValues[locale.languageCode]!['acceptance']!;
 String get acceptanceContent => 
-    _localizedValues[locale.languageCode]!['acceptanceContent']!;
+    localizedValues[locale.languageCode]!['acceptanceContent']!;
 String get serviceDescription => 
-    _localizedValues[locale.languageCode]!['serviceDescription']!;
+    localizedValues[locale.languageCode]!['serviceDescription']!;
 String get serviceDescriptionContent => 
-    _localizedValues[locale.languageCode]!['serviceDescriptionContent']!;
+    localizedValues[locale.languageCode]!['serviceDescriptionContent']!;
 String get userResponsibilities => 
-    _localizedValues[locale.languageCode]!['userResponsibilities']!;
+    localizedValues[locale.languageCode]!['userResponsibilities']!;
 String get userResponsibilitiesContent => 
-    _localizedValues[locale.languageCode]!['userResponsibilitiesContent']!;
+    localizedValues[locale.languageCode]!['userResponsibilitiesContent']!;
 String get technicianObligations => 
-    _localizedValues[locale.languageCode]!['technicianObligations']!;
+    localizedValues[locale.languageCode]!['technicianObligations']!;
 String get technicianObligationsContent => 
-    _localizedValues[locale.languageCode]!['technicianObligationsContent']!;
+    localizedValues[locale.languageCode]!['technicianObligationsContent']!;
 String get paymentTerms => 
-    _localizedValues[locale.languageCode]!['paymentTerms']!;
+    localizedValues[locale.languageCode]!['paymentTerms']!;
 String get paymentTermsContent => 
-    _localizedValues[locale.languageCode]!['paymentTermsContent']!;
+    localizedValues[locale.languageCode]!['paymentTermsContent']!;
 String get limitation => 
-    _localizedValues[locale.languageCode]!['limitation']!;
+    localizedValues[locale.languageCode]!['limitation']!;
 String get limitationContent => 
-    _localizedValues[locale.languageCode]!['limitationContent']!;
+    localizedValues[locale.languageCode]!['limitationContent']!;
 String get modifications => 
-    _localizedValues[locale.languageCode]!['modifications']!;
+    localizedValues[locale.languageCode]!['modifications']!;
 String get modificationsContent => 
-    _localizedValues[locale.languageCode]!['modificationsContent']!;
+    localizedValues[locale.languageCode]!['modificationsContent']!;
 String get contactUs => 
-    _localizedValues[locale.languageCode]!['contactUs']!;
+    localizedValues[locale.languageCode]!['contactUs']!;
 String get questionsContact => 
-    _localizedValues[locale.languageCode]!['questionsContact']!;
+    localizedValues[locale.languageCode]!['questionsContact']!;
+
+String chatWithName(String name) => 
+  localizedValues[locale.languageCode]!['chatWith']!.replaceAll('{name}', name);
+
+String serviceNumberId(String id) => 
+  localizedValues[locale.languageCode]!['serviceNumber']!.replaceAll('{id}', id);
+
+String errorSendingMessageText(String error) => 
+  localizedValues[locale.languageCode]!['errorSendingMessage']!.replaceAll('{error}', error);
+
+String chatWith(String name) => 
+  localizedValues[locale.languageCode]!['chatWith']!.replaceAll('{name}', name);
+String serviceNumber(String id) => 
+  localizedValues[locale.languageCode]!['serviceNumber']!.replaceAll('{id}', id);
+String get loadingMessages => localizedValues[locale.languageCode]!['loadingMessages']!;
+String get errorLoadingChat => localizedValues[locale.languageCode]!['errorLoadingChat']!;
+String get tryAgain => localizedValues[locale.languageCode]!['tryAgain']!;
+String get startConversation => localizedValues[locale.languageCode]!['startConversation']!;
+String get communicateWithTechnician => localizedValues[locale.languageCode]!['communicateWithTechnician']!;
+String get communicateWithClient => localizedValues[locale.languageCode]!['communicateWithClient']!;
+String get writeMessage => localizedValues[locale.languageCode]!['writeMessage']!;
+String get sending => localizedValues[locale.languageCode]!['sending']!;
+String errorSendingMessage(String error) => 
+  localizedValues[locale.languageCode]!['errorSendingMessage']!.replaceAll('{error}', error);
+String get updateMessages => localizedValues[locale.languageCode]!['updateMessages']!;
+String get statusPending => localizedValues[locale.languageCode]!['statusPending']!;
+String get statusAccepted => localizedValues[locale.languageCode]!['statusAccepted']!;
+String get statusEnRoute => localizedValues[locale.languageCode]!['statusEnRoute']!;
+String get statusOnSite => localizedValues[locale.languageCode]!['statusOnSite']!;
+String get statusCharging => localizedValues[locale.languageCode]!['statusCharging']!;
+String get statusCompleted => localizedValues[locale.languageCode]!['statusCompleted']!;
+String get statusCancelled => localizedValues[locale.languageCode]!['statusCancelled']!;
 
 // POLÍTICA DE PRIVACIDAD - GETTERS
 String get privacyPolicy => 
-    _localizedValues[locale.languageCode]!['privacyPolicy']!;
+    localizedValues[locale.languageCode]!['privacyPolicy']!;
 String get dataCollection => 
-    _localizedValues[locale.languageCode]!['dataCollection']!;
+    localizedValues[locale.languageCode]!['dataCollection']!;
 String get dataCollectionContent => 
-    _localizedValues[locale.languageCode]!['dataCollectionContent']!;
+    localizedValues[locale.languageCode]!['dataCollectionContent']!;
 String get dataUsage => 
-    _localizedValues[locale.languageCode]!['dataUsage']!;
+    localizedValues[locale.languageCode]!['dataUsage']!;
 String get dataUsageContent => 
-    _localizedValues[locale.languageCode]!['dataUsageContent']!;
+    localizedValues[locale.languageCode]!['dataUsageContent']!;
 String get locationData => 
-    _localizedValues[locale.languageCode]!['locationData']!;
+    localizedValues[locale.languageCode]!['locationData']!;
 String get locationDataContent => 
-    _localizedValues[locale.languageCode]!['locationDataContent']!;
+    localizedValues[locale.languageCode]!['locationDataContent']!;
 String get dataSharing => 
-    _localizedValues[locale.languageCode]!['dataSharing']!;
+    localizedValues[locale.languageCode]!['dataSharing']!;
 String get dataSharingContent => 
-    _localizedValues[locale.languageCode]!['dataSharingContent']!;
+    localizedValues[locale.languageCode]!['dataSharingContent']!;
 String get dataSecurity => 
-    _localizedValues[locale.languageCode]!['dataSecurity']!;
+    localizedValues[locale.languageCode]!['dataSecurity']!;
 String get dataSecurityContent => 
-    _localizedValues[locale.languageCode]!['dataSecurityContent']!;
+    localizedValues[locale.languageCode]!['dataSecurityContent']!;
 String get userRights => 
-    _localizedValues[locale.languageCode]!['userRights']!;
+    localizedValues[locale.languageCode]!['userRights']!;
 String get userRightsContent => 
-    _localizedValues[locale.languageCode]!['userRightsContent']!;
+    localizedValues[locale.languageCode]!['userRightsContent']!;
 String get cookies => 
-    _localizedValues[locale.languageCode]!['cookies']!;
+    localizedValues[locale.languageCode]!['cookies']!;
 String get cookiesContent => 
-    _localizedValues[locale.languageCode]!['cookiesContent']!;
+    localizedValues[locale.languageCode]!['cookiesContent']!;
 String get thirdPartyServices => 
-    _localizedValues[locale.languageCode]!['thirdPartyServices']!;
+    localizedValues[locale.languageCode]!['thirdPartyServices']!;
 String get thirdPartyServicesContent => 
-    _localizedValues[locale.languageCode]!['thirdPartyServicesContent']!;
+    localizedValues[locale.languageCode]!['thirdPartyServicesContent']!;
 String get dataRetention => 
-    _localizedValues[locale.languageCode]!['dataRetention']!;
+    localizedValues[locale.languageCode]!['dataRetention']!;
 String get dataRetentionContent => 
-    _localizedValues[locale.languageCode]!['dataRetentionContent']!;
+    localizedValues[locale.languageCode]!['dataRetentionContent']!;
 String get minorPrivacy => 
-    _localizedValues[locale.languageCode]!['minorPrivacy']!;
+    localizedValues[locale.languageCode]!['minorPrivacy']!;
 String get minorPrivacyContent => 
-    _localizedValues[locale.languageCode]!['minorPrivacyContent']!;
+    localizedValues[locale.languageCode]!['minorPrivacyContent']!;
 String get privacyQuestions => 
-    _localizedValues[locale.languageCode]!['privacyQuestions']!;
+    localizedValues[locale.languageCode]!['privacyQuestions']!;
 
  
 
 
 String get save => 
-    _localizedValues[locale.languageCode]!['save']!;
-String get loading => 
-    _localizedValues[locale.languageCode]!['loading']!;
+    localizedValues[locale.languageCode]!['save']!; 
 String get technician => 
-    _localizedValues[locale.languageCode]!['technician']!;
+    localizedValues[locale.languageCode]!['technician']!;
 String get contactInformation => 
-    _localizedValues[locale.languageCode]!['contactInformation']!; 
+    localizedValues[locale.languageCode]!['contactInformation']!; 
 String get fieldRequired => 
-    _localizedValues[locale.languageCode]!['fieldRequired']!;
+    localizedValues[locale.languageCode]!['fieldRequired']!;
 String get phoneMinLength => 
-    _localizedValues[locale.languageCode]!['phoneMinLength']!;
+    localizedValues[locale.languageCode]!['phoneMinLength']!;
 String get professionalInformation => 
-    _localizedValues[locale.languageCode]!['professionalInformation']!;
+    localizedValues[locale.languageCode]!['professionalInformation']!;
  
 String get licenseNumber => 
-    _localizedValues[locale.languageCode]!['licenseNumber']!; 
+    localizedValues[locale.languageCode]!['licenseNumber']!; 
 String get selectServices => 
-    _localizedValues[locale.languageCode]!['selectServices']!;
+    localizedValues[locale.languageCode]!['selectServices']!;
 String get selectAtLeastOneService => 
-    _localizedValues[locale.languageCode]!['selectAtLeastOneService']!;
+    localizedValues[locale.languageCode]!['selectAtLeastOneService']!;
 String get identificationDocument => 
-    _localizedValues[locale.languageCode]!['identificationDocument']!;
+    localizedValues[locale.languageCode]!['identificationDocument']!;
 String get documentSelected => 
-    _localizedValues[locale.languageCode]!['documentSelected']!;
+    localizedValues[locale.languageCode]!['documentSelected']!;
 String get remove => 
-    _localizedValues[locale.languageCode]!['remove']!;
+    localizedValues[locale.languageCode]!['remove']!;
 String get uploadDocument => 
-    _localizedValues[locale.languageCode]!['uploadDocument']!;
+    localizedValues[locale.languageCode]!['uploadDocument']!;
 String get changeDocument => 
-    _localizedValues[locale.languageCode]!['changeDocument']!;
+    localizedValues[locale.languageCode]!['changeDocument']!;
 String get documentInfo => 
-    _localizedValues[locale.languageCode]!['documentInfo']!;
-String get saveChanges => 
-    _localizedValues[locale.languageCode]!['saveChanges']!;
+    localizedValues[locale.languageCode]!['documentInfo']!; 
 String get noChanges => 
-    _localizedValues[locale.languageCode]!['noChanges']!;
+    localizedValues[locale.languageCode]!['noChanges']!;
 String get profileUpdated => 
-    _localizedValues[locale.languageCode]!['profileUpdated']!;
+    localizedValues[locale.languageCode]!['profileUpdated']!;
 String get profileUpdatedSuccessfully => 
-    _localizedValues[locale.languageCode]!['profileUpdatedSuccessfully']!;
+    localizedValues[locale.languageCode]!['profileUpdatedSuccessfully']!;
 String get accept => 
-    _localizedValues[locale.languageCode]!['accept']!; 
+    localizedValues[locale.languageCode]!['accept']!; 
 String get unsavedChanges => 
-    _localizedValues[locale.languageCode]!['unsavedChanges']!;
+    localizedValues[locale.languageCode]!['unsavedChanges']!;
     
 String get hoy => 
-    _localizedValues[locale.languageCode]!['hoy']!;
+    localizedValues[locale.languageCode]!['hoy']!;
 String get discardChanges => 
-    _localizedValues[locale.languageCode]!['discardChanges']!;
+    localizedValues[locale.languageCode]!['discardChanges']!;
 String get discard => 
-    _localizedValues[locale.languageCode]!['discard']!;
+    localizedValues[locale.languageCode]!['discard']!;
 
   String get syncInProgress =>
-      _localizedValues[locale.languageCode]!['syncInProgress']!;
+      localizedValues[locale.languageCode]!['syncInProgress']!;
   String get vehicleRegisteredCorrectly =>
-      _localizedValues[locale.languageCode]!['vehicleRegisteredCorrectly']!;
+      localizedValues[locale.languageCode]!['vehicleRegisteredCorrectly']!;
   String get syncOptions =>
-      _localizedValues[locale.languageCode]!['syncOptions']!;
+      localizedValues[locale.languageCode]!['syncOptions']!;
   String get syncOptionsText =>
-      _localizedValues[locale.languageCode]!['syncOptionsText']!;
-  String get retry => _localizedValues[locale.languageCode]!['retry']!;
-  String get continueAnyway =>
-      _localizedValues[locale.languageCode]!['continueAnyway']!;
+      localizedValues[locale.languageCode]!['syncOptionsText']!;
+   String get continueAnyway =>
+      localizedValues[locale.languageCode]!['continueAnyway']!;
 
   String get couldNotGetLocation =>
-      _localizedValues[locale.languageCode]!['couldNotGetLocation']!;
+      localizedValues[locale.languageCode]!['couldNotGetLocation']!;
   String get errorRequestingService =>
-      _localizedValues[locale.languageCode]!['errorRequestingService']!;
+      localizedValues[locale.languageCode]!['errorRequestingService']!;
   String get noTechniciansAvailable =>
-      _localizedValues[locale.languageCode]!['noTechniciansAvailable']!;
+      localizedValues[locale.languageCode]!['noTechniciansAvailable']!;
   String get needToRegisterVehicle =>
-      _localizedValues[locale.languageCode]!['needToRegisterVehicle']!;
+      localizedValues[locale.languageCode]!['needToRegisterVehicle']!;
   String get authorizationError =>
-      _localizedValues[locale.languageCode]!['authorizationError']!;
+      localizedValues[locale.languageCode]!['authorizationError']!;
   String get sessionExpired =>
-      _localizedValues[locale.languageCode]!['sessionExpired']!;
+      localizedValues[locale.languageCode]!['sessionExpired']!;
   String get serviceUpdatedCorrectly =>
-      _localizedValues[locale.languageCode]!['serviceUpdatedCorrectly']!;
+      localizedValues[locale.languageCode]!['serviceUpdatedCorrectly']!;
 
   String get pleaseWait =>
-      _localizedValues[locale.languageCode]!['pleaseWait']!;
+      localizedValues[locale.languageCode]!['pleaseWait']!;
   String get pleaseWaitMoment =>
-      _localizedValues[locale.languageCode]!['pleaseWaitMoment']!;
+      localizedValues[locale.languageCode]!['pleaseWaitMoment']!;
 
 // Searching
   String get nearbyTechnicians =>
-      _localizedValues[locale.languageCode]!['nearbyTechnicians']!;
+      localizedValues[locale.languageCode]!['nearbyTechnicians']!;
   String get thisCanTakeSeconds =>
-      _localizedValues[locale.languageCode]!['thisCanTakeSeconds']!;
+      localizedValues[locale.languageCode]!['thisCanTakeSeconds']!;
   String get searchingDots =>
-      _localizedValues[locale.languageCode]!['searchingDots']!;
+      localizedValues[locale.languageCode]!['searchingDots']!;
 
 // Status strings
-  String get onSite => _localizedValues[locale.languageCode]!['onSite']!;
-  String get cancelled => _localizedValues[locale.languageCode]!['cancelled']!;
-  String get unknownStatus =>
-      _localizedValues[locale.languageCode]!['unknownStatus']!;
+  String get onSite => localizedValues[locale.languageCode]!['onSite']!;
+   String get unknownStatus =>
+      localizedValues[locale.languageCode]!['unknownStatus']!;
 
 // Time-related
   String get fewSecondsAgo =>
-      _localizedValues[locale.languageCode]!['fewSecondsAgo']!;
+      localizedValues[locale.languageCode]!['fewSecondsAgo']!;
   String get minutesAgo =>
-      _localizedValues[locale.languageCode]!['minutesAgo']!;
-  String get hoursAgo => _localizedValues[locale.languageCode]!['hoursAgo']!;
-  String get daysAgo => _localizedValues[locale.languageCode]!['daysAgo']!;
-  String get ago => _localizedValues[locale.languageCode]!['ago']!;
+      localizedValues[locale.languageCode]!['minutesAgo']!;
+  String get hoursAgo => localizedValues[locale.languageCode]!['hoursAgo']!;
+  String get daysAgo => localizedValues[locale.languageCode]!['daysAgo']!;
+  String get ago => localizedValues[locale.languageCode]!['ago']!;
 
 // Vehicle and technician info
   String get serviceVehicle =>
-      _localizedValues[locale.languageCode]!['serviceVehicle']!;
+      localizedValues[locale.languageCode]!['serviceVehicle']!;
   String get notSpecified =>
-      _localizedValues[locale.languageCode]!['notSpecified']!; 
+      localizedValues[locale.languageCode]!['notSpecified']!; 
 
 
 
-    String get otros => _localizedValues[locale.languageCode]!['otros']!;
-    String get tyc => _localizedValues[locale.languageCode]!['tyc']!;
-    String get politicadeprivacidad => _localizedValues[locale.languageCode]!['politicadeprivacidad']!;
+    String get otros => localizedValues[locale.languageCode]!['otros']!;
+    String get tyc => localizedValues[locale.languageCode]!['tyc']!;
+    String get politicadeprivacidad => localizedValues[locale.languageCode]!['politicadeprivacidad']!;
 
 // Cancellation errors and messages
   String get errorCancellingService =>
-      _localizedValues[locale.languageCode]!['errorCancellingService']!;
+      localizedValues[locale.languageCode]!['errorCancellingService']!;
   String get noActiveServiceToCancel =>
-      _localizedValues[locale.languageCode]!['noActiveServiceToCancel']!;
+      localizedValues[locale.languageCode]!['noActiveServiceToCancel']!;
   String get timeElapsedMinutes =>
-      _localizedValues[locale.languageCode]!['timeElapsedMinutes']!;
+      localizedValues[locale.languageCode]!['timeElapsedMinutes']!;
   String get limitMinutes =>
-      _localizedValues[locale.languageCode]!['limitMinutes']!;
+      localizedValues[locale.languageCode]!['limitMinutes']!;
   String get cannotCancelServiceNow =>
-      _localizedValues[locale.languageCode]!['cannotCancelServiceNow']!;
+      localizedValues[locale.languageCode]!['cannotCancelServiceNow']!;
   String get technicianAlreadyOnWay =>
-      _localizedValues[locale.languageCode]!['technicianAlreadyOnWay']!;
+      localizedValues[locale.languageCode]!['technicianAlreadyOnWay']!;
   String get serviceCancelledWithFee =>
-      _localizedValues[locale.languageCode]!['serviceCancelledWithFee']!;
-  String get serviceCancelledSuccessfullyMessage => _localizedValues[
+      localizedValues[locale.languageCode]!['serviceCancelledWithFee']!;
+  String get serviceCancelledSuccessfullyMessage => localizedValues[
       locale.languageCode]!['serviceCancelledSuccessfullyMessage']!;
 
 // Basic responses
-  String get no => _localizedValues[locale.languageCode]!['no']!;
-  String get yes => _localizedValues[locale.languageCode]!['yes']!;
-  String get yesCancel => _localizedValues[locale.languageCode]!['yesCancel']!;
+  String get no => localizedValues[locale.languageCode]!['no']!;
+  String get yes => localizedValues[locale.languageCode]!['yes']!;
+  String get yesCancel => localizedValues[locale.languageCode]!['yesCancel']!;
   String get areYouSureCancelService =>
-      _localizedValues[locale.languageCode]!['areYouSureCancelService']!;
+      localizedValues[locale.languageCode]!['areYouSureCancelService']!;
   String get cancelRide =>
-      _localizedValues[locale.languageCode]!['cancelRide']!;
+      localizedValues[locale.languageCode]!['cancelRide']!;
 
 // Cancellation time and expiration
   String get blockedFromCancelling =>
-      _localizedValues[locale.languageCode]!['blockedFromCancelling']!;
+      localizedValues[locale.languageCode]!['blockedFromCancelling']!;
   String get timeForCancellingExpired =>
-      _localizedValues[locale.languageCode]!['timeForCancellingExpired']!;
+      localizedValues[locale.languageCode]!['timeForCancellingExpired']!;
   String get serviceHasExceededTimeLimit =>
-      _localizedValues[locale.languageCode]!['serviceHasExceededTimeLimit']!;
+      localizedValues[locale.languageCode]!['serviceHasExceededTimeLimit']!;
   String serviceActiveMinutes(String minutes) =>
-      _localizedValues[locale.languageCode]!['serviceActiveMinutes']!
+      localizedValues[locale.languageCode]!['serviceActiveMinutes']!
           .replaceAll('{minutes}', minutes);
   String get cancelExpiredService =>
-      _localizedValues[locale.languageCode]!['cancelExpiredService']!;
+      localizedValues[locale.languageCode]!['cancelExpiredService']!;
   String get forceExpireService =>
-      _localizedValues[locale.languageCode]!['forceExpireService']!;
+      localizedValues[locale.languageCode]!['forceExpireService']!;
   String get areYouSureCancelExpiredService =>
-      _localizedValues[locale.languageCode]!['areYouSureCancelExpiredService']!;
+      localizedValues[locale.languageCode]!['areYouSureCancelExpiredService']!;
 
 // Service information
-  String get serviceInformation =>
-      _localizedValues[locale.languageCode]!['serviceInformation']!;
+   
   String get timeElapsed =>
-      _localizedValues[locale.languageCode]!['timeElapsed']!;
+      localizedValues[locale.languageCode]!['timeElapsed']!;
   String get currentStatus =>
-      _localizedValues[locale.languageCode]!['currentStatus']!;
+      localizedValues[locale.languageCode]!['currentStatus']!;
   String get noChargesForCancellation =>
-      _localizedValues[locale.languageCode]!['noChargesForCancellation']!;
-  String get canRequestNewServiceImmediately => _localizedValues[
+      localizedValues[locale.languageCode]!['noChargesForCancellation']!;
+  String get canRequestNewServiceImmediately => localizedValues[
       locale.languageCode]!['canRequestNewServiceImmediately']!;
   String get yesCancelService =>
-      _localizedValues[locale.languageCode]!['yesCancelService']!;
+      localizedValues[locale.languageCode]!['yesCancelService']!;
 
 // Service expiration
   String get serviceExpiredAutomatically =>
-      _localizedValues[locale.languageCode]!['serviceExpiredAutomatically']!;
-  String get serviceActiveForHourWithoutCompletion => _localizedValues[
+      localizedValues[locale.languageCode]!['serviceExpiredAutomatically']!;
+  String get serviceActiveForHourWithoutCompletion => localizedValues[
       locale.languageCode]!['serviceActiveForHourWithoutCompletion']!;
-  String get noChargesAppliedForExpiredService => _localizedValues[
+  String get noChargesAppliedForExpiredService => localizedValues[
       locale.languageCode]!['noChargesAppliedForExpiredService']!;
   String get canRequestNewService =>
-      _localizedValues[locale.languageCode]!['canRequestNewService']!;
+      localizedValues[locale.languageCode]!['canRequestNewService']!;
   String get requestNewService =>
-      _localizedValues[locale.languageCode]!['requestNewService']!;
+      localizedValues[locale.languageCode]!['requestNewService']!;
   String get searchForAnotherTechnician =>
-      _localizedValues[locale.languageCode]!['searchForAnotherTechnician']!;
+      localizedValues[locale.languageCode]!['searchForAnotherTechnician']!;
 
 // Cancellation reasons
   String get emergenciesOrTechnicalIssues =>
-      _localizedValues[locale.languageCode]!['emergenciesOrTechnicalIssues']!;
+      localizedValues[locale.languageCode]!['emergenciesOrTechnicalIssues']!;
   String get canRequestNewServiceNow =>
-      _localizedValues[locale.languageCode]!['canRequestNewServiceNow']!;
+      localizedValues[locale.languageCode]!['canRequestNewServiceNow']!;
   String get ifTechnicianHasNotArrived =>
-      _localizedValues[locale.languageCode]!['ifTechnicianHasNotArrived']!;
+      localizedValues[locale.languageCode]!['ifTechnicianHasNotArrived']!;
 
 // Service details
   String get serviceDetailsInfo =>
-      _localizedValues[locale.languageCode]!['serviceDetailsInfo']!;
+      localizedValues[locale.languageCode]!['serviceDetailsInfo']!;
   String serviceDetailsText(String minutes) =>
-      _localizedValues[locale.languageCode]!['serviceDetailsText']!
+      localizedValues[locale.languageCode]!['serviceDetailsText']!
           .replaceAll('{minutes}', minutes);
 
 // Status change notifications
   String get technicianHasArrived =>
-      _localizedValues[locale.languageCode]!['technicianHasArrived']!;
-  String get technicianAtLocationPreparingEquipment => _localizedValues[
+      localizedValues[locale.languageCode]!['technicianHasArrived']!;
+  String get technicianAtLocationPreparingEquipment => localizedValues[
       locale.languageCode]!['technicianAtLocationPreparingEquipment']!;
   String get serviceStarted =>
-      _localizedValues[locale.languageCode]!['serviceStarted']!;
-  String get technicianStartedChargingVehicle => _localizedValues[
+      localizedValues[locale.languageCode]!['serviceStarted']!;
+  String get technicianStartedChargingVehicle => localizedValues[
       locale.languageCode]!['technicianStartedChargingVehicle']!;
   String get serviceCompletedSuccessfully =>
-      _localizedValues[locale.languageCode]!['serviceCompletedSuccessfully']!;
+      localizedValues[locale.languageCode]!['serviceCompletedSuccessfully']!;
   String get vehicleChargedSuccessfully =>
-      _localizedValues[locale.languageCode]!['vehicleChargedSuccessfully']!;
+      localizedValues[locale.languageCode]!['vehicleChargedSuccessfully']!;
   String get statusUpdated =>
-      _localizedValues[locale.languageCode]!['statusUpdated']!;
+      localizedValues[locale.languageCode]!['statusUpdated']!;
   String get serviceStatusChanged =>
-      _localizedValues[locale.languageCode]!['serviceStatusChanged']!;
+      localizedValues[locale.languageCode]!['serviceStatusChanged']!;
 
 // Status change titles and messages
   String get technicianConfirmedTitle =>
-      _localizedValues[locale.languageCode]!['technicianConfirmedTitle']!;
+      localizedValues[locale.languageCode]!['technicianConfirmedTitle']!;
   String get technicianConfirmedMessage =>
-      _localizedValues[locale.languageCode]!['technicianConfirmedMessage']!;
+      localizedValues[locale.languageCode]!['technicianConfirmedMessage']!;
   String get technicianEnRoute =>
-      _localizedValues[locale.languageCode]!['technicianEnRoute']!;
+      localizedValues[locale.languageCode]!['technicianEnRoute']!;
   String get technicianHeadingToLocation =>
-      _localizedValues[locale.languageCode]!['technicianHeadingToLocation']!;
+      localizedValues[locale.languageCode]!['technicianHeadingToLocation']!;
   String get technicianArrivedTitle =>
-      _localizedValues[locale.languageCode]!['technicianArrivedTitle']!;
+      localizedValues[locale.languageCode]!['technicianArrivedTitle']!;
   String get technicianArrivedMessage =>
-      _localizedValues[locale.languageCode]!['technicianArrivedMessage']!;
+      localizedValues[locale.languageCode]!['technicianArrivedMessage']!;
   String get serviceInitiatedTitle =>
-      _localizedValues[locale.languageCode]!['serviceInitiatedTitle']!;
+      localizedValues[locale.languageCode]!['serviceInitiatedTitle']!;
   String get serviceInitiatedMessage =>
-      _localizedValues[locale.languageCode]!['serviceInitiatedMessage']!;
+      localizedValues[locale.languageCode]!['serviceInitiatedMessage']!;
   String get serviceCompletedTitle =>
-      _localizedValues[locale.languageCode]!['serviceCompletedTitle']!;
+      localizedValues[locale.languageCode]!['serviceCompletedTitle']!;
   String get serviceCompletedMessage =>
-      _localizedValues[locale.languageCode]!['serviceCompletedMessage']!;
+      localizedValues[locale.languageCode]!['serviceCompletedMessage']!;
 
 // Service progress
   String get technicianWillDocumentProgress =>
-      _localizedValues[locale.languageCode]!['technicianWillDocumentProgress']!;
+      localizedValues[locale.languageCode]!['technicianWillDocumentProgress']!;
   String get serviceProgress =>
-      _localizedValues[locale.languageCode]!['serviceProgress']!;
-  String get from => _localizedValues[locale.languageCode]!['from']!;
+      localizedValues[locale.languageCode]!['serviceProgress']!;
+  String get from => localizedValues[locale.languageCode]!['from']!;
   String get batteryLevel =>
-      _localizedValues[locale.languageCode]!['batteryLevel']!;
+      localizedValues[locale.languageCode]!['batteryLevel']!;
   String get chargingTime =>
-      _localizedValues[locale.languageCode]!['chargingTime']!;
-  String get min => _localizedValues[locale.languageCode]!['min']!;
+      localizedValues[locale.languageCode]!['chargingTime']!;
+  String get min => localizedValues[locale.languageCode]!['min']!;
   String get waitingForRequests =>
-      _localizedValues[locale.languageCode]!['waitingForRequests']!;
+      localizedValues[locale.languageCode]!['waitingForRequests']!;
   String get reviewingIncomingRequest =>
-      _localizedValues[locale.languageCode]!['reviewingIncomingRequest']!;
+      localizedValues[locale.languageCode]!['reviewingIncomingRequest']!;
   String get headToClientLocation =>
-      _localizedValues[locale.languageCode]!['headToClientLocation']!;
+      localizedValues[locale.languageCode]!['headToClientLocation']!;
   String get chargingClientVehicle =>
-      _localizedValues[locale.languageCode]!['chargingClientVehicle']!;
+      localizedValues[locale.languageCode]!['chargingClientVehicle']!;
 
 // Service Request Panel getters
   String get newChargeRequest =>
-      _localizedValues[locale.languageCode]!['newChargeRequest']!;
-  String get client => _localizedValues[locale.languageCode]!['client']!;
+      localizedValues[locale.languageCode]!['newChargeRequest']!;
+  String get client => localizedValues[locale.languageCode]!['client']!;
   String get estimatedEarnings =>
-      _localizedValues[locale.languageCode]!['estimatedEarnings']!;
-  String get reject => _localizedValues[locale.languageCode]!['reject']!;
+      localizedValues[locale.languageCode]!['estimatedEarnings']!;
+  String get reject => localizedValues[locale.languageCode]!['reject']!;
  
 // Navigation getters
   String get navigateToClient =>
-      _localizedValues[locale.languageCode]!['navigateToClient']!;
+      localizedValues[locale.languageCode]!['navigateToClient']!;
   String get openInMaps =>
-      _localizedValues[locale.languageCode]!['openInMaps']!;
+      localizedValues[locale.languageCode]!['openInMaps']!;
   String get googleMaps =>
-      _localizedValues[locale.languageCode]!['googleMaps']!;
+      localizedValues[locale.languageCode]!['googleMaps']!;
   String get navigationWithTraffic =>
-      _localizedValues[locale.languageCode]!['navigationWithTraffic']!;
-  String get waze => _localizedValues[locale.languageCode]!['waze']!;
+      localizedValues[locale.languageCode]!['navigationWithTraffic']!;
+  String get waze => localizedValues[locale.languageCode]!['waze']!;
   String get optimizedRoutes =>
-      _localizedValues[locale.languageCode]!['optimizedRoutes']!;
-  String get navigate => _localizedValues[locale.languageCode]!['navigate']!;
-  String get call => _localizedValues[locale.languageCode]!['call']!;
+      localizedValues[locale.languageCode]!['optimizedRoutes']!;
+  String get navigate => localizedValues[locale.languageCode]!['navigate']!;
+  String get call => localizedValues[locale.languageCode]!['call']!;
 
   String get arrivedAtSite =>
-      _localizedValues[locale.languageCode]!['arrivedAtSite']!;
+      localizedValues[locale.languageCode]!['arrivedAtSite']!;
   String get finishService =>
-      _localizedValues[locale.languageCode]!['finishService']!;
+      localizedValues[locale.languageCode]!['finishService']!;
   String get chargeServiceRequested =>
-      _localizedValues[locale.languageCode]!['chargeServiceRequested']!;
+      localizedValues[locale.languageCode]!['chargeServiceRequested']!;
 
  
-  String get speed => _localizedValues[locale.languageCode]!['speed']!; 
-   String get errorLoadingData => _localizedValues[locale.languageCode]!['errorLoadingData']!;
-  String get noPhoneNumberAvailable => _localizedValues[locale.languageCode]!['noPhoneNumberAvailable']!;
-  String get couldNotOpenPhoneApp => _localizedValues[locale.languageCode]!['couldNotOpenPhoneApp']!;
-  String get errorMakingCall => _localizedValues[locale.languageCode]!['errorMakingCall']!;
-  String get errorRefreshingServiceData => _localizedValues[locale.languageCode]!['errorRefreshingServiceData']!; 
+  String get speed => localizedValues[locale.languageCode]!['speed']!; 
+   String get noPhoneNumberAvailable => localizedValues[locale.languageCode]!['noPhoneNumberAvailable']!;
+  String get couldNotOpenPhoneApp => localizedValues[locale.languageCode]!['couldNotOpenPhoneApp']!;
+  String get errorMakingCall => localizedValues[locale.languageCode]!['errorMakingCall']!;
+  String get errorRefreshingServiceData => localizedValues[locale.languageCode]!['errorRefreshingServiceData']!; 
 
 // Success & Error Messages getters
   String get requestAccepted =>
-      _localizedValues[locale.languageCode]!['requestAccepted']!;
+      localizedValues[locale.languageCode]!['requestAccepted']!;
   String get errorAcceptingRequest =>
-      _localizedValues[locale.languageCode]!['errorAcceptingRequest']!;
+      localizedValues[locale.languageCode]!['errorAcceptingRequest']!;
   String get requestTakenByAnother =>
-      _localizedValues[locale.languageCode]!['requestTakenByAnother']!;
+      localizedValues[locale.languageCode]!['requestTakenByAnother']!;
   String get noAuthorizationForRequest =>
-      _localizedValues[locale.languageCode]!['noAuthorizationForRequest']!; 
+      localizedValues[locale.languageCode]!['noAuthorizationForRequest']!; 
   String get pleaseEnableLocation =>
-      _localizedValues[locale.languageCode]!['pleaseEnableLocation']!;
+      localizedValues[locale.languageCode]!['pleaseEnableLocation']!;
   String get locationPermissionRequired =>
-      _localizedValues[locale.languageCode]!['locationPermissionRequired']!;
+      localizedValues[locale.languageCode]!['locationPermissionRequired']!;
   String get noClientInformationAvailable =>
-      _localizedValues[locale.languageCode]!['noClientInformationAvailable']!;  
+      localizedValues[locale.languageCode]!['noClientInformationAvailable']!;  
   String get errorChangingStatus =>
-      _localizedValues[locale.languageCode]!['errorChangingStatus']!;
+      localizedValues[locale.languageCode]!['errorChangingStatus']!;
   String get couldNotOpenGoogleMaps =>
-      _localizedValues[locale.languageCode]!['couldNotOpenGoogleMaps']!;
+      localizedValues[locale.languageCode]!['couldNotOpenGoogleMaps']!;
   String get wazeNotInstalled =>
-      _localizedValues[locale.languageCode]!['wazeNotInstalled']!;
+      localizedValues[locale.languageCode]!['wazeNotInstalled']!;
   String get couldNotOpenWaze =>
-      _localizedValues[locale.languageCode]!['couldNotOpenWaze']!;
+      localizedValues[locale.languageCode]!['couldNotOpenWaze']!;
   String get noNavigationAppsAvailable =>
-      _localizedValues[locale.languageCode]!['noNavigationAppsAvailable']!;
+      localizedValues[locale.languageCode]!['noNavigationAppsAvailable']!;
   String get couldNotOpenNavigationApp =>
-      _localizedValues[locale.languageCode]!['couldNotOpenNavigationApp']!;
+      localizedValues[locale.languageCode]!['couldNotOpenNavigationApp']!;
   String get requestNoLongerAvailable =>
-      _localizedValues[locale.languageCode]!['requestNoLongerAvailable']!;
+      localizedValues[locale.languageCode]!['requestNoLongerAvailable']!;
   String get clientCancelledRequest =>
-      _localizedValues[locale.languageCode]!['clientCancelledRequest']!;
+      localizedValues[locale.languageCode]!['clientCancelledRequest']!;
   String get errorCheckingStatus =>
-      _localizedValues[locale.languageCode]!['errorCheckingStatus']!;
+      localizedValues[locale.languageCode]!['errorCheckingStatus']!;
   String get requestNotAuthorizedAnymore =>
-      _localizedValues[locale.languageCode]!['requestNotAuthorizedAnymore']!;
+      localizedValues[locale.languageCode]!['requestNotAuthorizedAnymore']!;
 
 
  
 String get verified => 
-    _localizedValues[locale.languageCode]!['verified']!;
+    localizedValues[locale.languageCode]!['verified']!;
 String get serviceLocation => 
-    _localizedValues[locale.languageCode]!['serviceLocation']!; 
+    localizedValues[locale.languageCode]!['serviceLocation']!; 
 String get veryClose => 
-    _localizedValues[locale.languageCode]!['veryClose']!; 
+    localizedValues[locale.languageCode]!['veryClose']!; 
 String get mediumDistance => 
-    _localizedValues[locale.languageCode]!['mediumDistance']!;
+    localizedValues[locale.languageCode]!['mediumDistance']!;
 String get far => 
-    _localizedValues[locale.languageCode]!['far']!; 
+    localizedValues[locale.languageCode]!['far']!; 
 String get hours => 
-    _localizedValues[locale.languageCode]!['hours']!;
+    localizedValues[locale.languageCode]!['hours']!;
 
 // Online/Offline Status getters
-  String get online => _localizedValues[locale.languageCode]!['online']!;
-  String get offline => _localizedValues[locale.languageCode]!['offline']!;
+  String get online => localizedValues[locale.languageCode]!['online']!;
+  String get offline => localizedValues[locale.languageCode]!['offline']!;
   String get serviceActive =>
-      _localizedValues[locale.languageCode]!['serviceActive']!;
+      localizedValues[locale.languageCode]!['serviceActive']!;
   String get disconnected =>
-      _localizedValues[locale.languageCode]!['disconnected']!;
+      localizedValues[locale.languageCode]!['disconnected']!;
 
 // Service Cancellation getters
   String get serviceCancelledTitle =>
-      _localizedValues[locale.languageCode]!['serviceCancelledTitle']!;
+      localizedValues[locale.languageCode]!['serviceCancelledTitle']!;
   String get clientCancelledService =>
-      _localizedValues[locale.languageCode]!['clientCancelledService']!;
+      localizedValues[locale.languageCode]!['clientCancelledService']!;
   String get timeCompensation =>
-      _localizedValues[locale.languageCode]!['timeCompensation']!;
+      localizedValues[locale.languageCode]!['timeCompensation']!;
   String get partialCompensationMessage =>
-      _localizedValues[locale.languageCode]!['partialCompensationMessage']!;
+      localizedValues[locale.languageCode]!['partialCompensationMessage']!;
   String get willContinueReceivingRequests =>
-      _localizedValues[locale.languageCode]!['willContinueReceivingRequests']!;
+      localizedValues[locale.languageCode]!['willContinueReceivingRequests']!;
   String get serviceCancelledByClient =>
-      _localizedValues[locale.languageCode]!['serviceCancelledByClient']!;
+      localizedValues[locale.languageCode]!['serviceCancelledByClient']!;
 
 // Service Expiration getter
   String get serviceAutoCancelledAfterHour =>
-      _localizedValues[locale.languageCode]!['serviceAutoCancelledAfterHour']!;
+      localizedValues[locale.languageCode]!['serviceAutoCancelledAfterHour']!;
 
   String get noActiveServiceFound =>
-      _localizedValues[locale.languageCode]!['noActiveServiceFound']!;
+      localizedValues[locale.languageCode]!['noActiveServiceFound']!;
   String get serviceTrackingLocation =>
-      _localizedValues[locale.languageCode]!['serviceTrackingLocation']!;
+      localizedValues[locale.languageCode]!['serviceTrackingLocation']!;
   String get locationTrackingStopped =>
-      _localizedValues[locale.languageCode]!['locationTrackingStopped']!;
+      localizedValues[locale.languageCode]!['locationTrackingStopped']!;
   String get requestListCleaned =>
-      _localizedValues[locale.languageCode]!['requestListCleaned']!;
+      localizedValues[locale.languageCode]!['requestListCleaned']!;
 
 // UI elements
   String get followInRealTime =>
-      _localizedValues[locale.languageCode]!['followInRealTime']!;
-  String get averageRating =>
-      _localizedValues[locale.languageCode]!['averageRating']!;
-  String get phoneCall => _localizedValues[locale.languageCode]!['phoneCall']!;
+      localizedValues[locale.languageCode]!['followInRealTime']!;
+   
+  String get phoneCall => localizedValues[locale.languageCode]!['phoneCall']!;
   String get sendMessage =>
-      _localizedValues[locale.languageCode]!['sendMessage']!;
-  String get message => _localizedValues[locale.languageCode]!['message']!;
+      localizedValues[locale.languageCode]!['sendMessage']!;
+  String get message => localizedValues[locale.languageCode]!['message']!;
   String get equipmentReady =>
-      _localizedValues[locale.languageCode]!['equipmentReady']!;
+      localizedValues[locale.languageCode]!['equipmentReady']!;
   String get startingCharge =>
-      _localizedValues[locale.languageCode]!['startingCharge']!;
+      localizedValues[locale.languageCode]!['startingCharge']!;
   String get connectingTechnician =>
-      _localizedValues[locale.languageCode]!['connectingTechnician']!;
+      localizedValues[locale.languageCode]!['connectingTechnician']!;
 
   String get serviceHistory =>
-      _localizedValues[locale.languageCode]!['serviceHistory']!;
+      localizedValues[locale.languageCode]!['serviceHistory']!;
   String get reviewPreviousServices =>
-      _localizedValues[locale.languageCode]!['reviewPreviousServices']!;
-  String get all => _localizedValues[locale.languageCode]!['all']!;
-  String get completed => _localizedValues[locale.languageCode]!['completed']!;
-  String get accepted => _localizedValues[locale.languageCode]!['accepted']!;
-  String get enRoute => _localizedValues[locale.languageCode]!['enRoute']!;
-  String get charging => _localizedValues[locale.languageCode]!['charging']!;
-  String get yesterday => _localizedValues[locale.languageCode]!['yesterday']!;
+      localizedValues[locale.languageCode]!['reviewPreviousServices']!;
+  String get all => localizedValues[locale.languageCode]!['all']!;
+   String get accepted => localizedValues[locale.languageCode]!['accepted']!;
+  String get enRoute => localizedValues[locale.languageCode]!['enRoute']!;
+  String get charging => localizedValues[locale.languageCode]!['charging']!;
+  String get yesterday => localizedValues[locale.languageCode]!['yesterday']!;
   String get errorLoadingHistory =>
-      _localizedValues[locale.languageCode]!['errorLoadingHistory']!;
+      localizedValues[locale.languageCode]!['errorLoadingHistory']!;
   String get noServicesInHistory =>
-      _localizedValues[locale.languageCode]!['noServicesInHistory']!;
+      localizedValues[locale.languageCode]!['noServicesInHistory']!;
   String get requestService =>
-      _localizedValues[locale.languageCode]!['requestService']!;
+      localizedValues[locale.languageCode]!['requestService']!;
 
 
 
       
   String get startCharging =>
-      _localizedValues[locale.languageCode]!['startCharging']!; 
+      localizedValues[locale.languageCode]!['startCharging']!; 
   String get vehicleRegisteredSuccess =>
-      _localizedValues[locale.languageCode]!['vehicleRegisteredSuccess']!; 
+      localizedValues[locale.languageCode]!['vehicleRegisteredSuccess']!; 
   String get thankYouForYourRating =>
-      _localizedValues[locale.languageCode]!['thankYouForYourRating']!;
+      localizedValues[locale.languageCode]!['thankYouForYourRating']!;
   String get continueText =>
-      _localizedValues[locale.languageCode]!['continueText']!;
+      localizedValues[locale.languageCode]!['continueText']!;
  
 
 
 // Títulos y navegación
   String get registerElectricVehicle =>
-      _localizedValues[locale.languageCode]!['registerElectricVehicle']!;
-  String get step => _localizedValues[locale.languageCode]!['step']!;
-  String get off => _localizedValues[locale.languageCode]!['of']!;
-
-// Secciones del formulario
-  String get vehicleInformation =>
-      _localizedValues[locale.languageCode]!['vehicleInformation']!;
-  String get identification =>
-      _localizedValues[locale.languageCode]!['identification']!;
+      localizedValues[locale.languageCode]!['registerElectricVehicle']!;
+  String get step => localizedValues[locale.languageCode]!['step']!;
+  String get off => localizedValues[locale.languageCode]!['of']!;
+ 
   String get technicalSpecs =>
-      _localizedValues[locale.languageCode]!['technicalSpecs']!;
+      localizedValues[locale.languageCode]!['technicalSpecs']!;
 
 // Labels de campos
-  String get brand => _localizedValues[locale.languageCode]!['brand']!;
-  String get model => _localizedValues[locale.languageCode]!['model']!;
-  String get year => _localizedValues[locale.languageCode]!['year']!;
-  String get plate => _localizedValues[locale.languageCode]!['plate']!;
-  String get color => _localizedValues[locale.languageCode]!['color']!;
-  String get connectorType =>
-      _localizedValues[locale.languageCode]!['connectorType']!;
+  String get brand => localizedValues[locale.languageCode]!['brand']!; 
 
 // Opciones generales
-
-// Colores
-  String get white => _localizedValues[locale.languageCode]!['white']!;
-  String get black => _localizedValues[locale.languageCode]!['black']!;
-  String get gray => _localizedValues[locale.languageCode]!['gray']!;
-  String get silver => _localizedValues[locale.languageCode]!['silver']!;
-  String get red => _localizedValues[locale.languageCode]!['red']!;
-  String get blue => _localizedValues[locale.languageCode]!['blue']!;
-  String get green => _localizedValues[locale.languageCode]!['green']!;
-
+ 
 // Hints y placeholders
   String get writeBrandHint =>
-      _localizedValues[locale.languageCode]!['writeBrandHint']!;
+      localizedValues[locale.languageCode]!['writeBrandHint']!;
   String get selectOrEnterBrand =>
-      _localizedValues[locale.languageCode]!['selectOrEnterBrand']!;
-  String get modelHint => _localizedValues[locale.languageCode]!['modelHint']!;
-  String get plateHint => _localizedValues[locale.languageCode]!['plateHint']!;
+      localizedValues[locale.languageCode]!['selectOrEnterBrand']!;
+  String get modelHint => localizedValues[locale.languageCode]!['modelHint']!;
+  String get plateHint => localizedValues[locale.languageCode]!['plateHint']!;
   String get specifyColor =>
-      _localizedValues[locale.languageCode]!['specifyColor']!;
-  String get colorHint => _localizedValues[locale.languageCode]!['colorHint']!;
+      localizedValues[locale.languageCode]!['specifyColor']!;
+  String get colorHint => localizedValues[locale.languageCode]!['colorHint']!;
   String get enterColor =>
-      _localizedValues[locale.languageCode]!['enterColor']!;
+      localizedValues[locale.languageCode]!['enterColor']!;
+
+String getColorName(String colorKey) {
+  return localizedValues[locale.languageCode]?[colorKey] ?? colorKey;
+}
+
 
 // Mensajes de éxito y error
   String get vehicleRegistrationError =>
-      _localizedValues[locale.languageCode]!['vehicleRegistrationError']!;
+      localizedValues[locale.languageCode]!['vehicleRegistrationError']!;
   String get vehicleRegistered =>
-      _localizedValues[locale.languageCode]!['vehicleRegistered']!; 
+      localizedValues[locale.languageCode]!['vehicleRegistered']!; 
 
   String get loggingOut =>
-      _localizedValues[locale.languageCode]!['loggingOut']!;
+      localizedValues[locale.languageCode]!['loggingOut']!;
 // Mensajes de validación específicos
   String get selectBrandMessage =>
-      _localizedValues[locale.languageCode]!['selectBrandMessage']!;
+      localizedValues[locale.languageCode]!['selectBrandMessage']!;
   String get enterModelMessage =>
-      _localizedValues[locale.languageCode]!['enterModelMessage']!;
+      localizedValues[locale.languageCode]!['enterModelMessage']!;
   String get enterYearMessage =>
-      _localizedValues[locale.languageCode]!['enterYearMessage']!;
+      localizedValues[locale.languageCode]!['enterYearMessage']!;
   String get validYearMessage =>
-      _localizedValues[locale.languageCode]!['validYearMessage']!;
+      localizedValues[locale.languageCode]!['validYearMessage']!;
   String get enterPlateMessage =>
-      _localizedValues[locale.languageCode]!['enterPlateMessage']!;
+      localizedValues[locale.languageCode]!['enterPlateMessage']!;
   String get selectColorMessage =>
-      _localizedValues[locale.languageCode]!['selectColorMessage']!;
+      localizedValues[locale.languageCode]!['selectColorMessage']!;
   String get specifyColorMessage =>
-      _localizedValues[locale.languageCode]!['specifyColorMessage']!;
+      localizedValues[locale.languageCode]!['specifyColorMessage']!;
   String get selectConnectorMessage =>
-      _localizedValues[locale.languageCode]!['selectConnectorMessage']!;
+      localizedValues[locale.languageCode]!['selectConnectorMessage']!;
   String get completeRequiredFields =>
-      _localizedValues[locale.languageCode]!['completeRequiredFields']!;
+      localizedValues[locale.languageCode]!['completeRequiredFields']!;
   String get welcomeTechnician =>
-      _localizedValues[locale.languageCode]!['welcomeTechnician']!;
+      localizedValues[locale.languageCode]!['welcomeTechnician']!;
 
   String get noServiceHistory =>
-      _localizedValues[locale.languageCode]!['noServiceHistory']!;
+      localizedValues[locale.languageCode]!['noServiceHistory']!;
  
   String get numbersOnly =>
-      _localizedValues[locale.languageCode]!['numbersOnly']!;
-  String get yearRange => _localizedValues[locale.languageCode]!['yearRange']!;
-  String get and => _localizedValues[locale.languageCode]!['and']!;
+      localizedValues[locale.languageCode]!['numbersOnly']!;
+  String get yearRange => localizedValues[locale.languageCode]!['yearRange']!;
+  String get and => localizedValues[locale.languageCode]!['and']!;
   String get plateMinLength =>
-      _localizedValues[locale.languageCode]!['plateMinLength']!;
+      localizedValues[locale.languageCode]!['plateMinLength']!;
 
 // Botones de navegación
-  String get previous => _localizedValues[locale.languageCode]!['previous']!;
-  String get next => _localizedValues[locale.languageCode]!['next']!;
-  String get register => _localizedValues[locale.languageCode]!['register']!;
-  String get searchingRequests => _localizedValues[locale.languageCode]!['searchingRequests']!;
+  String get previous => localizedValues[locale.languageCode]!['previous']!;
+  String get next => localizedValues[locale.languageCode]!['next']!;
+  String get register => localizedValues[locale.languageCode]!['register']!;
+  String get searchingRequests => localizedValues[locale.languageCode]!['searchingRequests']!;
 
 // Stats getters (faltantes) 
  
   String get noActiveService =>
-      _localizedValues[locale.languageCode]!['noActiveService']!;
+      localizedValues[locale.languageCode]!['noActiveService']!;
 }
 
 class _AppLocalizationsDelegate

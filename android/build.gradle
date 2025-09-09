@@ -4,9 +4,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.1' // Usa la última versión
+        classpath 'com.android.tools.build:gradle:8.5.0'  // Versión que soporta Java 21
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"
-        classpath 'com.google.gms:google-services:4.3.15' // 🔥 Añade esta línea
+        classpath 'com.google.gms:google-services:4.4.0'  // También actualiza esto
     }
 }
 

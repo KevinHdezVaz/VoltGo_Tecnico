@@ -3,7 +3,7 @@ import 'package:Voltgo_app/data/services/HistoryService.dart';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/HistoryScreen/ServiceDetailsScreen.dart';
 import 'package:Voltgo_app/ui/color/app_colors.dart';
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -58,7 +58,6 @@ class _HistoryScreenState extends State<HistoryScreen>
     });
   }
 
-  // NUEVO MÉTODO PARA NAVEGACIÓN
   void _navigateToServiceDetails(ServiceRequestModel serviceRequest) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -69,7 +68,6 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  // NUEVO MÉTODO PARA FORMATEAR ESTADOS
   String _getStatusDisplayText(String status, BuildContext context) {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -77,9 +75,9 @@ class _HistoryScreenState extends State<HistoryScreen>
       case 'cancelled':
         return AppLocalizations.of(context).cancelled;
       case 'pending':
-        return 'Pendiente'; // O AppLocalizations.of(context).pending si lo tienes
+        return 'Pendiente';
       case 'in_progress':
-        return 'En Progreso'; // O AppLocalizations.of(context).inProgress si lo tienes
+        return 'En Progreso';
       default:
         return status;
     }
@@ -137,23 +135,24 @@ class _HistoryScreenState extends State<HistoryScreen>
           onRefresh: _refreshHistory,
           color: AppColors.primary,
           backgroundColor: AppColors.white,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                child: Text(
-                  AppLocalizations.of(context).reviewPreviousServices,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                  child: Text(
+                    AppLocalizations.of(context).reviewPreviousServices,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
-              ),
-              _buildFilterChips(),
-              Expanded(
-                child: FutureBuilder<List<ServiceRequestModel>>(
+                _buildFilterChips(),
+                FutureBuilder<List<ServiceRequestModel>>(
                   future: _historyFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -175,8 +174,10 @@ class _HistoryScreenState extends State<HistoryScreen>
                     final displayedItems = _filteredList;
 
                     return ListView.builder(
-                      padding: const EdgeInsets.all(24),
-                      itemCount: displayedItems.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).padding.bottom + 56.0),
+         itemCount: displayedItems.length,
                       itemBuilder: (context, index) {
                         final item = displayedItems[index];
                         return _buildHistoryItem(item);
@@ -184,8 +185,8 @@ class _HistoryScreenState extends State<HistoryScreen>
                     );
                   },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -253,7 +254,6 @@ class _HistoryScreenState extends State<HistoryScreen>
     IconData icon;
     Color statusColor;
 
-    // MEJORADO: Más estados y mejor manejo
     switch (item.status.toLowerCase()) {
       case 'completed':
         icon = Icons.check_circle;
@@ -275,22 +275,20 @@ class _HistoryScreenState extends State<HistoryScreen>
         icon = Icons.help_outline;
         statusColor = AppColors.textSecondary;
     }
-
     return GestureDetector(
       onTapDown: (_) => _animationController.forward(),
       onTapUp: (_) => _animationController.reverse(),
       onTapCancel: () => _animationController.reverse(),
       onTap: () {
         HapticFeedback.lightImpact();
-        _navigateToServiceDetails(item); // ACTUALIZADO: Navegar a detalles
+        _navigateToServiceDetails(item);
       },
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Card(
           elevation: 3,
           margin: const EdgeInsets.symmetric(vertical: 8),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Container(
@@ -299,15 +297,22 @@ class _HistoryScreenState extends State<HistoryScreen>
                 border: Border.all(color: AppColors.border.withOpacity(0.5)),
               ),
               child: ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 leading: CircleAvatar(
                   radius: 24,
                   backgroundColor: statusColor.withOpacity(0.1),
                   child: Icon(icon, color: statusColor, size: 28),
                 ),
+                title: Text(
+                  _getStatusDisplayText(item.status, context),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 subtitle: Text(
-                  '${item.formattedDate} - ${item.formattedTime} • ${_getStatusDisplayText(item.status, context)}', // ACTUALIZADO: Mejor formato
+                  '${item.formattedDate} • ${item.formattedTime}',
                   style: TextStyle(
                     fontSize: 14,
                     color: statusColor,
@@ -400,7 +405,6 @@ class _HistoryScreenState extends State<HistoryScreen>
           ElevatedButton(
             onPressed: () {
               HapticFeedback.lightImpact();
-              // TODO: Navigate to request service screen
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

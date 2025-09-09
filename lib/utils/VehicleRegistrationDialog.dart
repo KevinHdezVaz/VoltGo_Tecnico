@@ -548,14 +548,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Información para identificar tu vehículo',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
+            
           const SizedBox(height: 24),
           _buildEnhancedTextField(
             controller: _plateController,
@@ -807,35 +800,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen>
             );
           }).toList()),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.info.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.info.withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: AppColors.info,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Asegúrate de seleccionar el tipo de conector correcto para una mejor experiencia de servicio.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+         
         ],
       ),
     );

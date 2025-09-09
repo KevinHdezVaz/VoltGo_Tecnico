@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
 import 'package:Voltgo_app/data/services/ChatNotificationProvider.dart';
 import 'package:Voltgo_app/data/services/EarningsService.dart';
@@ -14,6 +15,10 @@ import 'package:Voltgo_app/ui/MenuPage/findATechnician/ServiceWorkScreen.dart';
 import 'package:Voltgo_app/utils/OneSignalService.dart';
 import 'package:Voltgo_app/utils/TokenStorage.dart';
 import 'package:Voltgo_app/utils/VehicleRegistrationDialog.dart';
+import 'package:Voltgo_app/utils/bottom_nav.dart';
+import 'package:Voltgo_app/utils/constants.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -569,7 +574,7 @@ Future<void> _initializeApp() async {
           _buildCompactNavigationOption(
             icon: Icons.map,
             title: 'Google Maps',
-            subtitle: 'Navegación con tráfico',
+            subtitle:  localizations.navigationWithTraffic,
             color: Colors.blue,
             onTap: () async {
               Navigator.pop(context);
@@ -580,7 +585,7 @@ Future<void> _initializeApp() async {
           _buildCompactNavigationOption(
             icon: Icons.directions_car,
             title: 'Waze',
-            subtitle: 'Rutas optimizadas',
+            subtitle:  localizations.optimizedRoutes,
             color: Colors.purple,
             onTap: () async {
               Navigator.pop(context);
@@ -604,7 +609,7 @@ Future<void> _initializeApp() async {
               ),
             ),
             child: Text(
-              'Cancelar',
+localizations.cancel,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -1143,36 +1148,56 @@ Future<void> _initializeApp() async {
     }
   }
 
-// ✅ NUEVO: Método para crear ServiceRequestModel desde datos crudos
-  ServiceRequestModel _createServiceRequestFromRawData(
-      Map<String, dynamic> rawRequest, ServiceRequestModel statusData) {
-    return ServiceRequestModel(
-      id: rawRequest['id'],
-      userId: rawRequest['user_id'],
-      technicianId: statusData.technicianId,
-      status: statusData.status,
-      requestLat: double.parse(rawRequest['request_lat'].toString()),
-      requestLng: double.parse(rawRequest['request_lng'].toString()),
-      estimatedCost: statusData.estimatedCost,
-      finalCost: statusData.finalCost,
-      requestedAt: statusData.requestedAt,
-      acceptedAt: statusData.acceptedAt,
-      completedAt: statusData.completedAt,
-      user: statusData.user ??
-          UserModel(
-            id: rawRequest['user_id'],
-            name: rawRequest['user_name'] ?? 'Cliente',
-            email: '',
-            userType: 'user',
-          ),
-      technician: statusData.technician,
-      // ✅ PROPIEDADES específicas para UI del técnico
-      clientName: rawRequest['user_name'] ?? 'Cliente',
-      formattedDistance: rawRequest['distance'] ?? '0 km',
-      formattedEarnings:
-          '\$${double.parse(rawRequest['base_cost']?.toString() ?? '5.00').toStringAsFixed(2)}',
-    );
+
+// ✅ MÉTODO CORREGIDO: _createServiceRequestFromRawData
+ServiceRequestModel _createServiceRequestFromRawData(
+    Map<String, dynamic> rawRequest, ServiceRequestModel statusData) {
+  
+  print("🔧 _createServiceRequestFromRawData - Datos recibidos:");
+  print("   rawRequest: $rawRequest");
+  print("   statusData.clientVehicle: ${statusData.clientVehicle}");
+  
+  // ✅ IMPORTANTE: Usar statusData.clientVehicle en lugar de intentar parsearlo de rawRequest
+  final clientVehicle = statusData.clientVehicle;
+  
+  print("🔧 clientVehicle que se va a usar: $clientVehicle");
+  if (clientVehicle != null) {
+    print("🔧 Vehículo: ${clientVehicle.make} ${clientVehicle.model} ${clientVehicle.year}");
   }
+
+  final serviceRequest = ServiceRequestModel(
+    id: rawRequest['id'],
+    userId: rawRequest['user_id'],
+    technicianId: statusData.technicianId,
+    status: statusData.status,
+    requestLat: double.parse(rawRequest['request_lat'].toString()),
+    requestLng: double.parse(rawRequest['request_lng'].toString()),
+    estimatedCost: statusData.estimatedCost,
+    finalCost: statusData.finalCost,
+    requestedAt: statusData.requestedAt,
+    acceptedAt: statusData.acceptedAt,
+    completedAt: statusData.completedAt,
+    user: statusData.user ??
+        UserModel(
+          id: rawRequest['user_id'],
+          name: rawRequest['user_name'] ?? 'Cliente',
+          email: '',
+          userType: 'user',
+        ),
+    technician: statusData.technician,
+    // ✅ CRÍTICO: Usar el clientVehicle de statusData
+    clientVehicle: clientVehicle,
+    // UI específica para técnico
+    clientName: rawRequest['user_name'] ?? 'Cliente',
+    formattedDistance: rawRequest['distance'] ?? '0 km',
+    formattedEarnings:
+        '\$${double.parse(rawRequest['base_cost']?.toString() ?? '5.00').toStringAsFixed(2)}',
+  );
+
+  print("🔧 ServiceRequestModel creado - clientVehicle final: ${serviceRequest.clientVehicle}");
+  
+  return serviceRequest;
+}
 
   void _cleanupUnavailableRequests() {
     Timer(const Duration(minutes: 2), () {
@@ -1550,7 +1575,14 @@ void _showErrorNotification(String message) {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const BottomNavBar()),
+          );            },
+
+
+
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1559,7 +1591,7 @@ void _showErrorNotification(String message) {
               ),
             ),
             child: Text(
-              'Entendido',
+              'Ok',
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -1766,19 +1798,7 @@ void _showErrorNotification(String message) {
       }
     });
   }
-
-  Future<void> _loadEarnings() async {
-    try {
-      final summary = await EarningsService.getEarningsSummary();
-      if (summary != null && mounted) {
-        setState(() {
-          _earningsSummary = summary;
-        });
-      }
-    } catch (e) {
-      print('❌ Error cargando ganancias: $e');
-    }
-  }
+ 
 
 // ✅ SOLUCIÓN 2: Ajustar el build method para más espacio
   @override
@@ -2128,18 +2148,7 @@ void _showErrorNotification(String message) {
                       value: todayServices.toString(),
                       iconColor: AppColors.warning,
                     ),
-                    Container(
-                      width: 1,
-                      height: 30,
-                      margin: const EdgeInsets.symmetric(horizontal: 12),
-                      color: AppColors.textOnPrimary.withOpacity(0.15),
-                    ),
-                    _buildCompactStat(
-                      icon: Icons.star,
-                      label: 'Rating',
-                      value: todayRating.toStringAsFixed(1),
-                      iconColor: AppColors.warning,
-                    ),
+              
                   ],
                 ),
               ],
@@ -2150,22 +2159,225 @@ void _showErrorNotification(String message) {
     );
   }
 
-  void _refreshServiceData() async {
-    try {
-      // ✅ CORREGIDO: Usar _currentRequest en lugar de _activeRequest
-      if (_currentRequest != null) {
-        final updatedRequest =
-            await ServiceRequestService.getRequestStatus(_currentRequest!.id);
-        setState(() {
-          _currentRequest = updatedRequest; // ✅ Actualizar _currentRequest
-          // También actualizar _activeServiceRequest si es necesario
-          _activeServiceRequest = updatedRequest;
-        });
-      }
-    } catch (e) {
-      print('Error refreshing service data: $e');
+  
+void _refreshServiceData() async {
+  try {
+    // Actualizar el request actual
+    if (_currentRequest != null) {
+      final updatedRequest = await ServiceRequestService.getRequestStatus(_currentRequest!.id);
+      setState(() {
+        _currentRequest = updatedRequest;
+        _activeServiceRequest = updatedRequest;
+      });
     }
+
+    // ✅ USAR EL MÉTODO CONSISTENTE QUE YA FUNCIONA
+    await _loadEarnings(); // En lugar de _loadEarningsSummary()
+    
+  } catch (e) {
+    print('Error refreshing service data: $e');
   }
+}
+
+/// MÉTODO 1: _loadEarnings (usando EarningsService)
+Future<void> _loadEarnings() async {
+  print('🔄 === INICIANDO _loadEarnings() ===');
+  print('📅 Timestamp: ${DateTime.now().toIso8601String()}');
+  
+  try {
+    print('🔍 Llamando EarningsService.getEarningsSummary()...');
+    
+    final summary = await EarningsService.getEarningsSummary();
+    
+    print('📡 Respuesta de EarningsService: $summary');
+    print('📊 Tipo de dato recibido: ${summary.runtimeType}');
+    
+    if (summary != null) {
+      print('✅ Summary no es null');
+      
+      // Analizar estructura de datos
+      if (summary is Map) {
+        print('🗂️ Keys disponibles en summary: ${summary.keys.toList()}');
+        
+        if (summary.containsKey('today')) {
+          print('📅 Datos de "today" encontrados: ${summary['today']}');
+          
+          final todayData = summary['today'];
+          if (todayData is Map) {
+            print('🗂️ Keys en "today": ${todayData.keys.toList()}');
+            
+            // Analizar cada campo
+            final earnings = todayData['earnings'];
+            final services = todayData['services'];
+            final rating = todayData['rating'];
+            
+            print('💰 earnings raw: $earnings (${earnings.runtimeType})');
+            print('⚡ services raw: $services (${services.runtimeType})');
+            print('⭐ rating raw: $rating (${rating.runtimeType})');
+            
+            // Conversiones
+            final todayEarnings = double.tryParse(earnings?.toString() ?? '0') ?? 0.0;
+            final todayServices = int.tryParse(services?.toString() ?? '0') ?? 0;
+            final todayRating = double.tryParse(rating?.toString() ?? '5.0') ?? 5.0;
+            
+            print('💰 earnings convertido: $todayEarnings');
+            print('⚡ services convertido: $todayServices');
+            print('⭐ rating convertido: $todayRating');
+          }
+        } else {
+          print('❌ No hay key "today" en summary');
+        }
+      }
+      
+      if (mounted) {
+        print('✅ Widget está mounted, actualizando estado...');
+        
+        // Guardar estado anterior para comparación
+        final oldEarnings = _earningsSummary;
+        print('📊 Estado anterior: $oldEarnings');
+        
+        setState(() {
+          _earningsSummary = summary;
+        });
+        
+        print('✅ Estado actualizado con _loadEarnings()');
+        print('📊 Nuevo estado: $_earningsSummary');
+        
+        // Verificar valores finales después del setState
+        final finalTodayRating = double.tryParse(
+            _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ?? 5.0;
+        print('⭐ Rating FINAL después de setState: $finalTodayRating');
+        
+      } else {
+        print('❌ Widget no está mounted, no se actualiza estado');
+      }
+    } else {
+      print('❌ Summary es null desde EarningsService');
+    }
+  } catch (e) {
+    print('❌ Error en _loadEarnings(): $e');
+    print('📍 Stack trace: ${StackTrace.current}');
+  }
+  
+  print('🏁 === FINALIZANDO _loadEarnings() ===\n');
+}
+
+/// MÉTODO 2: _loadEarningsSummary (usando HTTP directo)
+Future<void> _loadEarningsSummary() async {
+  print('🔄 === INICIANDO _loadEarningsSummary() ===');
+  print('📅 Timestamp: ${DateTime.now().toIso8601String()}');
+  
+  try {
+    print('🔐 Obteniendo token...');
+    final token = await TokenStorage.getToken();
+    
+    if (token == null) {
+      print('❌ No hay token disponible para cargar ganancias');
+      return;
+    }
+    
+    print('✅ Token obtenido: ${token.substring(0, 20)}...');
+    
+    final url = Uri.parse('${Constants.baseUrl}/technician/earnings/summary');
+    print('🌐 URL del endpoint: $url');
+    
+    final headers = {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+    print('📋 Headers: $headers');
+
+    print('🚀 Enviando request HTTP...');
+    final response = await http.get(url, headers: headers);
+    
+    print('📡 Response status: ${response.statusCode}');
+    print('📝 Response headers: ${response.headers}');
+    print('📄 Response body: ${response.body}');
+    
+    if (response.statusCode == 200) {
+      print('✅ Response exitoso, decodificando JSON...');
+      
+      final data = jsonDecode(response.body);
+      print('📊 Data decodificada: $data');
+      print('📊 Tipo de data: ${data.runtimeType}');
+      
+      if (data is Map) {
+        print('🗂️ Keys en data: ${data.keys.toList()}');
+        
+        if (data.containsKey('today')) {
+          print('📅 Datos de "today": ${data['today']}');
+          
+          final todayData = data['today'];
+          if (todayData is Map) {
+            print('🗂️ Keys en "today": ${todayData.keys.toList()}');
+            
+            // Analizar cada campo
+            final earnings = todayData['earnings'];
+            final services = todayData['services'];
+            final rating = todayData['rating'];
+            
+            print('💰 earnings raw: $earnings (${earnings.runtimeType})');
+            print('⚡ services raw: $services (${services.runtimeType})');
+            print('⭐ rating raw: $rating (${rating.runtimeType})');
+            
+            // Conversiones
+            final todayEarnings = double.tryParse(earnings?.toString() ?? '0') ?? 0.0;
+            final todayServices = int.tryParse(services?.toString() ?? '0') ?? 0;
+            final todayRating = double.tryParse(rating?.toString() ?? '5.0') ?? 5.0;
+            
+            print('💰 earnings convertido: $todayEarnings');
+            print('⚡ services convertido: $todayServices');
+            print('⭐ rating convertido: $todayRating');
+          }
+        } else {
+          print('❌ No hay key "today" en data');
+        }
+      }
+      
+      if (mounted) {
+        print('✅ Widget está mounted, actualizando estado...');
+        
+        // Guardar estado anterior para comparación
+        final oldEarnings = _earningsSummary;
+        print('📊 Estado anterior: $oldEarnings');
+        
+        setState(() {
+          _earningsSummary = data;
+        });
+        
+        print('✅ Estado actualizado con _loadEarningsSummary()');
+        print('📊 Nuevo estado: $_earningsSummary');
+        
+        // Verificar valores finales después del setState
+        final finalTodayRating = double.tryParse(
+            _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ?? 5.0;
+        print('⭐ Rating FINAL después de setState: $finalTodayRating');
+        
+      } else {
+        print('❌ Widget no está mounted, no se actualiza estado');
+      }
+      
+    } else {
+      print('❌ Error HTTP: ${response.statusCode}');
+      print('📝 Error body: ${response.body}');
+      
+      // Intentar decodificar error
+      try {
+        final errorData = jsonDecode(response.body);
+        print('📊 Error data: $errorData');
+      } catch (e) {
+        print('❌ No se pudo decodificar error: $e');
+      }
+    }
+  } catch (e) {
+    print('❌ Excepción en _loadEarningsSummary(): $e');
+    print('📍 Stack trace: ${StackTrace.current}');
+  }
+  
+  print('🏁 === FINALIZANDO _loadEarningsSummary() ===\n');
+}
+  
+ 
 
 // ✅ MÉTODO _openChat ACTUALIZADO PARA MARCAR COMO LEÍDO
 // En DriverDashboardScreen
@@ -2486,7 +2698,7 @@ Widget _buildActiveServicePanel() {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.navigation, size: 16),
                 label: Text(
-                  'Abrir en Maps',
+                  localizations.openInMaps,
                   style: GoogleFonts.inter(
                       fontSize: 14, fontWeight: FontWeight.bold),
                 ),
@@ -2563,7 +2775,7 @@ Widget _buildActiveServicePanel() {
                 color: Colors.white,
               ),
               label: Text(
-                "SEGUIMIENTO EN TIEMPO REAL",
+                localizations.realTimeTracking,
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
