@@ -661,9 +661,7 @@ static final Map<String, Map<String, String>> localizedValues = {
       'enterColor': 'Enter a color',
       'vehicleRegistrationError': 'Error registering vehicle',
       'vehicleRegistered': 'Vehicle Registered!',
-      'vehicleRegisteredSuccess':
-          'Your vehicle has been registered successfully.',
-      'continueText': 'Continue',
+       'continueText': 'Continue',
       'selectBrandMessage': 'Please select a brand',
       'enterModelMessage': 'Please enter the model',
       'enterYearMessage': 'Please enter the year',
@@ -1395,9 +1393,7 @@ static final Map<String, Map<String, String>> localizedValues = {
       'colorHint': 'Ej: Dorado, Morado',
       'enterColor': 'Ingresa un color',
       'vehicleRegistrationError': 'Error al registrar el vehículo',
-      'vehicleRegistered': '¡Vehículo Registrado!',
-      'vehicleRegisteredSuccess':
-          'Tu vehículo ha sido registrado exitosamente.',
+      'vehicleRegistered': '¡Vehículo Registrado!', 
       'continueText': 'Continuar',
             'politicadeprivacidad': 'Política de privacidad',
 

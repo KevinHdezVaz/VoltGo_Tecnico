@@ -462,8 +462,10 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     
     showDialog(
       context: context,
+
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [

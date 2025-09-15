@@ -223,14 +223,8 @@ String _getClientVehicleInfo() {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                _buildCompactStat(
-                                  '\$${widget.serviceRequest.estimatedEarnings.toStringAsFixed(0)}',
-                                  l10n.accept,
-                                  Icons.attach_money,
-                                  Colors.green,
-                                ),
-                                _buildVerticalDivider(),
-                                _buildCompactStat(
+                                
+                                 _buildCompactStat(
                                   '${widget.serviceRequest.distanceKm.toStringAsFixed(1)} km',
                                   l10n.distance,
                                   Icons.near_me,

@@ -18,6 +18,7 @@ import 'package:Voltgo_app/utils/VehicleRegistrationDialog.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:Voltgo_app/utils/constants.dart';
 import 'package:http/http.dart' as http;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,10 +50,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   StreamSubscription<LocationData>? _locationSubscription;
   Timer? _requestCheckTimer;
 
- // ✅ NUEVAS variables para OneSignal
+  // ✅ NUEVAS variables para OneSignal
   StreamSubscription? _newRequestSubscription;
   StreamSubscription? _serviceCancelledSubscription;
   StreamSubscription? _statusUpdateSubscription;
+  bool _isProcessingRequest = false;
+
+// En _DriverDashboardScreenState, agregar estas variables:
+
+bool _hasArrivedAtDestination = false;
+Timer? _arrivalDetectionTimer;
 
   Timer?
       _statusCheckTimer; // NUEVO: Timer para verificar el estado de la solicitud actual
@@ -70,12 +77,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     super.initState();
     _logic = DashboardLogic();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      OneSignalService.setContext(context);
+    });
 
-
- WidgetsBinding.instance.addPostFrameCallback((_) {
-    OneSignalService.setContext(context);
-  });
-  
     _setupOneSignalListeners();
 
     Timer.periodic(const Duration(seconds: 10), (timer) async {
@@ -109,22 +114,22 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   @override
   void dispose() {
     _logic.dispose();
- 
- 
-   NotificationService.stop().then((_) {
-    NotificationService.dispose();
-  });
-  
 
-     _newRequestSubscription?.cancel();
+    NotificationService.stop().then((_) {
+      NotificationService.dispose();
+    });
+
+    _newRequestSubscription?.cancel();
     _serviceCancelledSubscription?.cancel();
     _statusUpdateSubscription?.cancel();
-    
+
     // ✅ NUEVO: Informar al backend que la app está cerrándose
     OneSignalService.updateAppState('background').catchError((e) {
       print('Error actualizando estado al cerrar: $e');
     });
-    
+
+  _arrivalDetectionTimer?.cancel();
+
 
     _stopLocationTracking();
     _stopRequestChecker();
@@ -158,164 +163,199 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
-Future<void> _initializeApp() async {
-  setState(() => _isLoading = true);
+  Future<void> _initializeApp() async {
+    setState(() => _isLoading = true);
 
-  // Reinicializar NotificationService
-  NotificationService.reinitialize();
-
-  try {
-    final profile = await TechnicianService.getProfile();
-    final user = profile['user'];
-    final bool hasVehicle = user['has_registered_vehicle'] == 1;
+    // Reinicializar NotificationService
+    NotificationService.reinitialize();
 
     try {
-      final userId = user['id']?.toString();
-      final token = await TokenStorage.getToken();
-      
-      if (userId != null && token != null) {
-        await OneSignalService.setAuthenticatedUser(userId, token);
-        print('OneSignal configurado en _initializeApp - Usuario: $userId');
-        
-        // ✅ NUEVO: Verificar después de un delay si no se registró inmediatamente
-        OneSignalService.checkRegistrationAfterDelay();
+      final profile = await TechnicianService.getProfile();
+      final user = profile['user'];
+      final bool hasVehicle = user['has_registered_vehicle'] == 1;
+
+      try {
+        final userId = user['id']?.toString();
+        final token = await TokenStorage.getToken();
+
+        if (userId != null && token != null) {
+          await OneSignalService.setAuthenticatedUser(userId, token);
+          print('OneSignal configurado en _initializeApp - Usuario: $userId');
+
+          // ✅ NUEVO: Verificar después de un delay si no se registró inmediatamente
+          OneSignalService.checkRegistrationAfterDelay();
+        }
+      } catch (e) {
+        print('Error configurando OneSignal en _initializeApp: $e');
       }
-    } catch (e) {
-      print('Error configurando OneSignal en _initializeApp: $e');
-    }
-    
 
-    // Si no tiene vehículo, lo manda a registrarlo (lógica existente)
-    if (!hasVehicle && mounted) {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => VehicleRegistrationScreen(
-          onVehicleRegistered: () => _initializeApp(),
-        ),
-      ));
-      setState(() => _isLoading = false);
-      return;
-    }
+      // Si no tiene vehículo, lo manda a registrarlo (lógica existente)
+      if (!hasVehicle && mounted) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => VehicleRegistrationScreen(
+            onVehicleRegistered: () => _initializeApp(),
+          ),
+        ));
+        setState(() => _isLoading = false);
+        return;
+      }
 
-    // 1. Leer el estado guardado desde el perfil del técnico
-    final serverStatus = profile['status'] ?? 'offline';
-    final bool isOnline = serverStatus == 'available';
+      // 1. Leer el estado guardado desde el perfil del técnico
+      final serverStatus = profile['status'] ?? 'offline';
+      final bool isOnline = serverStatus == 'available';
 
-    // ✅ VERIFICAR SERVICIO ACTIVO ANTES DE ESTABLECER EL ESTADO
-    bool hasActiveService = false;
-    if (isOnline) {
-      await _checkForActiveService();
-      hasActiveService = _activeServiceRequest != null;
-    }
+      // ✅ VERIFICAR SERVICIO ACTIVO ANTES DE ESTABLECER EL ESTADO
+      bool hasActiveService = false;
+      if (isOnline) {
+        await _checkForActiveService();
+        hasActiveService = _activeServiceRequest != null;
+      }
 
-    // 2. Establecer el estado inicial solo si NO hay servicio activo
-    if (!hasActiveService) {
-      setState(() {
-        _driverStatus = isOnline ? DriverStatus.online : DriverStatus.offline;
-      });
-    }
-
-    // 3. Iniciar servicios según el estado
-    if (isOnline) {
-      _startLocationTracking();
+      // 2. Establecer el estado inicial solo si NO hay servicio activo
       if (!hasActiveService) {
-        _startRequestChecker();
-      }
-    }
-
-    // Cargar el mapa (lógica existente)
-    final position = await _logic.getCurrentUserPosition();
-    if (position != null && mounted) {
-      final latLng = LatLng(position.latitude!, position.longitude!);
-      setState(() {
-        _logic.initialCameraPosition =
-            CameraPosition(target: latLng, zoom: 16.0);
-        _logic.updateUserMarker(latLng);
-      });
-      _centerMapOnUser(latLng);
-    }
-
-    // ✅ CARGAR GANANCIAS AL INICIALIZAR
-    await _loadEarnings();
-  } catch (e) {
-    final localizations = AppLocalizations.of(context);
-    _showErrorSnackbar('${localizations.errorLoadingData}: $e');
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
-  }
-}    
-
-  Future<void> _checkForActiveService() async {
-    try {
-      print("🔍 Verificando si hay servicio activo al iniciar...");
-
-      final response = await TechnicianService.getActiveService();
-
-      if (response != null && response['has_active_service'] == true) {
-        final serviceData = response['active_service'];
-
-        print(
-            "🎯 Servicio activo encontrado: ${serviceData['id']} - ${serviceData['status']}");
-
-        final activeService = ServiceRequestModel.fromJson(serviceData);
-
         setState(() {
-          _activeServiceRequest = activeService;
-          _currentRequest = activeService;
-          _lastActiveServiceStatus = activeService.status;
+          _driverStatus = isOnline ? DriverStatus.online : DriverStatus.offline;
+        });
+      }
+
+      // 3. Iniciar servicios según el estado
+      if (isOnline) {
+        _startLocationTracking();
+        if (!hasActiveService) {
+          _startRequestChecker();
+        }
+      }
+
+      // Cargar el mapa (lógica existente)
+      final position = await _logic.getCurrentUserPosition();
+      if (position != null && mounted) {
+        final latLng = LatLng(position.latitude!, position.longitude!);
+        setState(() {
+          _logic.initialCameraPosition =
+              CameraPosition(target: latLng, zoom: 16.0);
+          _logic.updateUserMarker(latLng);
+        });
+        _centerMapOnUser(latLng);
+      }
+
+      // ✅ CARGAR GANANCIAS AL INICIALIZAR
+      await _loadEarnings();
+    } catch (e) {
+      final localizations = AppLocalizations.of(context);
+      _showErrorSnackbar('${localizations.errorLoadingData}: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+Future<void> _checkForActiveService() async {
+  try {
+    print("🔍 Verificando si hay servicio activo al iniciar...");
+
+    final response = await TechnicianService.getActiveService();
+
+    if (response != null && response['has_active_service'] == true) {
+      final serviceData = response['active_service'];
+
+      print(
+          "🎯 Servicio activo encontrado: ${serviceData['id']} - ${serviceData['status']}");
+
+      final activeService = ServiceRequestModel.fromJson(serviceData);
+
+      setState(() {
+        _activeServiceRequest = activeService;
+        _currentRequest = activeService;
+        _lastActiveServiceStatus = activeService.status;
+      });
+
+      // ✅ REDIRIGIR SEGÚN EL ESTADO DEL SERVICIO
+      if (activeService.status == 'on_site' ||
+          activeService.status == 'charging') {
+        // Si está en el sitio o cargando, ir directo a ServiceWorkScreen
+        print(
+            "🏠 Servicio en sitio/cargando - navegando a ServiceWorkScreen");
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ServiceWorkScreen(
+              serviceRequest: activeService,
+              onServiceComplete: () {
+                // ✅ VERIFICAR mounted ANTES DE setState
+                if (mounted) {
+                  setState(() {
+                    _driverStatus = DriverStatus.online;
+                    _activeServiceRequest = null;
+                    _currentRequest = null;
+                    _lastActiveServiceStatus = null;
+                  });
+                  _loadEarnings(); // Recargar ganancias
+                }
+              },
+            ),
+          ),
+        );
+
+        return; // Salir temprano para evitar establecer estados de UI
+      } else {
+        // Para otros estados (accepted, en_route), mostrar dashboard normal
+        setState(() {
+          switch (activeService.status) {
+            case 'accepted':
+            case 'en_route':
+              _driverStatus = DriverStatus.enRouteToUser;
+              break;
+            default:
+              _driverStatus = DriverStatus.online;
+          }
         });
 
-        // ✅ REDIRIGIR SEGÚN EL ESTADO DEL SERVICIO
-        if (activeService.status == 'on_site' ||
-            activeService.status == 'charging') {
-          // Si está en el sitio o cargando, ir directo a ServiceWorkScreen
-          print(
-              "🏠 Servicio en sitio/cargando - navegando a ServiceWorkScreen");
-
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => ServiceWorkScreen(
-                serviceRequest: activeService,
-                onServiceComplete: () {
-                  // ✅ VERIFICAR mounted ANTES DE setState
-                  if (mounted) {
-                    setState(() {
-                      _driverStatus = DriverStatus.online;
-                      _activeServiceRequest = null;
-                      _currentRequest = null;
-                      _lastActiveServiceStatus = null;
-                    });
-                    _loadEarnings(); // Recargar ganancias
-                  }
-                },
-              ),
-            ),
-          );
-
-          return; // Salir temprano para evitar establecer estados de UI
-        } else {
-          // Para otros estados (accepted, en_route), mostrar dashboard normal
-          setState(() {
-            switch (activeService.status) {
-              case 'accepted':
-              case 'en_route':
-                _driverStatus = DriverStatus.enRouteToUser;
-                break;
-              default:
-                _driverStatus = DriverStatus.online;
-            }
-          });
+        // ✅ VERIFICAR SI YA LLEGÓ AL INICIALIZAR
+        if (activeService.status == 'accepted' || activeService.status == 'en_route') {
+          await _checkIfAlreadyArrived();
+          _startArrivalDetection();
         }
-
-        _startActiveServiceMonitoring();
-        print("✅ Servicio activo restaurado: ${activeService.status}");
-        return;
-      } else {
-        print("ℹ️ No hay servicio activo al iniciar");
       }
-    } catch (e) {
-      print("❌ Error verificando servicio activo: $e");
+
+      _startActiveServiceMonitoring();
+      print("✅ Servicio activo restaurado: ${activeService.status}");
+      return;
+    } else {
+      print("ℹ️ No hay servicio activo al iniciar");
     }
+  } catch (e) {
+    print("❌ Error verificando servicio activo: $e");
   }
+}
+Future<void> _checkIfAlreadyArrived() async {
+  if (_currentRequest == null) return;
+  
+  try {
+    final currentLocation = await _location.getLocation();
+    if (currentLocation.latitude != null && currentLocation.longitude != null) {
+      
+      final distanceToClient = _calculateDistance(
+        LatLng(currentLocation.latitude!, currentLocation.longitude!),
+        LatLng(_currentRequest!.requestLat, _currentRequest!.requestLng),
+      );
+      
+      print("📍 Distancia al cliente al inicializar: ${distanceToClient.toStringAsFixed(2)} km");
+      
+      // Si está cerca del cliente (menos de 100 metros), mostrar diálogo inmediatamente
+      if (distanceToClient < 0.1) {
+        print("🎯 Técnico ya está cerca del cliente, mostrando diálogo de llegada");
+        
+        // Usar un delay pequeño para que la UI se estabilice
+        Timer(const Duration(seconds: 2), () {
+          if (mounted && _currentRequest != null) {
+            _showArrivalDialog();
+          }
+        });
+      }
+    }
+  } catch (e) {
+    print("❌ Error verificando llegada inicial: $e");
+  }
+}
 
   Future<void> _centerMapOnUser(LatLng position) async {
     final GoogleMapController controller = await _logic.mapController.future;
@@ -330,7 +370,8 @@ Future<void> _initializeApp() async {
     try {
       await TechnicianService.updateStatus(newStatus);
 
-      await OneSignalService.updateAppState(isOnline ? 'foreground' : 'background');
+      await OneSignalService.updateAppState(
+          isOnline ? 'foreground' : 'background');
 
       setState(() {
         _driverStatus = isOnline ? DriverStatus.online : DriverStatus.offline;
@@ -364,123 +405,227 @@ Future<void> _initializeApp() async {
 
   // Reemplaza tu método _startRequestChecker con este:
 
-  void _startRequestChecker() {
+ void _startRequestChecker() {
     _stopRequestChecker();
-    _requestCheckTimer =
-        Timer.periodic(const Duration(seconds: 5), (timer) async {
-      if (_isDialogShowing || _driverStatus != DriverStatus.online) return;
+    _requestCheckTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      // ✅ VERIFICAR MÚLTIPLES CONDICIONES
+      if (_isDialogShowing || 
+          _isProcessingRequest || // ✅ NUEVO
+          _driverStatus != DriverStatus.online) {
+        return;
+      }
 
       print("🔄 Buscando nuevas solicitudes...");
 
       try {
-        final List<Map<String, dynamic>> rawRequests =
-            await TechnicianService.checkForNewRequests();
-
-        // ✅ FILTRAR solicitudes que ya sabemos que no están disponibles
-        final availableRequests = rawRequests
-            .where((request) => !_unavailableRequestIds.contains(request['id']))
-            .toList();
-
-        if (availableRequests.isNotEmpty && mounted) {
-          final rawRequest = availableRequests.first;
-
-      
-        try {
-          await NotificationService.playIncomingRequestNotification();
-          print('🎵📳 Notificación de solicitud entrante iniciada');
-        } catch (e) {
-          print('⚠️ No se pudo reproducir la notificación: $e');
-        }
-
-          print(
-              "🎯 Nueva solicitud encontrada: ID ${rawRequest['id']}, Cliente: ${rawRequest['user_name']}, Distancia: ${rawRequest['distance']}");
-
-          // ✅ VERIFICAR que la solicitud sigue siendo válida
-          final status =
-              await TechnicianService.getRequestStatus(rawRequest['id']);
-
-          if (status == null) {
-            print(
-                "⚠️ Solicitud ${rawRequest['id']} ya no está disponible, agregando a lista de no disponibles");
-            _unavailableRequestIds.add(rawRequest['id']);
-            return;
-          }
-
-          if (status.status != 'pending') {
-            print(
-                "⚠️ Solicitud ${rawRequest['id']} no está pendiente (${status.status}), ignorando...");
-            _unavailableRequestIds.add(rawRequest['id']);
-            return;
-          }
-
-          // Verificar que no estemos ya mostrando esta solicitud
-          if (_currentRequest != null &&
-              _currentRequest!.id == rawRequest['id']) {
-            print("⚠️ Ya se está mostrando esta solicitud, ignorando...");
-            return;
-          }
-
-          // ✅ CREAR ServiceRequestModel desde los datos crudos
-          final newRequest =
-              _createServiceRequestFromRawData(rawRequest, status);
-
-          _isDialogShowing = true;
-          timer.cancel();
-
-          setState(() {
-            _currentRequest = newRequest;
-            _driverStatus = DriverStatus.incomingRequest;
-          });
-
-          _startStatusChecker();
-
-         try {
-  final bool? accepted = await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => IncomingRequestDialog(serviceRequest: newRequest),
-  );
-
-  // ✅ SIEMPRE detener el sonido cuando el diálogo se cierre
-  try {
-    await NotificationService.stop();
-    print('🔇 Sonido detenido después de cerrar diálogo');
-  } catch (e) {
-    print('⚠️ Error deteniendo sonido después de diálogo: $e');
-  }
-
-  _stopStatusChecker();
-
-  // Procesar la respuesta
-  if (accepted == true) {
-    _acceptRequest(newRequest.id);
-  } else {
-    // Tanto false como null se tratan como rechazo
-    _rejectRequest(newRequest.id);
-  }
-
-} catch (e) {
-  // En caso de error, también detener el sonido
-  print("❌ Error en showDialog: $e");
-  try {
-    await NotificationService.stop();
-  } catch (stopError) {
-    print('⚠️ Error deteniendo sonido después de error: $stopError');
-  }
-}
-
-          _isDialogShowing = false;
-          _startRequestChecker();
-        }
+        await _processNewRequests(playSound: true); // ✅ EXTRAER LÓGICA COMÚN
       } catch (e) {
         print("❌ Error en _startRequestChecker: $e");
-        // ✅ Si es error de autorización, limpiar lista de no disponibles después de un tiempo
         if (e.toString().contains('No autorizado')) {
           _cleanupUnavailableRequests();
         }
       }
     });
   }
+
+
+  /// ✅ NUEVO: Lógica común para procesar solicitudes
+  Future<void> _processNewRequests({required bool playSound}) async {
+    if (_isProcessingRequest || _isDialogShowing) {
+      print("⚠️ Ya se está procesando una solicitud, ignorando...");
+      return;
+    }
+
+    // ✅ MARCAR COMO PROCESANDO INMEDIATAMENTE
+    setState(() {
+      _isProcessingRequest = true;
+    });
+
+    try {
+      final List<Map<String, dynamic>> rawRequests =
+          await TechnicianService.checkForNewRequests();
+
+      final availableRequests = rawRequests
+          .where((request) => !_unavailableRequestIds.contains(request['id']))
+          .toList();
+
+      if (availableRequests.isNotEmpty && mounted) {
+        final rawRequest = availableRequests.first;
+
+        // ✅ REPRODUCIR SONIDO SOLO SI SE SOLICITA
+        if (playSound) {
+          try {
+            await NotificationService.playIncomingRequestNotification();
+            print('🎵📳 Notificación de solicitud entrante iniciada');
+          } catch (e) {
+            print('⚠️ No se pudo reproducir la notificación: $e');
+          }
+        }
+
+        print("🎯 Nueva solicitud encontrada: ID ${rawRequest['id']}");
+
+        // Verificar que la solicitud sigue siendo válida
+        final status = await TechnicianService.getRequestStatus(rawRequest['id']);
+
+        if (status == null || status.status != 'pending') {
+          print("⚠️ Solicitud ${rawRequest['id']} ya no está pendiente");
+          _unavailableRequestIds.add(rawRequest['id']);
+          return;
+        }
+
+        // Verificar que no estemos ya mostrando esta solicitud
+        if (_currentRequest != null && _currentRequest!.id == rawRequest['id']) {
+          print("⚠️ Ya se está mostrando esta solicitud, ignorando...");
+          return;
+        }
+
+        // ✅ DETENER POLLING TEMPORALMENTE
+        _stopRequestChecker();
+
+        final newRequest = _createServiceRequestFromRawData(rawRequest, status);
+
+        // ✅ ACTUALIZAR ESTADOS DE FORMA ATÓMICA
+        setState(() {
+          _isDialogShowing = true;
+          _currentRequest = newRequest;
+          _driverStatus = DriverStatus.incomingRequest;
+        });
+
+        _startStatusChecker();
+
+        try {
+          final bool? accepted = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => IncomingRequestDialog(serviceRequest: newRequest),
+          );
+
+          // ✅ DETENER SONIDO INDEPENDIENTEMENTE DEL RESULTADO
+          if (playSound) {
+            try {
+              await NotificationService.stop();
+              print('🔇 Sonido detenido después de cerrar diálogo');
+            } catch (e) {
+              print('⚠️ Error deteniendo sonido después de diálogo: $e');
+            }
+          }
+
+          _stopStatusChecker();
+
+          // Procesar la respuesta
+          if (accepted == true) {
+            await _acceptRequest(newRequest.id);
+          } else {
+            await _rejectRequest(newRequest.id);
+          }
+
+        } catch (e) {
+          print("❌ Error en showDialog: $e");
+          if (playSound) {
+            try {
+              await NotificationService.stop();
+            } catch (stopError) {
+              print('⚠️ Error deteniendo sonido después de error: $stopError');
+            }
+          }
+        } finally {
+          // ✅ LIMPIAR ESTADOS AL FINAL
+          setState(() {
+            _isDialogShowing = false;
+            _isProcessingRequest = false;
+          });
+          
+          // ✅ REINICIAR POLLING SOLO SI SEGUIMOS ONLINE
+          if (_driverStatus == DriverStatus.online) {
+            _startRequestChecker();
+          }
+        }
+      }
+    } finally {
+      // ✅ GARANTIZAR QUE SIEMPRE SE LIMPIA EL ESTADO
+      if (mounted) {
+        setState(() {
+          _isProcessingRequest = false;
+        });
+      }
+    }
+  }
+
+
+
+// Cambiar de void a Future<void>
+Future<void> _acceptRequest(int requestId) async {
+  final localizations = AppLocalizations.of(context);
+
+  try {
+    await NotificationService.stop();
+    NotificationService.vibrateOnly(VibrationPattern.gentle);
+    print('🔇 Notificación detenida y feedback de aceptación enviado');
+  } catch (e) {
+    print('⚠️ Error al detener notificación: $e');
+  }
+
+  _stopRequestChecker();
+
+  setState(() {
+    _driverStatus = DriverStatus.enRouteToUser;
+    _isDialogShowing = false;
+    _isProcessingRequest = false;
+  });
+
+  try {
+    final success = await TechnicianService.acceptRequest(requestId);
+    if (success) {
+      _showSuccessSnackbar(localizations.requestAccepted);
+      await NotificationService.playGentleNotification();
+
+      _activeServiceRequest = _currentRequest;
+      _lastActiveServiceStatus = 'accepted';
+      _startActiveServiceMonitoring();
+      _unavailableRequestIds.clear();
+            _startArrivalDetection();
+
+      print("✅ Solicitud aceptada - _currentRequest: ${_currentRequest?.id}");
+    }
+  } catch (e) {
+    print("❌ Error aceptando solicitud: $e");
+    setState(() {
+      _driverStatus = DriverStatus.online;
+      _currentRequest = null;
+      _isProcessingRequest = false;
+    });
+    _startRequestChecker();
+    _showErrorSnackbar('Error al aceptar la solicitud: $e');
+  }
+}
+
+Future<void> _rejectRequest(int requestId) async {
+  try {
+    await NotificationService.stop();
+    print('🔇 Notificación detenida al rechazar solicitud');
+  } catch (e) {
+    print('⚠️ Error al detener notificación: $e');
+  }
+
+  try {
+    final success = await TechnicianService.rejectRequest(requestId);
+    if (success) {
+      print("✅ Solicitud $requestId rechazada exitosamente");
+    }
+  } catch (e) {
+    print("❌ Error al rechazar en el servidor: $e");
+    _unavailableRequestIds.add(requestId);
+  } finally {
+    setState(() {
+      _driverStatus = DriverStatus.online;
+      _currentRequest = null;
+      _isDialogShowing = false;
+      _isProcessingRequest = false;
+    });
+    
+    _startRequestChecker();
+  }
+}
 
 // ✅ SOLUCIÓN 3: Usar DraggableScrollableSheet (más avanzado)
   void _showNavigationOptions() {
@@ -574,7 +719,7 @@ Future<void> _initializeApp() async {
           _buildCompactNavigationOption(
             icon: Icons.map,
             title: 'Google Maps',
-            subtitle:  localizations.navigationWithTraffic,
+            subtitle: localizations.navigationWithTraffic,
             color: Colors.blue,
             onTap: () async {
               Navigator.pop(context);
@@ -585,7 +730,7 @@ Future<void> _initializeApp() async {
           _buildCompactNavigationOption(
             icon: Icons.directions_car,
             title: 'Waze',
-            subtitle:  localizations.optimizedRoutes,
+            subtitle: localizations.optimizedRoutes,
             color: Colors.purple,
             onTap: () async {
               Navigator.pop(context);
@@ -609,7 +754,7 @@ Future<void> _initializeApp() async {
               ),
             ),
             child: Text(
-localizations.cancel,
+              localizations.cancel,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -625,23 +770,299 @@ localizations.cancel,
   }
 
 
- void _setupOneSignalListeners() {
+// En _DriverDashboardScreenState, agregar este método:
+
+void _startArrivalDetection() {
+  _arrivalDetectionTimer?.cancel();
+  
+  _arrivalDetectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    if (_currentRequest == null || 
+        _driverStatus != DriverStatus.enRouteToUser) {
+      return;
+    }
+    
+    try {
+      final currentLocation = await _location.getLocation();
+      if (currentLocation.latitude != null && currentLocation.longitude != null) {
+        
+        final distanceToClient = _calculateDistance(
+          LatLng(currentLocation.latitude!, currentLocation.longitude!),
+          LatLng(_currentRequest!.requestLat, _currentRequest!.requestLng),
+        );
+        
+        // Si está a menos de 100 metros del cliente, mostrar diálogo
+        if (distanceToClient < 0.1) {
+          print("🎯 Técnico llegó cerca del cliente (${distanceToClient.toStringAsFixed(2)} km)");
+          timer.cancel();
+          _showArrivalDialog();
+        }
+      }
+    } catch (e) {
+      print('❌ Error en detección de llegada: $e');
+    }
+  });
+}
+
+void _handleArrivalAtDestination() {
+  if (!mounted) return;
+  
+  HapticFeedback.heavyImpact();
+  _showArrivalDialog();
+}
+
+// Método auxiliar para calcular distancia (igual que en RealTimeTrackingScreen)
+double _calculateDistance(LatLng point1, LatLng point2) {
+  const double earthRadius = 6371;
+  double lat1Rad = point1.latitude * (math.pi / 180);
+  double lat2Rad = point2.latitude * (math.pi / 180);
+  double deltaLatRad = (point2.latitude - point1.latitude) * (math.pi / 180);
+  double deltaLngRad = (point2.longitude - point1.longitude) * (math.pi / 180);
+
+  double a = math.sin(deltaLatRad / 2) * math.sin(deltaLatRad / 2) +
+      math.cos(lat1Rad) *
+          math.cos(lat2Rad) *
+          math.sin(deltaLngRad / 2) *
+          math.sin(deltaLngRad / 2);
+  double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+
+  return earthRadius * c;
+}
+
+
+
+// En _DriverDashboardScreenState, agregar este método:
+
+
+void _showArrivalDialog() {
+  final localizations = AppLocalizations.of(context);
+  final clientName = _currentRequest?.user?.name ?? 'Cliente';
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.location_on,
+              color: Colors.green,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              localizations.technicianArrivedTitle,
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${localizations.technicianArrivedMessage}\n\nCliente: $clientName',
+            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Siguiente paso:',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Confirma tu llegada para continuar con el servicio de carga.',
+                  style: GoogleFonts.inter(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.electric_bolt, color: Colors.green, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Al confirmar, podrás iniciar el proceso de carga del vehículo.',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        // Contenedor para organizar los botones con mejor espaciado
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Botón "No he llegado" - Ancho completo
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // ✅ REINICIAR detección sin variable de estado
+                    print("🔄 Usuario dice que no ha llegado, reiniciando detección");
+                    _startArrivalDetection();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.grey.shade400),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.close, size: 18, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Text(
+                        'No he llegado',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 12), // Espaciado entre botones
+              
+              // Botón "He llegado al sitio" - Ancho completo y destacado
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // ✅ DETENER detección al confirmar llegada
+                    _arrivalDetectionTimer?.cancel();
+                    _markServiceAsOnSite();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle, size: 20, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        localizations.arrivedAtSite,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+void _markServiceAsOnSite() {
+  Navigator.of(context).pushReplacement(
+    MaterialPageRoute(
+      builder: (context) => ServiceWorkScreen(
+        serviceRequest: _currentRequest!,
+        onServiceComplete: () {
+          if (mounted) {
+            setState(() {
+              _driverStatus = DriverStatus.online;
+              _activeServiceRequest = null;
+              _currentRequest = null;
+              _lastActiveServiceStatus = null;
+            });
+            _loadEarnings();
+          }
+        },
+      ),
+    ),
+  );
+}
+
+
+  void _setupOneSignalListeners() {
     print('Configurando listeners de OneSignal...');
 
     // Escuchar nuevas solicitudes de servicio
-    _newRequestSubscription = OneSignalService.eventBus.on<NewServiceRequestEvent>().listen((event) {
+    _newRequestSubscription =
+        OneSignalService.eventBus.on<NewServiceRequestEvent>().listen((event) {
       print('Evento OneSignal - Nueva solicitud: ${event.clientName}');
       _handleOneSignalNewRequest(event);
     });
 
     // Escuchar cancelaciones de servicio
-    _serviceCancelledSubscription = OneSignalService.eventBus.on<ServiceCancelledEvent>().listen((event) {
+    _serviceCancelledSubscription =
+        OneSignalService.eventBus.on<ServiceCancelledEvent>().listen((event) {
       print('Evento OneSignal - Servicio cancelado: ${event.reason}');
       _handleOneSignalServiceCancelled(event);
     });
 
     // Escuchar actualizaciones de estado
-    _statusUpdateSubscription = OneSignalService.eventBus.on<ServiceStatusUpdateEvent>().listen((event) {
+    _statusUpdateSubscription = OneSignalService.eventBus
+        .on<ServiceStatusUpdateEvent>()
+        .listen((event) {
       print('Evento OneSignal - Estado actualizado: ${event.newStatus}');
       _handleOneSignalStatusUpdate(event);
     });
@@ -649,98 +1070,40 @@ localizations.cancel,
     print('Listeners OneSignal configurados');
   }
 
-  /// ✅ NUEVO: Manejar nueva solicitud desde OneSignal
-  void _handleOneSignalNewRequest(NewServiceRequestEvent event) {
+ void _handleOneSignalNewRequest(NewServiceRequestEvent event) {
     print('Manejando nueva solicitud OneSignal: ${event.serviceRequestId}');
 
-    // Solo procesar si estamos en estado online y no hay diálogo abierto
-    if (_driverStatus == DriverStatus.online && !_isDialogShowing) {
-      print('Estado válido para procesar solicitud OneSignal');
-      
-      // Realizar una búsqueda inmediata sin sonido (ya sonó la push)
-      _checkForImmediateRequestsFromPush();
-    } else {
-      print('Estado no válido para solicitud OneSignal - Estado: $_driverStatus, Diálogo: $_isDialogShowing');
-    }
-  }
-
-
-
-  /// ✅ NUEVO: Búsqueda inmediata sin sonido (activada por push notification)
-  Future<void> _checkForImmediateRequestsFromPush() async {
-    if (_isDialogShowing || _driverStatus != DriverStatus.online) {
-      print('No se puede buscar - diálogo abierto o estado incorrecto');
+    // ✅ VERIFICACIONES MÁS ESTRICTAS
+    if (_driverStatus != DriverStatus.online) {
+      print('Estado no válido para OneSignal - Estado: $_driverStatus');
       return;
     }
-    
+
+    if (_isDialogShowing || _isProcessingRequest) {
+      print('Ya hay un diálogo abierto o se está procesando, ignorando push');
+      return;
+    }
+
+    // ✅ DELAY PEQUEÑO PARA EVITAR CONDICIONES DE CARRERA
+    Timer(const Duration(milliseconds: 500), () {
+      if (mounted && 
+          _driverStatus == DriverStatus.online && 
+          !_isDialogShowing && 
+          !_isProcessingRequest) {
+        _checkForImmediateRequestsFromPush();
+      }
+    });
+  }
+
+  /// ✅ NUEVO: Búsqueda inmediata sin sonido (activada por push notification)
+Future<void> _checkForImmediateRequestsFromPush() async {
     print('Búsqueda inmediata activada por push notification...');
     
-    try {
-      final List<Map<String, dynamic>> rawRequests =
-          await TechnicianService.checkForNewRequests();
-
-      final availableRequests = rawRequests
-          .where((request) => !_unavailableRequestIds.contains(request['id']))
-          .toList();
-
-      if (availableRequests.isNotEmpty && mounted) {
-        print('Solicitudes encontradas por push: ${availableRequests.length}');
-        
-        // Detener búsqueda periódica para evitar conflictos
-        _stopRequestChecker();
-        
-        final rawRequest = availableRequests.first;
-        
-        // ✅ NO reproducir sonido - la push notification ya sonó
-        print('Procesando solicitud por push: ID ${rawRequest['id']}');
-
-        final status = await TechnicianService.getRequestStatus(rawRequest['id']);
-
-        if (status == null || status.status != 'pending') {
-          print('Solicitud push no válida o ya no pendiente');
-          _unavailableRequestIds.add(rawRequest['id']);
-          _startRequestChecker(); // Reiniciar búsqueda normal
-          return;
-        }
-
-        final newRequest = _createServiceRequestFromRawData(rawRequest, status);
-
-        _isDialogShowing = true;
-
-        setState(() {
-          _currentRequest = newRequest;
-          _driverStatus = DriverStatus.incomingRequest;
-        });
-
-        _startStatusChecker();
-
-        final bool? accepted = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => IncomingRequestDialog(serviceRequest: newRequest),
-        );
-
-        // ✅ IMPORTANTE: No llamar NotificationService.stop() aquí 
-        // porque no se reprodujo sonido local
-
-        _stopStatusChecker();
-
-        if (accepted == true) {
-          _acceptRequest(newRequest.id);
-        } else {
-          _rejectRequest(newRequest.id);
-        }
-
-        _isDialogShowing = false;
-        _startRequestChecker(); // Reiniciar búsqueda normal
-        
-      } else {
-        print('No hay solicitudes disponibles para push notification');
-      }
-    } catch (e) {
-      print('Error en búsqueda inmediata por push: $e');
-      _startRequestChecker(); // Asegurar que continúe la búsqueda normal
-    }
+    // ✅ DETENER POLLING PRIMERO PARA EVITAR CONFLICTOS
+    _stopRequestChecker();
+    
+    // ✅ USAR LÓGICA COMÚN SIN SONIDO
+    await _processNewRequests(playSound: false);
   }
 
 
@@ -749,10 +1112,12 @@ localizations.cancel,
     print('Manejando cancelación OneSignal: ${event.serviceRequestId}');
 
     // Verificar si es nuestra solicitud activa
-    if (_currentRequest != null && _currentRequest!.id == event.serviceRequestId) {
+    if (_currentRequest != null &&
+        _currentRequest!.id == event.serviceRequestId) {
       print('Cancelación coincide con solicitud activa');
       _handleClientCancellation();
-    } else if (_activeServiceRequest != null && _activeServiceRequest!.id == event.serviceRequestId) {
+    } else if (_activeServiceRequest != null &&
+        _activeServiceRequest!.id == event.serviceRequestId) {
       print('Cancelación coincide con servicio activo');
       _handleClientCancellation();
     } else {
@@ -762,14 +1127,15 @@ localizations.cancel,
 
   /// ✅ NUEVO: Manejar actualización de estado desde OneSignal
   void _handleOneSignalStatusUpdate(ServiceStatusUpdateEvent event) {
-    print('Manejando actualización OneSignal: ${event.serviceRequestId} -> ${event.newStatus}');
+    print(
+        'Manejando actualización OneSignal: ${event.serviceRequestId} -> ${event.newStatus}');
 
     // Refrescar datos si coincide con nuestro servicio
-    if (_currentRequest != null && _currentRequest!.id == event.serviceRequestId) {
+    if (_currentRequest != null &&
+        _currentRequest!.id == event.serviceRequestId) {
       _refreshServiceData();
     }
   }
-
 
   Widget _buildNavigationSheet() {
     final localizations = AppLocalizations.of(context);
@@ -1079,27 +1445,29 @@ localizations.cancel,
     );
   }
 
- Future<void> _launchGoogleMaps(double lat, double lng, String destination) async {
-  try {
-    // URL para abrir Google Maps con navegación
-    final String googleMapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
-    
-    // URL alternativa más específica
-    // final String googleMapsUrl = 'google.navigation:q=$lat,$lng&mode=d';
-    
-    final Uri uri = Uri.parse(googleMapsUrl);
+  Future<void> _launchGoogleMaps(
+      double lat, double lng, String destination) async {
+    try {
+      // URL para abrir Google Maps con navegación
+      final String googleMapsUrl =
+          'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      print('✅ Google Maps abierto exitosamente');
-    } else {
-      _showErrorSnackbar('Google Maps no está disponible');
+      // URL alternativa más específica
+      // final String googleMapsUrl = 'google.navigation:q=$lat,$lng&mode=d';
+
+      final Uri uri = Uri.parse(googleMapsUrl);
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        print('✅ Google Maps abierto exitosamente');
+      } else {
+        _showErrorSnackbar('Google Maps no está disponible');
+      }
+    } catch (e) {
+      print('❌ Error abriendo Google Maps: $e');
+      _showErrorSnackbar('No se pudo abrir Google Maps: $e');
     }
-  } catch (e) {
-    print('❌ Error abriendo Google Maps: $e');
-    _showErrorSnackbar('No se pudo abrir Google Maps: $e');
   }
-}
 
   Future<void> _launchWaze(double lat, double lng) async {
     try {
@@ -1148,56 +1516,56 @@ localizations.cancel,
     }
   }
 
-
 // ✅ MÉTODO CORREGIDO: _createServiceRequestFromRawData
-ServiceRequestModel _createServiceRequestFromRawData(
-    Map<String, dynamic> rawRequest, ServiceRequestModel statusData) {
-  
-  print("🔧 _createServiceRequestFromRawData - Datos recibidos:");
-  print("   rawRequest: $rawRequest");
-  print("   statusData.clientVehicle: ${statusData.clientVehicle}");
-  
-  // ✅ IMPORTANTE: Usar statusData.clientVehicle en lugar de intentar parsearlo de rawRequest
-  final clientVehicle = statusData.clientVehicle;
-  
-  print("🔧 clientVehicle que se va a usar: $clientVehicle");
-  if (clientVehicle != null) {
-    print("🔧 Vehículo: ${clientVehicle.make} ${clientVehicle.model} ${clientVehicle.year}");
+  ServiceRequestModel _createServiceRequestFromRawData(
+      Map<String, dynamic> rawRequest, ServiceRequestModel statusData) {
+    print("🔧 _createServiceRequestFromRawData - Datos recibidos:");
+    print("   rawRequest: $rawRequest");
+    print("   statusData.clientVehicle: ${statusData.clientVehicle}");
+
+    // ✅ IMPORTANTE: Usar statusData.clientVehicle en lugar de intentar parsearlo de rawRequest
+    final clientVehicle = statusData.clientVehicle;
+
+    print("🔧 clientVehicle que se va a usar: $clientVehicle");
+    if (clientVehicle != null) {
+      print(
+          "🔧 Vehículo: ${clientVehicle.make} ${clientVehicle.model} ${clientVehicle.year}");
+    }
+
+    final serviceRequest = ServiceRequestModel(
+      id: rawRequest['id'],
+      userId: rawRequest['user_id'],
+      technicianId: statusData.technicianId,
+      status: statusData.status,
+      requestLat: double.parse(rawRequest['request_lat'].toString()),
+      requestLng: double.parse(rawRequest['request_lng'].toString()),
+      estimatedCost: statusData.estimatedCost,
+      finalCost: statusData.finalCost,
+      requestedAt: statusData.requestedAt,
+      acceptedAt: statusData.acceptedAt,
+      completedAt: statusData.completedAt,
+      user: statusData.user ??
+          UserModel(
+            id: rawRequest['user_id'],
+            name: rawRequest['user_name'] ?? 'Cliente',
+            email: '',
+            userType: 'user',
+          ),
+      technician: statusData.technician,
+      // ✅ CRÍTICO: Usar el clientVehicle de statusData
+      clientVehicle: clientVehicle,
+      // UI específica para técnico
+      clientName: rawRequest['user_name'] ?? 'Cliente',
+      formattedDistance: rawRequest['distance'] ?? '0 km',
+      formattedEarnings:
+          '\$${double.parse(rawRequest['base_cost']?.toString() ?? '5.00').toStringAsFixed(2)}',
+    );
+
+    print(
+        "🔧 ServiceRequestModel creado - clientVehicle final: ${serviceRequest.clientVehicle}");
+
+    return serviceRequest;
   }
-
-  final serviceRequest = ServiceRequestModel(
-    id: rawRequest['id'],
-    userId: rawRequest['user_id'],
-    technicianId: statusData.technicianId,
-    status: statusData.status,
-    requestLat: double.parse(rawRequest['request_lat'].toString()),
-    requestLng: double.parse(rawRequest['request_lng'].toString()),
-    estimatedCost: statusData.estimatedCost,
-    finalCost: statusData.finalCost,
-    requestedAt: statusData.requestedAt,
-    acceptedAt: statusData.acceptedAt,
-    completedAt: statusData.completedAt,
-    user: statusData.user ??
-        UserModel(
-          id: rawRequest['user_id'],
-          name: rawRequest['user_name'] ?? 'Cliente',
-          email: '',
-          userType: 'user',
-        ),
-    technician: statusData.technician,
-    // ✅ CRÍTICO: Usar el clientVehicle de statusData
-    clientVehicle: clientVehicle,
-    // UI específica para técnico
-    clientName: rawRequest['user_name'] ?? 'Cliente',
-    formattedDistance: rawRequest['distance'] ?? '0 km',
-    formattedEarnings:
-        '\$${double.parse(rawRequest['base_cost']?.toString() ?? '5.00').toStringAsFixed(2)}',
-  );
-
-  print("🔧 ServiceRequestModel creado - clientVehicle final: ${serviceRequest.clientVehicle}");
-  
-  return serviceRequest;
-}
 
   void _cleanupUnavailableRequests() {
     Timer(const Duration(minutes: 2), () {
@@ -1211,7 +1579,6 @@ ServiceRequestModel _createServiceRequestFromRawData(
   }
 
 // También actualiza tu método _buildIncomingRequestPanel:
-  
 
   void _stopRequestChecker() {
     _requestCheckTimer?.cancel();
@@ -1271,12 +1638,10 @@ ServiceRequestModel _createServiceRequestFromRawData(
   void _handleRequestUnavailable() {
     final localizations = AppLocalizations.of(context);
 
-
-  NotificationService.stop().catchError((e) {
-    print('⚠️ Error al detener notificación: $e');
-  });
+    NotificationService.stop().catchError((e) {
+      print('⚠️ Error al detener notificación: $e');
+    });
     NotificationService.vibrateOnly(VibrationPattern.urgent);
-
 
     if (_currentRequest != null) {
       _unavailableRequestIds.add(_currentRequest!.id);
@@ -1302,13 +1667,13 @@ ServiceRequestModel _createServiceRequestFromRawData(
   void _handleRequestCancelled() {
     final localizations = AppLocalizations.of(context);
 
-  // ✅ CORREGIDO: Detener notificación
-  NotificationService.stop().catchError((e) {
-    print('⚠️ Error al detener notificación: $e');
-  });
-  
-  // Vibración para cancelación
-  NotificationService.vibrateOnly(VibrationPattern.single);
+    // ✅ CORREGIDO: Detener notificación
+    NotificationService.stop().catchError((e) {
+      print('⚠️ Error al detener notificación: $e');
+    });
+
+    // Vibración para cancelación
+    NotificationService.vibrateOnly(VibrationPattern.single);
     // Cerrar el diálogo si está abierto
     if (_isDialogShowing && Navigator.canPop(context)) {
       Navigator.of(context).pop(false);
@@ -1331,52 +1696,8 @@ ServiceRequestModel _createServiceRequestFromRawData(
     _statusCheckTimer = null;
   }
 
-void _acceptRequest(int requestId) async {
-  final localizations = AppLocalizations.of(context);
+ 
 
-  try {
-    await NotificationService.stop();
-    NotificationService.vibrateOnly(VibrationPattern.gentle);
-    print('🔇 Notificación detenida y feedback de aceptación enviado');
-  } catch (e) {
-    print('⚠️ Error al detener notificación: $e');
-  }
-
-  // ✅ IMPORTANTE: NO limpiar _currentRequest aquí
-  setState(() {
-    _driverStatus = DriverStatus.enRouteToUser;
-    _isDialogShowing = false;
-    // ✅ NO hacer _currentRequest = null aquí
-  });
-
-  try {
-    final success = await TechnicianService.acceptRequest(requestId);
-    if (success) {
-      _showSuccessSnackbar(localizations.requestAccepted);
-      await NotificationService.playGentleNotification();
-
-      // ✅ MANTENER _currentRequest para el panel
-      _activeServiceRequest = _currentRequest;
-      _lastActiveServiceStatus = 'accepted';
-      _startActiveServiceMonitoring();
-
-      _unavailableRequestIds.clear();
-      
-      // ✅ DEBUGGING: Verificar que _currentRequest no es null
-      print("✅ Solicitud aceptada - _currentRequest: ${_currentRequest?.id}");
-      print("✅ Estado actual: $_driverStatus");
-    }
-  } catch (e) {
-    // Error handling...
-    setState(() {
-      _driverStatus = DriverStatus.online;
-      _currentRequest = null; // ✅ Solo limpiar en caso de error
-    });
-    _startRequestChecker();
-  }
-}    
-
-// ✅ NUEVO: Monitorear servicio activo para detectar cancelaciones
   void _startActiveServiceMonitoring() {
     _stopActiveServiceMonitoring(); // Detener cualquier monitoreo previo
 
@@ -1412,11 +1733,13 @@ void _acceptRequest(int requestId) async {
         // Actualizar estado conocido
         _lastActiveServiceStatus = updatedRequest.status;
 
-        // Actualizar datos del servicio si hay cambios
         if (updatedRequest.status != _activeServiceRequest?.status) {
           setState(() {
             _activeServiceRequest = updatedRequest;
           });
+
+          // ✅ AGREGAR notificaciones para el técnico
+          _handleTechnicianStatusChange(updatedRequest.status);
         }
       } catch (e) {
         print("❌ Error monitoreando servicio activo: $e");
@@ -1431,6 +1754,20 @@ void _acceptRequest(int requestId) async {
     });
   }
 
+  void _handleTechnicianStatusChange(String newStatus) {
+    switch (newStatus) {
+      case 'on_site':
+        NotificationService.playGentleNotification();
+        _showSuccessSnackbar('Has llegado al sitio del cliente');
+        break;
+
+      case 'charging':
+        NotificationService.playGentleNotification();
+        _showSuccessSnackbar('Servicio de carga iniciado');
+        break;
+    }
+  }
+
   // ✅ NUEVO: Detener monitoreo de servicio activo
   void _stopActiveServiceMonitoring() {
     // El timer se maneja automáticamente en _startActiveServiceMonitoring
@@ -1441,9 +1778,9 @@ void _acceptRequest(int requestId) async {
     if (!mounted) return;
 
     // Vibración fuerte para llamar la atención
-  NotificationService.playUrgentNotification().catchError((e) {
-    print('⚠️ Error reproduciendo notificación urgente: $e');
-  });
+    NotificationService.playUrgentNotification().catchError((e) {
+      print('⚠️ Error reproduciendo notificación urgente: $e');
+    });
 
     // Mostrar diálogo de cancelación
     _showClientCancellationDialog();
@@ -1461,18 +1798,17 @@ void _acceptRequest(int requestId) async {
   }
 
   void _showSuccessNotification(String message) {
-  NotificationService.playGentleNotification().catchError((e) {
-    print('⚠️ Error reproduciendo notificación suave: $e');
-  });
-  _showSuccessSnackbar(message);
-}
+    NotificationService.playGentleNotification().catchError((e) {
+      print('⚠️ Error reproduciendo notificación suave: $e');
+    });
+    _showSuccessSnackbar(message);
+  }
 
 // ✅ NUEVO: Método para notificaciones de error
-void _showErrorNotification(String message) {
-  NotificationService.vibrateOnly(VibrationPattern.urgent);
-  _showErrorSnackbar(message);
-}
-
+  void _showErrorNotification(String message) {
+    NotificationService.vibrateOnly(VibrationPattern.urgent);
+    _showErrorSnackbar(message);
+  }
 
   // ✅ NUEVO: Diálogo cuando cliente cancela
   void _showClientCancellationDialog() {
@@ -1576,13 +1912,11 @@ void _showErrorNotification(String message) {
         actions: [
           ElevatedButton(
             onPressed: () {
-Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const BottomNavBar()),
-          );            },
-
-
-
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const BottomNavBar()),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1678,35 +2012,8 @@ Navigator.pushReplacement(
   }
 
   // ✅ CORREGIR _rejectRequest
-  void _rejectRequest(int requestId) async {
+  
 
-     try {
-    await NotificationService.stop();
-    print('🔇 Notificación detenida al rechazar solicitud');
-  } catch (e) {
-    print('⚠️ Error al detener notificación: $e');
-  }
-
-
-    try {
-      final success = await TechnicianService.rejectRequest(requestId);
-      if (success) {
-        print("✅ Solicitud $requestId rechazada exitosamente");
-        // ✅ NO agregar a lista de no disponibles porque fue rechazada voluntariamente
-      }
-    } catch (e) {
-      print("❌ Error al rechazar en el servidor: $e");
-      // ✅ Si falla el rechazo, agregar a lista de no disponibles
-      _unavailableRequestIds.add(requestId);
-    } finally {
-      setState(() {
-        _driverStatus = DriverStatus.online;
-        _currentRequest = null;
-        _isDialogShowing = false;
-      });
-      _startRequestChecker();
-    }
-  }
 
   // ELIMINADO: _checkRequestStatusPeriodically() ya no es necesario
   Future<void> _startLocationTracking() async {
@@ -1798,17 +2105,18 @@ Navigator.pushReplacement(
       }
     });
   }
- 
 
 // ✅ SOLUCIÓN 2: Ajustar el build method para más espacio
   @override
   Widget build(BuildContext context) {
- print("🏗️ Building dashboard - Estado: $_driverStatus, Request: ${_currentRequest?.id}");
-  print("🔍 Verificando condiciones:");
-  print("   - _driverStatus == DriverStatus.enRouteToUser: ${_driverStatus == DriverStatus.enRouteToUser}");
-  print("   - _driverStatus == DriverStatus.onService: ${_driverStatus == DriverStatus.onService}");
-  print("   - _currentRequest != null: ${_currentRequest != null}");
-  
+    print(
+        "🏗️ Building dashboard - Estado: $_driverStatus, Request: ${_currentRequest?.id}");
+    print("🔍 Verificando condiciones:");
+    print(
+        "   - _driverStatus == DriverStatus.enRouteToUser: ${_driverStatus == DriverStatus.enRouteToUser}");
+    print(
+        "   - _driverStatus == DriverStatus.onService: ${_driverStatus == DriverStatus.onService}");
+    print("   - _currentRequest != null: ${_currentRequest != null}");
 
     final headerHeight = MediaQuery.of(context).padding.top + 64;
     final topPanelHeight = 160;
@@ -1853,32 +2161,31 @@ Navigator.pushReplacement(
             child: _buildTopHeaderPanel(),
           ),
           // Paneles de estado
-         if (_driverStatus == DriverStatus.enRouteToUser ||
-            _driverStatus == DriverStatus.onService) ...[
-          Builder(
-            builder: (context) {
-              print("🔧 Intentando mostrar panel activo");
-              print("🔧 _currentRequest en builder: ${_currentRequest?.id}");
-              return Positioned(
-                bottom: bottomNavHeight + 32,
-                left: 16,
-                right: 16,
-                child: _buildActiveServicePanel(),
-              );
-            },
-          ),
-        ] else ...[
-          // ✅ DEBUGGING: Mostrar por qué no se muestra el panel
-          Builder(
-            builder: (context) {
-              print("❌ Panel NO se muestra - Estado actual: $_driverStatus");
-              return SizedBox.shrink();
-            },
-          ),
-        ],
-        
-        if (_isLoading) const Center(child: CircularProgressIndicator()),
-      
+          if (_driverStatus == DriverStatus.enRouteToUser ||
+              _driverStatus == DriverStatus.onService) ...[
+            Builder(
+              builder: (context) {
+                print("🔧 Intentando mostrar panel activo");
+                print("🔧 _currentRequest en builder: ${_currentRequest?.id}");
+                return Positioned(
+                  bottom: bottomNavHeight + 32,
+                  left: 16,
+                  right: 16,
+                  child: _buildActiveServicePanel(),
+                );
+              },
+            ),
+          ] else ...[
+            // ✅ DEBUGGING: Mostrar por qué no se muestra el panel
+            Builder(
+              builder: (context) {
+                print("❌ Panel NO se muestra - Estado actual: $_driverStatus");
+                return SizedBox.shrink();
+              },
+            ),
+          ],
+
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
         ],
       ),
     );
@@ -2131,24 +2438,11 @@ Navigator.pushReplacement(
                 Row(
                   children: [
                     _buildCompactStat(
-                      icon: Icons.attach_money,
-                      label: localizations.hoy,
-                      value: '\$${todayEarnings.toStringAsFixed(2)}',
-                      iconColor: AppColors.accent,
-                    ),
-                    Container(
-                      width: 1,
-                      height: 30,
-                      margin: const EdgeInsets.symmetric(horizontal: 12),
-                      color: AppColors.textOnPrimary.withOpacity(0.15),
-                    ),
-                    _buildCompactStat(
                       icon: Icons.electric_bolt,
-                      label: localizations.services,
+                      label: "Services today",
                       value: todayServices.toString(),
                       iconColor: AppColors.warning,
                     ),
-              
                   ],
                 ),
               ],
@@ -2159,259 +2453,261 @@ Navigator.pushReplacement(
     );
   }
 
-  
-void _refreshServiceData() async {
-  try {
-    // Actualizar el request actual
-    if (_currentRequest != null) {
-      final updatedRequest = await ServiceRequestService.getRequestStatus(_currentRequest!.id);
-      setState(() {
-        _currentRequest = updatedRequest;
-        _activeServiceRequest = updatedRequest;
-      });
+  void _refreshServiceData() async {
+    try {
+      // Actualizar el request actual
+      if (_currentRequest != null) {
+        final updatedRequest =
+            await ServiceRequestService.getRequestStatus(_currentRequest!.id);
+        setState(() {
+          _currentRequest = updatedRequest;
+          _activeServiceRequest = updatedRequest;
+        });
+      }
+
+      // ✅ USAR EL MÉTODO CONSISTENTE QUE YA FUNCIONA
+      await _loadEarnings(); // En lugar de _loadEarningsSummary()
+    } catch (e) {
+      print('Error refreshing service data: $e');
+    }
+  }
+
+  /// MÉTODO 1: _loadEarnings (usando EarningsService)
+  Future<void> _loadEarnings() async {
+    print('🔄 === INICIANDO _loadEarnings() ===');
+    print('📅 Timestamp: ${DateTime.now().toIso8601String()}');
+
+    try {
+      print('🔍 Llamando EarningsService.getEarningsSummary()...');
+
+      final summary = await EarningsService.getEarningsSummary();
+
+      print('📡 Respuesta de EarningsService: $summary');
+      print('📊 Tipo de dato recibido: ${summary.runtimeType}');
+
+      if (summary != null) {
+        print('✅ Summary no es null');
+
+        // Analizar estructura de datos
+        if (summary is Map) {
+          print('🗂️ Keys disponibles en summary: ${summary.keys.toList()}');
+
+          if (summary.containsKey('today')) {
+            print('📅 Datos de "today" encontrados: ${summary['today']}');
+
+            final todayData = summary['today'];
+            if (todayData is Map) {
+              print('🗂️ Keys en "today": ${todayData.keys.toList()}');
+
+              // Analizar cada campo
+              final earnings = todayData['earnings'];
+              final services = todayData['services'];
+              final rating = todayData['rating'];
+
+              print('💰 earnings raw: $earnings (${earnings.runtimeType})');
+              print('⚡ services raw: $services (${services.runtimeType})');
+              print('⭐ rating raw: $rating (${rating.runtimeType})');
+
+              // Conversiones
+              final todayEarnings =
+                  double.tryParse(earnings?.toString() ?? '0') ?? 0.0;
+              final todayServices =
+                  int.tryParse(services?.toString() ?? '0') ?? 0;
+              final todayRating =
+                  double.tryParse(rating?.toString() ?? '5.0') ?? 5.0;
+
+              print('💰 earnings convertido: $todayEarnings');
+              print('⚡ services convertido: $todayServices');
+              print('⭐ rating convertido: $todayRating');
+            }
+          } else {
+            print('❌ No hay key "today" en summary');
+          }
+        }
+
+        if (mounted) {
+          print('✅ Widget está mounted, actualizando estado...');
+
+          // Guardar estado anterior para comparación
+          final oldEarnings = _earningsSummary;
+          print('📊 Estado anterior: $oldEarnings');
+
+          setState(() {
+            _earningsSummary = summary;
+          });
+
+          print('✅ Estado actualizado con _loadEarnings()');
+          print('📊 Nuevo estado: $_earningsSummary');
+
+          // Verificar valores finales después del setState
+          final finalTodayRating = double.tryParse(
+                  _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ??
+              5.0;
+          print('⭐ Rating FINAL después de setState: $finalTodayRating');
+        } else {
+          print('❌ Widget no está mounted, no se actualiza estado');
+        }
+      } else {
+        print('❌ Summary es null desde EarningsService');
+      }
+    } catch (e) {
+      print('❌ Error en _loadEarnings(): $e');
+      print('📍 Stack trace: ${StackTrace.current}');
     }
 
-    // ✅ USAR EL MÉTODO CONSISTENTE QUE YA FUNCIONA
-    await _loadEarnings(); // En lugar de _loadEarningsSummary()
-    
-  } catch (e) {
-    print('Error refreshing service data: $e');
+    print('🏁 === FINALIZANDO _loadEarnings() ===\n');
   }
-}
 
-/// MÉTODO 1: _loadEarnings (usando EarningsService)
-Future<void> _loadEarnings() async {
-  print('🔄 === INICIANDO _loadEarnings() ===');
-  print('📅 Timestamp: ${DateTime.now().toIso8601String()}');
-  
-  try {
-    print('🔍 Llamando EarningsService.getEarningsSummary()...');
-    
-    final summary = await EarningsService.getEarningsSummary();
-    
-    print('📡 Respuesta de EarningsService: $summary');
-    print('📊 Tipo de dato recibido: ${summary.runtimeType}');
-    
-    if (summary != null) {
-      print('✅ Summary no es null');
-      
-      // Analizar estructura de datos
-      if (summary is Map) {
-        print('🗂️ Keys disponibles en summary: ${summary.keys.toList()}');
-        
-        if (summary.containsKey('today')) {
-          print('📅 Datos de "today" encontrados: ${summary['today']}');
-          
-          final todayData = summary['today'];
-          if (todayData is Map) {
-            print('🗂️ Keys en "today": ${todayData.keys.toList()}');
-            
-            // Analizar cada campo
-            final earnings = todayData['earnings'];
-            final services = todayData['services'];
-            final rating = todayData['rating'];
-            
-            print('💰 earnings raw: $earnings (${earnings.runtimeType})');
-            print('⚡ services raw: $services (${services.runtimeType})');
-            print('⭐ rating raw: $rating (${rating.runtimeType})');
-            
-            // Conversiones
-            final todayEarnings = double.tryParse(earnings?.toString() ?? '0') ?? 0.0;
-            final todayServices = int.tryParse(services?.toString() ?? '0') ?? 0;
-            final todayRating = double.tryParse(rating?.toString() ?? '5.0') ?? 5.0;
-            
-            print('💰 earnings convertido: $todayEarnings');
-            print('⚡ services convertido: $todayServices');
-            print('⭐ rating convertido: $todayRating');
+  /// MÉTODO 2: _loadEarningsSummary (usando HTTP directo)
+  Future<void> _loadEarningsSummary() async {
+    print('🔄 === INICIANDO _loadEarningsSummary() ===');
+    print('📅 Timestamp: ${DateTime.now().toIso8601String()}');
+
+    try {
+      print('🔐 Obteniendo token...');
+      final token = await TokenStorage.getToken();
+
+      if (token == null) {
+        print('❌ No hay token disponible para cargar ganancias');
+        return;
+      }
+
+      print('✅ Token obtenido: ${token.substring(0, 20)}...');
+
+      final url = Uri.parse('${Constants.baseUrl}/technician/earnings/summary');
+      print('🌐 URL del endpoint: $url');
+
+      final headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      print('📋 Headers: $headers');
+
+      print('🚀 Enviando request HTTP...');
+      final response = await http.get(url, headers: headers);
+
+      print('📡 Response status: ${response.statusCode}');
+      print('📝 Response headers: ${response.headers}');
+      print('📄 Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✅ Response exitoso, decodificando JSON...');
+
+        final data = jsonDecode(response.body);
+        print('📊 Data decodificada: $data');
+        print('📊 Tipo de data: ${data.runtimeType}');
+
+        if (data is Map) {
+          print('🗂️ Keys en data: ${data.keys.toList()}');
+
+          if (data.containsKey('today')) {
+            print('📅 Datos de "today": ${data['today']}');
+
+            final todayData = data['today'];
+            if (todayData is Map) {
+              print('🗂️ Keys en "today": ${todayData.keys.toList()}');
+
+              // Analizar cada campo
+              final earnings = todayData['earnings'];
+              final services = todayData['services'];
+              final rating = todayData['rating'];
+
+              print('💰 earnings raw: $earnings (${earnings.runtimeType})');
+              print('⚡ services raw: $services (${services.runtimeType})');
+              print('⭐ rating raw: $rating (${rating.runtimeType})');
+
+              // Conversiones
+              final todayEarnings =
+                  double.tryParse(earnings?.toString() ?? '0') ?? 0.0;
+              final todayServices =
+                  int.tryParse(services?.toString() ?? '0') ?? 0;
+              final todayRating =
+                  double.tryParse(rating?.toString() ?? '5.0') ?? 5.0;
+
+              print('💰 earnings convertido: $todayEarnings');
+              print('⚡ services convertido: $todayServices');
+              print('⭐ rating convertido: $todayRating');
+            }
+          } else {
+            print('❌ No hay key "today" en data');
           }
+        }
+
+        if (mounted) {
+          print('✅ Widget está mounted, actualizando estado...');
+
+          // Guardar estado anterior para comparación
+          final oldEarnings = _earningsSummary;
+          print('📊 Estado anterior: $oldEarnings');
+
+          setState(() {
+            _earningsSummary = data;
+          });
+
+          print('✅ Estado actualizado con _loadEarningsSummary()');
+          print('📊 Nuevo estado: $_earningsSummary');
+
+          // Verificar valores finales después del setState
+          final finalTodayRating = double.tryParse(
+                  _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ??
+              5.0;
+          print('⭐ Rating FINAL después de setState: $finalTodayRating');
         } else {
-          print('❌ No hay key "today" en summary');
+          print('❌ Widget no está mounted, no se actualiza estado');
+        }
+      } else {
+        print('❌ Error HTTP: ${response.statusCode}');
+        print('📝 Error body: ${response.body}');
+
+        // Intentar decodificar error
+        try {
+          final errorData = jsonDecode(response.body);
+          print('📊 Error data: $errorData');
+        } catch (e) {
+          print('❌ No se pudo decodificar error: $e');
         }
       }
-      
-      if (mounted) {
-        print('✅ Widget está mounted, actualizando estado...');
-        
-        // Guardar estado anterior para comparación
-        final oldEarnings = _earningsSummary;
-        print('📊 Estado anterior: $oldEarnings');
-        
-        setState(() {
-          _earningsSummary = summary;
-        });
-        
-        print('✅ Estado actualizado con _loadEarnings()');
-        print('📊 Nuevo estado: $_earningsSummary');
-        
-        // Verificar valores finales después del setState
-        final finalTodayRating = double.tryParse(
-            _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ?? 5.0;
-        print('⭐ Rating FINAL después de setState: $finalTodayRating');
-        
-      } else {
-        print('❌ Widget no está mounted, no se actualiza estado');
-      }
-    } else {
-      print('❌ Summary es null desde EarningsService');
+    } catch (e) {
+      print('❌ Excepción en _loadEarningsSummary(): $e');
+      print('📍 Stack trace: ${StackTrace.current}');
     }
-  } catch (e) {
-    print('❌ Error en _loadEarnings(): $e');
-    print('📍 Stack trace: ${StackTrace.current}');
-  }
-  
-  print('🏁 === FINALIZANDO _loadEarnings() ===\n');
-}
 
-/// MÉTODO 2: _loadEarningsSummary (usando HTTP directo)
-Future<void> _loadEarningsSummary() async {
-  print('🔄 === INICIANDO _loadEarningsSummary() ===');
-  print('📅 Timestamp: ${DateTime.now().toIso8601String()}');
-  
-  try {
-    print('🔐 Obteniendo token...');
-    final token = await TokenStorage.getToken();
-    
-    if (token == null) {
-      print('❌ No hay token disponible para cargar ganancias');
-      return;
-    }
-    
-    print('✅ Token obtenido: ${token.substring(0, 20)}...');
-    
-    final url = Uri.parse('${Constants.baseUrl}/technician/earnings/summary');
-    print('🌐 URL del endpoint: $url');
-    
-    final headers = {
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-    print('📋 Headers: $headers');
-
-    print('🚀 Enviando request HTTP...');
-    final response = await http.get(url, headers: headers);
-    
-    print('📡 Response status: ${response.statusCode}');
-    print('📝 Response headers: ${response.headers}');
-    print('📄 Response body: ${response.body}');
-    
-    if (response.statusCode == 200) {
-      print('✅ Response exitoso, decodificando JSON...');
-      
-      final data = jsonDecode(response.body);
-      print('📊 Data decodificada: $data');
-      print('📊 Tipo de data: ${data.runtimeType}');
-      
-      if (data is Map) {
-        print('🗂️ Keys en data: ${data.keys.toList()}');
-        
-        if (data.containsKey('today')) {
-          print('📅 Datos de "today": ${data['today']}');
-          
-          final todayData = data['today'];
-          if (todayData is Map) {
-            print('🗂️ Keys en "today": ${todayData.keys.toList()}');
-            
-            // Analizar cada campo
-            final earnings = todayData['earnings'];
-            final services = todayData['services'];
-            final rating = todayData['rating'];
-            
-            print('💰 earnings raw: $earnings (${earnings.runtimeType})');
-            print('⚡ services raw: $services (${services.runtimeType})');
-            print('⭐ rating raw: $rating (${rating.runtimeType})');
-            
-            // Conversiones
-            final todayEarnings = double.tryParse(earnings?.toString() ?? '0') ?? 0.0;
-            final todayServices = int.tryParse(services?.toString() ?? '0') ?? 0;
-            final todayRating = double.tryParse(rating?.toString() ?? '5.0') ?? 5.0;
-            
-            print('💰 earnings convertido: $todayEarnings');
-            print('⚡ services convertido: $todayServices');
-            print('⭐ rating convertido: $todayRating');
-          }
-        } else {
-          print('❌ No hay key "today" en data');
-        }
-      }
-      
-      if (mounted) {
-        print('✅ Widget está mounted, actualizando estado...');
-        
-        // Guardar estado anterior para comparación
-        final oldEarnings = _earningsSummary;
-        print('📊 Estado anterior: $oldEarnings');
-        
-        setState(() {
-          _earningsSummary = data;
-        });
-        
-        print('✅ Estado actualizado con _loadEarningsSummary()');
-        print('📊 Nuevo estado: $_earningsSummary');
-        
-        // Verificar valores finales después del setState
-        final finalTodayRating = double.tryParse(
-            _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ?? 5.0;
-        print('⭐ Rating FINAL después de setState: $finalTodayRating');
-        
-      } else {
-        print('❌ Widget no está mounted, no se actualiza estado');
-      }
-      
-    } else {
-      print('❌ Error HTTP: ${response.statusCode}');
-      print('📝 Error body: ${response.body}');
-      
-      // Intentar decodificar error
-      try {
-        final errorData = jsonDecode(response.body);
-        print('📊 Error data: $errorData');
-      } catch (e) {
-        print('❌ No se pudo decodificar error: $e');
-      }
-    }
-  } catch (e) {
-    print('❌ Excepción en _loadEarningsSummary(): $e');
-    print('📍 Stack trace: ${StackTrace.current}');
+    print('🏁 === FINALIZANDO _loadEarningsSummary() ===\n');
   }
-  
-  print('🏁 === FINALIZANDO _loadEarningsSummary() ===\n');
-}
-  
- 
 
 // ✅ MÉTODO _openChat ACTUALIZADO PARA MARCAR COMO LEÍDO
 // En DriverDashboardScreen
 
-void _openChat() async {
-  if (_currentRequest == null) {
-    _showErrorSnackbar('No hay servicio activo');
-    return;
-  }
+  void _openChat() async {
+    if (_currentRequest == null) {
+      _showErrorSnackbar('No hay servicio activo');
+      return;
+    }
 
-  HapticFeedback.lightImpact();
+    HapticFeedback.lightImpact();
 
-  print('🔍 Abriendo chat para servicio: ${_currentRequest!.id}');
-  print('📱 Usuario: ${_currentRequest!.user?.name ?? 'Desconocido'}');
+    print('🔍 Abriendo chat para servicio: ${_currentRequest!.id}');
+    print('📱 Usuario: ${_currentRequest!.user?.name ?? 'Desconocido'}');
 
-  // ✅ MARCAR COMO LEÍDO ANTES DE ABRIR EL CHAT
-  final chatProvider = Provider.of<ChatNotificationProvider>(context, listen: false);
-  await chatProvider.markServiceAsRead(_currentRequest!.id);
+    // ✅ MARCAR COMO LEÍDO ANTES DE ABRIR EL CHAT
+    final chatProvider =
+        Provider.of<ChatNotificationProvider>(context, listen: false);
+    await chatProvider.markServiceAsRead(_currentRequest!.id);
 
-  // Navegar a la pantalla de chat
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ServiceChatScreen(
-        serviceRequest: _currentRequest!,
-        userType: 'technician',
+    // Navegar a la pantalla de chat
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ServiceChatScreen(
+          serviceRequest: _currentRequest!,
+          userType: 'technician',
+        ),
       ),
-    ),
-  ).then((_) {
-    // ✅ REFRESH AL VOLVER DEL CHAT
-    chatProvider.forceRefresh();
-  });
-}
-
+    ).then((_) {
+      // ✅ REFRESH AL VOLVER DEL CHAT
+      chatProvider.forceRefresh();
+    });
+  }
 
 // Widget auxiliar para estadísticas compactas
   Widget _buildCompactStat({
@@ -2570,294 +2866,302 @@ void _openChat() async {
     );
   }
 
- 
-Widget _buildActiveServicePanel() {
-  final localizations = AppLocalizations.of(context);
+  Widget _buildActiveServicePanel() {
+    final localizations = AppLocalizations.of(context);
 
-  print("🔍 Building active service panel - _currentRequest: ${_currentRequest?.id}");
+    print(
+        "🔍 Building active service panel - _currentRequest: ${_currentRequest?.id}");
 
-  if (_currentRequest == null) {
-    print("⚠️ _currentRequest es null en _buildActiveServicePanel");
-    return const SizedBox.shrink();
-  }
+    if (_currentRequest == null) {
+      print("⚠️ _currentRequest es null en _buildActiveServicePanel");
+      return const SizedBox.shrink();
+    }
 
-  final bool enRuta = _driverStatus == DriverStatus.enRouteToUser;
-  print("🚗 enRuta: $enRuta, _driverStatus: $_driverStatus");
+    final bool enRuta = _driverStatus == DriverStatus.enRouteToUser;
+    print("🚗 enRuta: $enRuta, _driverStatus: $_driverStatus");
 
-  final String title = enRuta
-      ? localizations.enRouteToClientPanel
-      : localizations.serviceInProgressPanel;
+    final String title = enRuta
+        ? localizations.enRouteToClientPanel
+        : localizations.serviceInProgressPanel;
 
-  return Card(
-    margin: EdgeInsets.zero,
-    elevation: 10,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-    child: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Título del Panel
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              letterSpacing: 0.8,
+    return Card(
+      color: Colors.white,
+      margin: EdgeInsets.zero,
+      elevation: 10,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título del Panel
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 0.8,
+              ),
             ),
-          ),
-          const Divider(height: 16),
+            const Divider(height: 16),
 
-          // Información del Cliente
-          Row(
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                child: Text(
-                  _currentRequest!.user?.name.isNotEmpty == true
-                      ? _currentRequest!.user!.name[0].toUpperCase()
-                      : 'C',
-                  style: GoogleFonts.inter(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+            // Información del Cliente
+            Row(
+              children: [
+                // Avatar
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  child: Text(
+                    _currentRequest!.user?.name.isNotEmpty == true
+                        ? _currentRequest!.user!.name[0].toUpperCase()
+                        : 'C',
+                    style: GoogleFonts.inter(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Nombre y Dirección
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _currentRequest!.user?.name ?? 'Cliente',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        localizations.chargeServiceRequested,
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: AppColors.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Botones de acción
+            if (enRuta) ...[
+              // Botones para cuando está en ruta
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // ✅ BOTÓN DE CHAT CON BADGE MEJORADO
+                  Consumer<ChatNotificationProvider>(
+                    builder: (context, chatProvider, child) {
+                      final unreadCount = _currentRequest != null
+                          ? chatProvider
+                              .getUnreadForService(_currentRequest!.id)
+                          : 0;
+
+                      return _buildChatButtonWithBadge(
+                        unreadCount: unreadCount,
+                        onTap: _openChat,
+                      );
+                    },
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Botón de Llamada
+                  OutlinedButton(
+                    onPressed: _callClient,
+                    style: OutlinedButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                      side: BorderSide(color: AppColors.success),
+                    ),
+                    child:
+                        Icon(Icons.phone, color: AppColors.success, size: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Botón para navegación
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.navigation, size: 16),
+                  label: Text(
+                    localizations.openInMaps,
+                    style: GoogleFonts.inter(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: _showNavigationOptions,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              // Nombre y Dirección
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _currentRequest!.user?.name ?? 'Cliente',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+            ] else ...[
+              // Botones para cuando está en servicio
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.navigation_rounded, size: 18),
+                      label:
+                          const Text('NAVEGAR', style: TextStyle(fontSize: 12)),
+                      onPressed: _showNavigationOptions,
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.brandBlue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      localizations.chargeServiceRequested,
-                      style: GoogleFonts.inter(
-                          fontSize: 12, color: AppColors.textSecondary),
-                      overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(width: 8),
+
+                  // ✅ BOTÓN DE CHAT CON BADGE MEJORADO
+                  Consumer<ChatNotificationProvider>(
+                    builder: (context, chatProvider, child) {
+                      final unreadCount = _currentRequest != null
+                          ? chatProvider
+                              .getUnreadForService(_currentRequest!.id)
+                          : 0;
+
+                      return _buildChatButtonWithBadge(
+                        unreadCount: unreadCount,
+                        onTap: _openChat,
+                      );
+                    },
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Botón de Llamada
+                  OutlinedButton(
+                    onPressed: _callClient,
+                    style: OutlinedButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                      side: BorderSide(color: AppColors.success),
                     ),
-                  ],
-                ),
+                    child:
+                        Icon(Icons.phone, color: AppColors.success, size: 18),
+                  ),
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 16),
 
-          // Botones de acción
-          if (enRuta) ...[
-            // Botones para cuando está en ruta
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // ✅ BOTÓN DE CHAT CON BADGE MEJORADO
-                Consumer<ChatNotificationProvider>(
-                  builder: (context, chatProvider, child) {
-                    final unreadCount = _currentRequest != null 
-                        ? chatProvider.getUnreadForService(_currentRequest!.id)
-                        : 0;
-
-                    return _buildChatButtonWithBadge(
-                      unreadCount: unreadCount,
-                      onTap: _openChat,
-                    );
-                  },
-                ),
-
-                const SizedBox(width: 8),
-
-                // Botón de Llamada
-                OutlinedButton(
-                  onPressed: _callClient,
-                  style: OutlinedButton.styleFrom(
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(10),
-                    side: BorderSide(color: AppColors.success),
-                  ),
-                  child: Icon(Icons.phone, color: AppColors.success, size: 18),
-                ),
-              ],
-            ),
             const SizedBox(height: 12),
 
-            // Botón para navegación
+            // Botón principal de seguimiento
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.navigation, size: 16),
-                label: Text(
-                  localizations.openInMaps,
-                  style: GoogleFonts.inter(
-                      fontSize: 14, fontWeight: FontWeight.bold),
+              child: ElevatedButton.icon(
+                icon: Icon(
+                  Icons.my_location,
+                  size: 18,
+                  color: Colors.white,
                 ),
-                onPressed: _showNavigationOptions,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                label: Text(
+                  localizations.realTimeTracking,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onPressed: _openRealTimeTracking,
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor:
+                      enRuta ? AppColors.primary : AppColors.success,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
-            ),
-          ] else ...[
-            // Botones para cuando está en servicio
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.navigation_rounded, size: 18),
-                    label: const Text('NAVEGAR', style: TextStyle(fontSize: 12)),
-                    onPressed: _showNavigationOptions,
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: AppColors.brandBlue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // ✅ BOTÓN DE CHAT CON BADGE MEJORADO
-                Consumer<ChatNotificationProvider>(
-                  builder: (context, chatProvider, child) {
-                    final unreadCount = _currentRequest != null 
-                        ? chatProvider.getUnreadForService(_currentRequest!.id)
-                        : 0;
-
-                    return _buildChatButtonWithBadge(
-                      unreadCount: unreadCount,
-                      onTap: _openChat,
-                    );
-                  },
-                ),
-
-                const SizedBox(width: 8),
-
-                // Botón de Llamada
-                OutlinedButton(
-                  onPressed: _callClient,
-                  style: OutlinedButton.styleFrom(
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(10),
-                    side: BorderSide(color: AppColors.success),
-                  ),
-                  child: Icon(Icons.phone, color: AppColors.success, size: 18),
-                ),
-              ],
             ),
           ],
-
-          const SizedBox(height: 12),
-
-          // Botón principal de seguimiento
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: Icon(
-                Icons.my_location,
-                size: 18,
-                color: Colors.white,
-              ),
-              label: Text(
-                localizations.realTimeTracking,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onPressed: _openRealTimeTracking,
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: enRuta ? AppColors.primary : AppColors.success,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 // ✅ MÉTODO AUXILIAR PARA BOTÓN DE CHAT CON BADGE OPTIMIZADO
-Widget _buildChatButtonWithBadge({
-  required int unreadCount,
-  required VoidCallback onTap,
-}) {
-  return Stack(
-    clipBehavior: Clip.none,
-    children: [
-      // Botón principal
-      OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          shape: const CircleBorder(),
-          padding: const EdgeInsets.all(10),
-          side: BorderSide(color: AppColors.info),
-        ),
-        child: Icon(
-          Icons.chat,
-          color: AppColors.info,
-          size: 18, // ✅ Tamaño normal del icono
-        ),
-      ),
-      
-      // Badge pequeño y bien posicionado
-      if (unreadCount > 0)
-        Positioned(
-          top: -2, // ✅ Posición más precisa
-          right: -2,
-          child: Container(
-             padding: EdgeInsets.all(unreadCount > 9 ? 3 : 4), // ✅ Padding ajustable
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              borderRadius: BorderRadius.circular(8), // ✅ Menos redondeado
-              border: Border.all(
-                color: Colors.white,
-                width: 1.5, // ✅ Borde más fino
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 2, // ✅ Sombra más sutil
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Text(
-              unreadCount > 99 ? '99+' : unreadCount.toString(),
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 9, // ✅ Texto más pequeño
-                fontWeight: FontWeight.bold,
-                height: 1, // ✅ Sin espacio extra vertical
-              ),
-              textAlign: TextAlign.center,
-            ),
+  Widget _buildChatButtonWithBadge({
+    required int unreadCount,
+    required VoidCallback onTap,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Botón principal
+        OutlinedButton(
+          onPressed: onTap,
+          style: OutlinedButton.styleFrom(
+            shape: const CircleBorder(),
+            padding: const EdgeInsets.all(10),
+            side: BorderSide(color: AppColors.info),
+          ),
+          child: Icon(
+            Icons.chat,
+            color: AppColors.info,
+            size: 18, // ✅ Tamaño normal del icono
           ),
         ),
-    ],
-  );
-}
+
+        // Badge pequeño y bien posicionado
+        if (unreadCount > 0)
+          Positioned(
+            top: -2, // ✅ Posición más precisa
+            right: -2,
+            child: Container(
+              padding: EdgeInsets.all(
+                  unreadCount > 9 ? 3 : 4), // ✅ Padding ajustable
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(8), // ✅ Menos redondeado
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1.5, // ✅ Borde más fino
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 2, // ✅ Sombra más sutil
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Text(
+                unreadCount > 99 ? '99+' : unreadCount.toString(),
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 9, // ✅ Texto más pequeño
+                  fontWeight: FontWeight.bold,
+                  height: 1, // ✅ Sin espacio extra vertical
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 // ✅ PASO 3: Agregar método para abrir seguimiento en tiempo real
 
   void _openRealTimeTracking() {
