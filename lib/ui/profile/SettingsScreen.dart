@@ -396,13 +396,26 @@ Widget _buildRatingCard() {
     future: EarningsService.getEarningsSummary(),
     builder: (context, snapshot) {
       double rating = 5.0;
-      bool isLoading = snapshot.connectionState == ConnectionState.waiting;
+        bool isLoading = snapshot.connectionState == ConnectionState.waiting;
       
       if (snapshot.hasData && snapshot.data != null) {
-        rating = double.tryParse(
-          snapshot.data!['technician_rating']?.toString() ?? '5.0'
-        ) ?? 5.0;
+        // ✅ CORREGIR: Buscar en today.rating en lugar de technician_rating
+        final todayData = snapshot.data!['today'];
+        if (todayData != null && todayData['rating'] != null) {
+          rating = double.tryParse(todayData['rating'].toString()) ?? 5.0;
+        }
+        
+        // ✅ FALLBACK: Si no hay rating en today, intentar technician_rating
+        if (rating == 5.0) {
+          rating = double.tryParse(
+            snapshot.data!['technician_rating']?.toString() ?? '5.0'
+          ) ?? 5.0;
+        }
+        
+        print('📊 Rating obtenido: $rating'); // Debug
+        print('📊 Datos completos: ${snapshot.data}'); // Debug
       }
+      
       
       return Card(
         elevation: 4,

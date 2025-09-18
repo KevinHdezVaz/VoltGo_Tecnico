@@ -873,7 +873,7 @@ void _showArrivalDialog() {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${localizations.technicianArrivedMessage}\n\nCliente: $clientName',
+            '${localizations.technicianArrivedMessage}\n\nClient: $clientName',
             style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 16),
@@ -892,7 +892,7 @@ void _showArrivalDialog() {
                     Icon(Icons.info_outline, color: Colors.blue, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Siguiente paso:',
+"Next step:",
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w600,
                         color: Colors.blue.shade700,
@@ -902,7 +902,7 @@ void _showArrivalDialog() {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Confirma tu llegada para continuar con el servicio de carga.',
+"Confirm your arrival to continue with the charging service.",
                   style: GoogleFonts.inter(fontSize: 14),
                 ),
               ],
@@ -922,7 +922,7 @@ void _showArrivalDialog() {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Al confirmar, podrás iniciar el proceso de carga del vehículo.',
+"By confirming, you will be able to start the vehicle charging process.",
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: Colors.green.shade700,
@@ -941,43 +941,9 @@ void _showArrivalDialog() {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Botón "No he llegado" - Ancho completo
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    // ✅ REINICIAR detección sin variable de estado
-                    print("🔄 Usuario dice que no ha llegado, reiniciando detección");
-                    _startArrivalDetection();
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: Colors.grey.shade400),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.close, size: 18, color: Colors.grey.shade600),
-                      const SizedBox(width: 8),
-                      Text(
-                        'No he llegado',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 15,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+             
               
-              const SizedBox(height: 12), // Espaciado entre botones
-              
+               
               // Botón "He llegado al sitio" - Ancho completo y destacado
               SizedBox(
                 width: double.infinity,
@@ -2298,161 +2264,169 @@ Future<void> _checkForImmediateRequestsFromPush() async {
   }
 
 // En tu clase _DriverDashboardScreenState
+Widget _buildTopHeaderPanel() {
+  final localizations = AppLocalizations.of(context);
 
-  Widget _buildTopHeaderPanel() {
-    final localizations = AppLocalizations.of(context);
+  // Determinar el estado actual para la lógica de la UI
+  final bool isOnline = _driverStatus != DriverStatus.offline;
+  final bool isDuringService = _driverStatus == DriverStatus.enRouteToUser ||
+      _driverStatus == DriverStatus.onService;
 
-    // Determinar el estado actual para la lógica de la UI
-    final bool isOnline = _driverStatus != DriverStatus.offline;
-    final bool isDuringService = _driverStatus == DriverStatus.enRouteToUser ||
-        _driverStatus == DriverStatus.onService;
+  // Obtener valores de ganancias de forma segura, con valores por defecto
+  final todayEarnings = double.tryParse(
+          _earningsSummary?['today']?['earnings']?.toString() ?? '0') ??
+      0.0;
+  final todayServices = int.tryParse(
+          _earningsSummary?['today']?['services']?.toString() ?? '0') ??
+      0;
+  final todayRating = double.tryParse(
+          _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ??
+      5.0;
 
-    // Obtener valores de ganancias de forma segura, con valores por defecto
-    final todayEarnings = double.tryParse(
-            _earningsSummary?['today']?['earnings']?.toString() ?? '0') ??
-        0.0;
-    final todayServices = int.tryParse(
-            _earningsSummary?['today']?['services']?.toString() ?? '0') ??
-        0;
-    final todayRating = double.tryParse(
-            _earningsSummary?['today']?['rating']?.toString() ?? '5.0') ??
-        5.0;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isOnline
-              ? [AppColors.brandBlue, AppColors.primary.withOpacity(0.9)]
-              : [AppColors.textSecondary, AppColors.textDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: isOnline
-                ? AppColors.brandBlue.withOpacity(0.25)
-                : AppColors.black.withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: isOnline
+            ? [AppColors.brandBlue, AppColors.primary.withOpacity(0.9)]
+            : [AppColors.textSecondary, AppColors.textDark],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // --- Fila principal: Estado y Switch ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Indicador de estado (Punto y Texto)
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color:
-                                isOnline ? AppColors.accent : AppColors.error,
-                            shape: BoxShape.circle,
-                            boxShadow: isOnline
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.accent.withOpacity(0.6),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
-                                    ),
-                                  ]
-                                : null,
-                          ),
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: isOnline
+              ? AppColors.brandBlue.withOpacity(0.25)
+              : AppColors.black.withOpacity(0.15),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // --- Fila principal: Estado y Switch ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Indicador de estado (Punto y Texto)
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color:
+                              isOnline ? AppColors.accent : AppColors.error,
+                          shape: BoxShape.circle,
+                          boxShadow: isOnline
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.accent.withOpacity(0.6),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  ),
+                                ]
+                              : null,
                         ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // El texto cambia si hay un servicio activo
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // El texto cambia si hay un servicio activo
+                          Text(
+                            isDuringService
+                                ? localizations.serviceActive
+                                : (isOnline
+                                    ? localizations.online
+                                    : localizations.offline),
+                            style: const TextStyle(
+                              color: AppColors.textOnPrimary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          if (isOnline && !isDuringService)
                             Text(
-                              isDuringService
-                                  ? localizations.serviceActive
-                                  : (isOnline
-                                      ? localizations.online
-                                      : localizations.offline),
-                              style: const TextStyle(
-                                color: AppColors.textOnPrimary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.8,
+                              localizations.searchingRequests,
+                              style: TextStyle(
+                                color:
+                                    AppColors.textOnPrimary.withOpacity(0.7),
+                                fontSize: 10,
                               ),
                             ),
-                            if (isOnline && !isDuringService)
-                              Text(
-                                localizations.searchingRequests,
-                                style: TextStyle(
-                                  color:
-                                      AppColors.textOnPrimary.withOpacity(0.7),
-                                  fontSize: 10,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
+                ),
 
-                  // Switch para cambiar de estado
-                  Transform.scale(
-                    scale: 0.85,
-                    child: Switch.adaptive(
-                      value: isOnline,
-                      // Si está en servicio, onChanged es null, lo que deshabilita el switch
-                      onChanged: isDuringService ? null : _toggleOnlineStatus,
-                      activeColor: AppColors.accent,
-                      activeTrackColor: AppColors.accent.withOpacity(0.3),
-                      inactiveThumbColor: AppColors.lightGrey,
-                      inactiveTrackColor: AppColors.disabled.withOpacity(0.3),
-                      // Color del pulgar cuando está deshabilitado
-                      thumbColor: isDuringService
-                          ? MaterialStateProperty.all(AppColors.disabled)
-                          : null,
-                    ),
+                // Switch para cambiar de estado
+                Transform.scale(
+                  scale: 0.85,
+                  child: Switch.adaptive(
+                    value: isOnline,
+                    // Si está en servicio, onChanged es null, lo que deshabilita el switch
+                    onChanged: isDuringService ? null : _toggleOnlineStatus,
+                    activeColor: AppColors.accent,
+                    activeTrackColor: AppColors.accent.withOpacity(0.3),
+                    inactiveThumbColor: AppColors.lightGrey,
+                    inactiveTrackColor: AppColors.disabled.withOpacity(0.3),
+                    // Color del pulgar cuando está deshabilitado
+                    thumbColor: isDuringService
+                        ? MaterialStateProperty.all(AppColors.disabled)
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+
+            // --- Estadísticas (solo se muestran si está en línea) ---
+            if (isOnline) ...[
+              const SizedBox(height: 12),
+              Container(
+                height: 0.5,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                color: AppColors.textOnPrimary.withOpacity(0.15),
+              ),
+              const SizedBox(height: 12),
+              // ✅ MOSTRAR TANTO SERVICIOS COMO RATING
+              Row(
+                children: [
+                  // Servicios de hoy
+                  _buildCompactStat(
+                    icon: Icons.electric_bolt,
+                    label: "Services today",
+                    value: todayServices.toString(),
+                    iconColor: AppColors.warning,
+                  ),
+                  const SizedBox(width: 12), // Espaciado entre stats
+                  // Rating del técnico
+                  _buildCompactStat(
+                    icon: Icons.star,
+                    label: "Rating",
+                    value: todayRating.toStringAsFixed(1),
+                    iconColor: AppColors.accent,
                   ),
                 ],
               ),
-
-              // --- Estadísticas (solo se muestran si está en línea) ---
-              if (isOnline) ...[
-                const SizedBox(height: 12),
-                Container(
-                  height: 0.5,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: AppColors.textOnPrimary.withOpacity(0.15),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildCompactStat(
-                      icon: Icons.electric_bolt,
-                      label: "Services today",
-                      value: todayServices.toString(),
-                      iconColor: AppColors.warning,
-                    ),
-                  ],
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   void _refreshServiceData() async {
     try {
       // Actualizar el request actual

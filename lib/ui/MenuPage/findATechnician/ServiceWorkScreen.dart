@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
- import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ServiceWorkScreen extends StatefulWidget {
   final ServiceRequestModel serviceRequest;
@@ -59,10 +59,13 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Move context-dependent operations here
-    _markServiceAsOnSite();
-    _loadServiceProgress();
-    _startService();
+    // Cargar el progreso del servicio primero
+    _loadServiceProgress().then((_) {
+      // Solo marcar como "on_site" si el servicio no ha comenzado
+      if (!_serviceStarted) {
+        _markServiceAsOnSite();
+      }
+    });
   }
 
   Future<void> _markServiceAsOnSite() async {
@@ -685,6 +688,8 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
         });
 
         print('Progreso del servicio restaurado');
+      } else {
+        print('No hay progreso guardado para este servicio');
       }
     } catch (e) {
       print('Error cargando progreso: $e');

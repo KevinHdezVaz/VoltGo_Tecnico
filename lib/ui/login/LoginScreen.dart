@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildSocialLogins() {
+Widget _buildSocialLogins() {
   final l10n = AppLocalizations.of(context);
 
   return Column(
@@ -169,29 +169,107 @@ class _LoginScreenState extends State<LoginScreen>
         ],
       ),
       const SizedBox(height: 24),
-      // Botón de Google - ACTUALIZADO
+      // Botón de Google
       _buildSocialButton(
         assetName: 'assets/images/gugel.png',
         text: l10n.signInWithGoogle,
-        onPressed: _loginWithGoogle, // ← Cambiado aquí
+        onPressed: _loginWithGoogle,
       ),
       const SizedBox(height: 12),
-      // Botón de Apple
+      // Botón de Apple - CORREGIDO
       _buildSocialButton(
         assetName: 'assets/images/appell.png',
         text: l10n.signInWithApple,
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Colors.black, // Cambiado a negro para Apple
         textColor: Colors.white,
-        onPressed: () {
-          // TODO: Implementar Apple Sign In
-          print('Login con Apple presionado');
-        },
+        onPressed: _loginWithApple, // ← CORREGIDO: faltaban los paréntesis
       ),
     ],
   );
 }
+ Future<void> _loginWithApple() async {
+  final l10n = AppLocalizations.of(context);
+  
+  if (_isLoading) return;
 
- 
+  // Verificar si Apple Sign In está disponible
+  final isAvailable = await AuthService.isAppleSignInAvailable();
+  if (!isAvailable) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Apple Sign In no está disponible en este dispositivo'),
+        backgroundColor: Colors.red.shade600,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+  _animationController.repeat();
+
+  try {
+    final loginResult = await AuthService.loginWithApple();
+
+    _animationController.stop();
+    if (!mounted) return;
+
+    if (loginResult.success) {
+      // Verificar si necesita completar perfil (igual que Google)
+      final user = loginResult.user;
+      final needsCompletion = user?['phone'] == null || 
+                              user?['base_location'] == null || 
+                              user?['services_offered'] == null ||
+                              (user?['services_offered'] is List && (user?['services_offered'] as List).isEmpty);
+      
+      if (needsCompletion) {
+        // Navegar a completar perfil
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GoogleProfileCompletionScreen(
+              userName: user?['name'] ?? 'Usuario',
+              userEmail: user?['email'] ?? '',
+            ),
+          ),
+        );
+      } else {
+        // Ir directamente al dashboard
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const BottomNavBar()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } else {
+      // Mostrar error (solo si no fue cancelación)
+      if (loginResult.error != 'El usuario canceló el inicio de sesión') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              loginResult.error ?? l10n.serverConnectionError,
+            ),
+            backgroundColor: Colors.red.shade600,
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    if (mounted) {
+      _animationController.stop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error inesperado: ${e.toString()}'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+}
+
  Future<void> _loginWithGoogle() async {
   final l10n = AppLocalizations.of(context);
   

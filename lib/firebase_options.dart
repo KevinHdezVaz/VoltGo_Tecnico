@@ -13,28 +13,39 @@ class DefaultFirebaseOptions {
     
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return FirebaseOptions(
-          apiKey: dotenv.env['ANDROID_API_KEY']!,
-          appId: dotenv.env['ANDROID_APP_ID']!,
-          messagingSenderId: dotenv.env['MESSAGING_SENDER_ID']!,
-          projectId: dotenv.env['PROJECT_ID']!,
-          storageBucket: dotenv.env['STORAGE_BUCKET']!,
-        );
+        return _androidOptions;
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
-        // Para iOS necesitarás configurar la app iOS en Firebase Console
-        return FirebaseOptions(
-          apiKey: dotenv.env['IOS_API_KEY'] ?? 'PENDIENTE_CONFIGURAR',
-          appId: dotenv.env['IOS_APP_ID'] ?? 'PENDIENTE_CONFIGURAR',
-          messagingSenderId: dotenv.env['MESSAGING_SENDER_ID']!,
-          projectId: dotenv.env['PROJECT_ID']!,
-          storageBucket: dotenv.env['STORAGE_BUCKET']!,
-          iosBundleId: dotenv.env['IOS_BUNDLE_ID']!,
-        );
+        return _iosOptions;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
         );
     }
+  }
+
+  static FirebaseOptions get _androidOptions {
+    return FirebaseOptions(
+      apiKey: dotenv.env['ANDROID_API_KEY'] ?? _throwMissingKey('ANDROID_API_KEY'),
+      appId: dotenv.env['ANDROID_APP_ID'] ?? _throwMissingKey('ANDROID_APP_ID'),
+      messagingSenderId: dotenv.env['MESSAGING_SENDER_ID'] ?? _throwMissingKey('MESSAGING_SENDER_ID'),
+      projectId: dotenv.env['PROJECT_ID'] ?? _throwMissingKey('PROJECT_ID'),
+      storageBucket: dotenv.env['STORAGE_BUCKET'] ?? _throwMissingKey('STORAGE_BUCKET'),
+    );
+  }
+
+  static FirebaseOptions get _iosOptions {
+    return FirebaseOptions(
+      apiKey: dotenv.env['IOS_API_KEY'] ?? _throwMissingKey('IOS_API_KEY'),
+      appId: dotenv.env['IOS_APP_ID'] ?? _throwMissingKey('IOS_APP_ID'),
+      messagingSenderId: dotenv.env['MESSAGING_SENDER_ID'] ?? _throwMissingKey('MESSAGING_SENDER_ID'),
+      projectId: dotenv.env['PROJECT_ID'] ?? _throwMissingKey('PROJECT_ID'),
+      storageBucket: dotenv.env['STORAGE_BUCKET'] ?? _throwMissingKey('STORAGE_BUCKET'),
+      iosBundleId: dotenv.env['IOS_BUNDLE_ID'] ?? _throwMissingKey('IOS_BUNDLE_ID'),
+    );
+  }
+
+  static String _throwMissingKey(String key) {
+    throw Exception('Missing environment variable: $key. Check your .env file.');
   }
 }
