@@ -105,9 +105,11 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<bool> _showLogoutConfirmationDialog() async {
     return await showDialog<bool>(
           context: context,
+          
           barrierDismissible: true,
           builder: (BuildContext context) {
             return AlertDialog(
+              backgroundColor: AppColors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -248,13 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             const SizedBox(height: 24),
             _buildSectionHeader(
                 AppLocalizations.of(context).account), // Usa AppLocalizations
-             
-             _buildSettingsItem(
-              icon: Icons.account_balance_wallet_outlined,
-              title: AppLocalizations.of(context)
-                  .paymentMethods, // Usa AppLocalizations
-              onTap: () {},
-            ),
+          
                _buildSettingsItem(
               icon: Icons.star_outline,
               title: "Reviews", // Usa AppLocalizations
@@ -265,26 +261,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 );
               },
             ),
-            const Divider(height: 32, color: AppColors.gray300),
-            _buildSectionHeader(
-                AppLocalizations.of(context).vehicle), // Usa AppLocalizations
-            _buildSettingsItem(
-              icon: Icons.directions_car_outlined,
-              title: AppLocalizations.of(context)
-                  .manageVehicles, // Usa AppLocalizations
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (context) => const EditVehicleScreen()),
-                );
-              },
-            ),
-            _buildSettingsItem(
-              icon: Icons.article_outlined,
-              title: AppLocalizations.of(context)
-                  .documents, // Usa AppLocalizations
-              onTap: () {},
-            ),
+             
               const Divider(height: 32, color: AppColors.gray300),
                 // Vehicle Section
                 _buildSectionHeader(l10n.otros),

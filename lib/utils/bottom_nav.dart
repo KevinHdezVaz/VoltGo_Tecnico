@@ -1,4 +1,5 @@
 import 'package:Voltgo_app/data/services/ChatHistoryScreen.dart';
+import 'package:Voltgo_app/ui/MenuPage/TechnicianReviewsScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Voltgo_app/ui/HistoryScreen/HistoryScreen.dart';
@@ -22,7 +23,7 @@ class _BottomNavBarState extends State<BottomNavBar>
 
   final List<Widget> _pages = [
     const DriverDashboardScreen(),
-    const EarningsScreen(),
+    const TechnicianReviewsScreen(),
     const HistoryScreen(),
     const ChatHistoryScreen(), // Placeholder for Chat page
     const SettingsScreen(),
@@ -148,8 +149,8 @@ class _BottomNavBarState extends State<BottomNavBar>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
             _buildNavItem(
-              icon: Icons.paid_outlined,
-              label: 'Earnings',
+              icon: Icons.star_border,
+              label: 'Reviews',
               index: 1,
             ),
             _buildNavItem(

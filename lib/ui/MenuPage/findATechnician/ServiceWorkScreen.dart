@@ -55,18 +55,20 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     _chargeTimeController.addListener(_onTextFieldChanged);
     _notesController.addListener(_onTextFieldChanged);
   }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Cargar el progreso del servicio primero
-    _loadServiceProgress().then((_) {
-      // Solo marcar como "on_site" si el servicio no ha comenzado
-      if (!_serviceStarted) {
-        _markServiceAsOnSite();
-      }
-    });
-  }
+  
+// DESPUÉS
+@override
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  // Cargar el progreso del servicio primero
+  _loadServiceProgress().then((_) {
+    // Si el servicio no ha comenzado, lo iniciamos automáticamente
+    if (!_serviceStarted) {
+      // ✅ Esta línea simula el "click" automático en el botón
+      _startService(); 
+    }
+  });
+}
 
   Future<void> _markServiceAsOnSite() async {
     try {

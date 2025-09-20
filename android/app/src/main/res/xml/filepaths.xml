@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- android/app/src/main/res/xml/filepaths.xml -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Para archivos en el directorio de caché de la app -->
+    <cache-path name="cache" path="." />
+    
+    <!-- Para archivos en el directorio interno de la app -->
+    <files-path name="files" path="." />
+    
+    <!-- Para archivos en el almacenamiento externo -->
+    <external-path name="external" path="." />
+    
+    <!-- Para archivos en el directorio de caché externo -->
+    <external-cache-path name="external_cache" path="." />
+    
+    <!-- Para archivos en el directorio de medios externos -->
+    <external-media-path name="external_media" path="." />
+    
+    <!-- Para documentos específicos -->
+    <external-files-path name="external_files" path="Documents/" />
+    
+    <!-- Para Downloads -->
+    <external-files-path name="downloads" path="Download/" />
+</paths>

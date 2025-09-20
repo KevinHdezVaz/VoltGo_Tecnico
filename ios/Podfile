@@ -28,15 +28,21 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # Configuración CRUCIAL para Firebase
+  # ✅ OBLIGATORIO para file_picker desde versión 1.7.0+
   use_frameworks! :linkage => :static
-  $FirebaseSDKVersion = '10.22.0' # Versión explícita
-
+  
+  # Configuración modular requerida para Firebase y file_picker
+  use_modular_headers!
+  
+  # Versión explícita de Firebase
+  $FirebaseSDKVersion = '10.22.0'
+  
   # Configuración modular para pods de Firebase
   pod 'Firebase/Auth', :modular_headers => true
   pod 'FirebaseCore', :modular_headers => true
   pod 'GoogleUtilities', :modular_headers => true
-
+  
+  # Instalar todos los pods de Flutter (incluye file_picker)
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   
   target 'RunnerTests' do
@@ -47,16 +53,14 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-
+    
     target.build_configurations.each do |config|
       # Configuración de permisos para Google Maps
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
-        
         # Permisos esenciales para Google Maps
         'PERMISSION_LOCATION=1',
         'PERMISSION_LOCATION_WHENINUSE=1',
-        
       ]
       
       # Configuración para Firebase y Xcode 15+

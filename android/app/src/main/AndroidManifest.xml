@@ -5,26 +5,38 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
-    
-    <!-- Permisos adicionales para OneSignal v5.x -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
+    <!-- ✅ NUEVOS PERMISOS PARA ARCHIVOS Y DOCUMENTOS -->
+    <!-- Para acceso a archivos externos (Android 12 y anteriores) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="28" />
+    
+    <!-- Para acceso a fotos/media específicas (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    
+    <!-- Para acceso a documentos específicos (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
+    
+    <!-- Para cámara (tomar fotos de documentos) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    
+    <!-- Para abrir selector de archivos -->
+    <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
+
     <application
         android:label="VoltGo Driver"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true"
+        tools:targetApi="30">
         
         <!-- OneSignal v5.x configuración -->
-        <meta-data 
+        <meta-data
             android:name="onesignal_app_id"
             android:value="3708fbd6-1d48-48aa-94dc-3fa8cbdcdd16" />
-            
-        <!-- REMOVER: ya no se usa en v5.x -->
-        <!-- <meta-data android:name="onesignal_google_project_number" android:value="REMOTE" /> -->
-        
-        <!-- OneSignal iconos (opcional pero recomendado) -->
-         
-        
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -38,28 +50,28 @@
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
-                
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-            
+
         <!-- Google Maps API Key -->
-        <meta-data 
+        <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAqL4xwW8mB3pxuhnx7lq8ZwCAhapcE1vA"/>
-            
+
         <!-- Firebase Messaging Icon -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
-            
-        <!-- File Provider -->
+
+        <!-- ✅ ACTUALIZADO: File Provider con configuración mejorada -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileProvider"
@@ -69,29 +81,60 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/filepaths" />
         </provider>
-        
+
     </application>
-    
-    <!-- Queries existentes -->
+
+    <!-- ✅ ACTUALIZADAS: Queries con soporte para documentos -->
     <queries>
+        <!-- Para abrir PDFs -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="application/pdf" />
         </intent>
+        
+        <!-- Para procesar texto -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        
+        <!-- Para abrir links web -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
+        
+        <!-- Para navegación -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
+        
+        <!-- Para llamadas -->
         <intent>
             <action android:name="android.intent.action.DIAL" />
+        </intent>
+        
+        <!-- ✅ NUEVOS: Para selección de archivos -->
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="*/*" />
+        </intent>
+        
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+            <data android:mimeType="*/*" />
+        </intent>
+        
+        <!-- Para imágenes específicamente -->
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="image/*" />
+        </intent>
+        
+        <!-- Para capturar imágenes con cámara -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
     </queries>
 </manifest>

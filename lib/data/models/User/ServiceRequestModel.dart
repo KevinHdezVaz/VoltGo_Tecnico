@@ -416,14 +416,13 @@ class ServiceRequestModel {
     );
   }
 
-  // Helpers para formatear
-  String get formattedTime {
-    return DateFormat('h:mm a', 'es_ES').format(requestedAt);
-  }
+String get formattedTime {
+  return DateFormat('h:mm a', 'en_US').format(requestedAt);
+}
 
-  String get formattedDate {
-    return DateFormat('EEEE, d \'de\' MMMM', 'es_ES').format(requestedAt);
-  }
+String get formattedDate {
+  return DateFormat('EEEE, MMMM d', 'en_US').format(requestedAt);
+}
 
   double get distanceKm => 0.0;
   double get estimatedEarnings => estimatedCost ?? 5.0;

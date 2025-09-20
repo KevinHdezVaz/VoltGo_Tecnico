@@ -189,17 +189,7 @@ Timer? _arrivalDetectionTimer;
         print('Error configurando OneSignal en _initializeApp: $e');
       }
 
-      // Si no tiene vehículo, lo manda a registrarlo (lógica existente)
-      if (!hasVehicle && mounted) {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => VehicleRegistrationScreen(
-            onVehicleRegistered: () => _initializeApp(),
-          ),
-        ));
-        setState(() => _isLoading = false);
-        return;
-      }
-
+    
       // 1. Leer el estado guardado desde el perfil del técnico
       final serverStatus = profile['status'] ?? 'offline';
       final bool isOnline = serverStatus == 'available';
@@ -344,12 +334,7 @@ Future<void> _checkIfAlreadyArrived() async {
       if (distanceToClient < 0.1) {
         print("🎯 Técnico ya está cerca del cliente, mostrando diálogo de llegada");
         
-        // Usar un delay pequeño para que la UI se estabilice
-        Timer(const Duration(seconds: 2), () {
-          if (mounted && _currentRequest != null) {
-            _showArrivalDialog();
-          }
-        });
+         
       }
     }
   } catch (e) {
@@ -794,7 +779,7 @@ void _startArrivalDetection() {
         if (distanceToClient < 0.1) {
           print("🎯 Técnico llegó cerca del cliente (${distanceToClient.toStringAsFixed(2)} km)");
           timer.cancel();
-          _showArrivalDialog();
+ 
         }
       }
     } catch (e) {
@@ -807,8 +792,7 @@ void _handleArrivalAtDestination() {
   if (!mounted) return;
   
   HapticFeedback.heavyImpact();
-  _showArrivalDialog();
-}
+ }
 
 // Método auxiliar para calcular distancia (igual que en RealTimeTrackingScreen)
 double _calculateDistance(LatLng point1, LatLng point2) {
@@ -830,162 +814,7 @@ double _calculateDistance(LatLng point1, LatLng point2) {
 
 
 
-// En _DriverDashboardScreenState, agregar este método:
-
-
-void _showArrivalDialog() {
-  final localizations = AppLocalizations.of(context);
-  final clientName = _currentRequest?.user?.name ?? 'Cliente';
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.location_on,
-              color: Colors.green,
-              size: 30,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              localizations.technicianArrivedTitle,
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${localizations.technicianArrivedMessage}\n\nClient: $clientName',
-            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withOpacity(0.3)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-"Next step:",
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-"Confirm your arrival to continue with the charging service.",
-                  style: GoogleFonts.inter(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.electric_bolt, color: Colors.green, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-"By confirming, you will be able to start the vehicle charging process.",
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        // Contenedor para organizar los botones con mejor espaciado
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-             
-              
-               
-              // Botón "He llegado al sitio" - Ancho completo y destacado
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    // ✅ DETENER detección al confirmar llegada
-                    _arrivalDetectionTimer?.cancel();
-                    _markServiceAsOnSite();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle, size: 20, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Text(
-                        localizations.arrivedAtSite,
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
+  
 void _markServiceAsOnSite() {
   Navigator.of(context).pushReplacement(
     MaterialPageRoute(
@@ -1724,12 +1553,12 @@ Future<void> _checkForImmediateRequestsFromPush() async {
     switch (newStatus) {
       case 'on_site':
         NotificationService.playGentleNotification();
-        _showSuccessSnackbar('Has llegado al sitio del cliente');
+_showSuccessSnackbar('You have arrived at the client\'s location');
         break;
 
       case 'charging':
         NotificationService.playGentleNotification();
-        _showSuccessSnackbar('Servicio de carga iniciado');
+_showSuccessSnackbar('Charging service started');
         break;
     }
   }

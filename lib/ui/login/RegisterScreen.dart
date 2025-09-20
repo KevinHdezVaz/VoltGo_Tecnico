@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/login/GoogleProfileCompletionScreen.dart';
+import 'package:Voltgo_app/utils/PermissionHelper.dart';
 import 'package:Voltgo_app/utils/map_picker_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -243,31 +244,123 @@ Future<void> _registerWithGoogle() async {
     }
   }
 
-  Future<void> _pickIdFile() async {
-    setState(() => _isPickingFile = true);
-    final localizations = AppLocalizations.of(context);
+Future<void> _pickIdFile() async {
+  setState(() => _isPickingFile = true);
+  final localizations = AppLocalizations.of(context);
 
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+  try {
+    // Para Android: verificar permisos
+    if (Platform.isAndroid) {
+      final hasPermission = await PermissionHelper.hasStoragePermissions();
+      
+      if (!hasPermission) {
+        final granted = await PermissionHelper.requestStoragePermissions();
+        
+        if (!granted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Se necesitan permisos para acceder a archivos'),
+              action: SnackBarAction(
+                label: 'Configuración',
+                onPressed: () => PermissionHelper.openSettings(),
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    }
+
+    // Para iOS: usar directamente FilePicker sin verificar permisos
+    FilePickerResult? result;
+    
+    if (Platform.isIOS) {
+      // En iOS, usar el picker directamente
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.any, // Usar FileType.any en iOS
+        allowMultiple: false,
+        withData: false, // No cargar datos en memoria
+        withReadStream: false,
+      );
+    } else {
+      // En Android, usar extensiones específicas
+      result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+        allowMultiple: false,
       );
+    }
 
-      if (result != null) {
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      
+      // Verificar que el archivo tenga un path válido
+      if (file.path != null && file.path!.isNotEmpty) {
+        // En iOS, verificar que sea un tipo de archivo válido
+        if (Platform.isIOS) {
+          final fileName = file.name.toLowerCase();
+          final validExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+          final hasValidExtension = validExtensions.any((ext) => fileName.endsWith('.$ext'));
+          
+          if (!hasValidExtension) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Por favor selecciona un archivo JPG, PNG o PDF'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
+        }
+        
         setState(() {
-          _pickedIdFile = File(result.files.single.path!);
+          _pickedIdFile = File(file.path!);
         });
+        
+        // Mostrar confirmación
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Archivo seleccionado: ${file.name}'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        throw Exception('No se pudo obtener la ruta del archivo');
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${localizations.fileSelectionError}$e')),
-      );
-    } finally {
+    }
+  } catch (e) {
+    print('Error seleccionando archivo: $e');
+    
+    // No mostrar error si el usuario canceló
+    if (e.toString().contains('User canceled') || 
+        e.toString().contains('cancelled') ||
+        e.toString().contains('canceled')) {
+      return;
+    }
+    
+    String errorMessage;
+    
+    if (Platform.isIOS) {
+      errorMessage = 'Error al seleccionar archivo. Asegúrate de seleccionar un archivo JPG, PNG o PDF.';
+    } else {
+      errorMessage = 'Error al seleccionar archivo: ${e.toString()}';
+    }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (mounted) {
       setState(() => _isPickingFile = false);
     }
   }
-
-  Future<void> _openMapPicker() async {
+}
+ 
+   Future<void> _openMapPicker() async {
     final selectedAddress = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (ctx) => const MapPickerScreen()),
     );
@@ -280,8 +373,13 @@ Future<void> _registerWithGoogle() async {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
+    final isAndroid = Platform.isAndroid;
+    final isIOS = Platform.isIOS;
+    final hasSocialButtons = isAndroid || isIOS;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Stack(
@@ -296,12 +394,14 @@ Future<void> _registerWithGoogle() async {
                   children: [
                     const SizedBox(height: 40),
                     _buildHeader(),
-                    const SizedBox(height: 24),
-                    // NUEVO: Botones sociales arriba para mejor UX
+                     
+                    // ✅ Botones sociales (solo aparecen en sus plataformas)
                     _buildSocialLogins(),
-                    const SizedBox(height: 24),
+                    
+                    // ✅ Separador (solo aparece si hay botones sociales)
                     _buildDivider(),
-                    const SizedBox(height: 24),
+                    
+                    // ✅ Formulario de registro por email
                     _buildForm(),
                     const SizedBox(height: 24),
                     _buildFooter(),
@@ -322,6 +422,7 @@ Future<void> _registerWithGoogle() async {
     );
   }
 
+  
   Widget _buildHeader() {
     final localizations = AppLocalizations.of(context);
     return Center(
@@ -337,63 +438,89 @@ Future<void> _registerWithGoogle() async {
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Elige cómo quieres registrarte',
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.textSecondary,
-            ),
-          ),
+          
         ],
       ),
     );
   }
 
-  // NUEVO: Separador entre opciones sociales y formulario manual
   Widget _buildDivider() {
-    final localizations = AppLocalizations.of(context);
-    return Row(
+    final isAndroid = Platform.isAndroid;
+    final isIOS = Platform.isIOS;
+    final hasSocialButtons = isAndroid || isIOS;
+
+    // Solo mostrar el separador si hay botones sociales
+    if (!hasSocialButtons) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
       children: [
-        const Expanded(child: Divider(thickness: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'O completa el formulario',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            const Expanded(child: Divider(thickness: 1)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Or complete the form',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
             ),
-          ),
+            const Expanded(child: Divider(thickness: 1)),
+          ],
         ),
-        const Expanded(child: Divider(thickness: 1)),
+        const SizedBox(height: 20),
       ],
     );
   }
+Widget _buildSocialLogins() {
+  final localizations = AppLocalizations.of(context);
+  final isAndroid = Platform.isAndroid;
+  final isIOS = Platform.isIOS;
+  
+  // Si no hay botones sociales, no mostrar nada
+  if (!isAndroid && !isIOS) {
+    return const SizedBox.shrink();
+  }
 
-  // ACTUALIZADO: Botones sociales más prominentes
-  Widget _buildSocialLogins() {
-    final localizations = AppLocalizations.of(context);
-    return Column(
-      children: [
+  return Column(
+    children: [
+      // Mostrar divisores y texto "or" solo si hay botones sociales
+      if (isAndroid || isIOS) ...[
+      
+        const SizedBox(height: 40),
+      ],
+      
+      // Botón de Google - Visible en ambas plataformas
+      if (isAndroid || isIOS) ...[
         _buildSocialButton(
           assetName: 'assets/images/gugel.png',
           text: localizations.signUpWithGoogle,
-          onPressed: _isLoading ? null : _registerWithGoogle, // ACTUALIZADO
+          onPressed: _isLoading ? null : _registerWithGoogle,
         ),
         const SizedBox(height: 12),
-       _buildSocialButton(
-  assetName: 'assets/images/appell.png',
-  text: localizations.signUpWithApple,
-  backgroundColor: Colors.black,
-  textColor: Colors.white,
-  onPressed: _isLoading ? null : _registerWithApple, // ← CAMBIO
-),
       ],
-    );
-  }
-
+      
+      // Botón de Apple - Solo visible en iOS
+      if (isIOS) ...[
+        _buildSocialButton(
+          assetName: 'assets/images/appell.png',
+          text: localizations.signUpWithApple,
+ backgroundColor: Colors.blueGrey,
+           textColor: Colors.white,
+           colorIcon: Colors.white,
+          onPressed: _isLoading ? null : _registerWithApple,
+        ),
+        const SizedBox(height: 12),
+      ],
+    ],
+  );
+}
   // NUEVO: Método para registro con Apple
 Future<void> _registerWithApple() async {
   final localizations = AppLocalizations.of(context);
@@ -897,14 +1024,15 @@ Future<void> _registerWithApple() async {
   Widget _buildSocialButton({
     required String assetName,
     required String text,
-    required VoidCallback? onPressed, // Puede ser null cuando está cargando
+    required VoidCallback? onPressed,  
     Color? backgroundColor,
     Color? textColor,
+    Color? colorIcon,
   }) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
-        icon: Image.asset(assetName, height: 22, width: 22),
+        icon: Image.asset(assetName, height: 22, width: 22, color: colorIcon,),
         label: Text(
           text,
           style: TextStyle(

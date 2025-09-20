@@ -245,6 +245,7 @@ String _getClientVehicleInfo() {
                           // --- Service Details Card ---
                           Flexible(
                             child: Card(
+                              color: Colors.white,
                               elevation: 8,
                               shadowColor: Colors.black.withOpacity(0.2),
                               shape: RoundedRectangleBorder(

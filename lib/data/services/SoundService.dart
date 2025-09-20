@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 
@@ -36,6 +37,22 @@ class NotificationService {
 
       final player = _getPlayer();
       
+
+         if (Platform.isIOS) {
+      await player.setAudioContext(AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.ambient,
+          options: [AVAudioSessionOptions.mixWithOthers],
+        ),
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.notification,
+        ),
+      ));
+    }
+    
       // Detener cualquier reproducción actual
       if (_isPlaying) {
         await stop();

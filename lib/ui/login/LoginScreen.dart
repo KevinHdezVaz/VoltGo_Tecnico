@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
 import 'package:Voltgo_app/ui/login/GoogleProfileCompletionScreen.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
@@ -104,51 +105,62 @@ class _LoginScreenState extends State<LoginScreen>
       }
     }
   }
+@override
+Widget build(BuildContext context) {
+  final isAndroid = Platform.isAndroid;
+  final isIOS = Platform.isIOS;
+  final hasSocialButtons = isAndroid || isIOS;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Stack(
-        children: [
-          _buildBackground(context),
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 80),
-                    _buildHeader(),
-                    const SizedBox(height: 40),
-                    _buildForm(),
-                    // ▼▼▼ MODIFICADO: Espaciado ajustado ▼▼▼
-                    const SizedBox(height: 24),
-                    // ▼▼▼ NUEVO: Widget para los botones de login social ▼▼▼
-                    _buildSocialLogins(),
-                    // ▼▼▼ MODIFICADO: Espaciado ajustado ▼▼▼
-                    const SizedBox(height: 24),
-                    _buildFooter(),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+  return Scaffold(
+    backgroundColor: AppColors.white,
+    body: Stack(
+      children: [
+        _buildBackground(context),
+        SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 80),
+                  _buildHeader(),
+                  const SizedBox(height: 40),
+                  _buildForm(),
+                  
+                  // ✅ Botones sociales (solo aparecen en sus plataformas)
+                  _buildSocialLogins(),
+                  
+                  // ✅ Ajustar espaciado basado en la presencia de botones sociales
+                  SizedBox(height: hasSocialButtons ? 24 : 0),
+                  
+                  _buildFooter(),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
           ),
-          if (_isLoading)
-            Center(
-              child: AnimatedTruckProgress(
-                animation: _animationController,
-              ),
+        ),
+        if (_isLoading)
+          Center(
+            child: AnimatedTruckProgress(
+              animation: _animationController,
             ),
-        ],
-      ),
-    );
-  }
-
+          ),
+      ],
+    ),
+  );
+}
 Widget _buildSocialLogins() {
   final l10n = AppLocalizations.of(context);
+  final isAndroid = Platform.isAndroid;
+  final isIOS = Platform.isIOS;
+  final hasSocialButtons = isAndroid || isIOS;
+
+  // Si no hay botones sociales, no mostrar nada
+  if (!hasSocialButtons) {
+    return const SizedBox.shrink();
+  }
 
   return Column(
     children: [
@@ -169,24 +181,33 @@ Widget _buildSocialLogins() {
         ],
       ),
       const SizedBox(height: 24),
-      // Botón de Google
+      
+      // Botón de Google - Visible en AMBAS plataformas
       _buildSocialButton(
         assetName: 'assets/images/gugel.png',
         text: l10n.signInWithGoogle,
-        onPressed: _loginWithGoogle,
+        onPressed: _isLoading ? null : () => _loginWithGoogle(),
       ),
       const SizedBox(height: 12),
-      // Botón de Apple - CORREGIDO
-      _buildSocialButton(
-        assetName: 'assets/images/appell.png',
-        text: l10n.signInWithApple,
-        backgroundColor: Colors.black, // Cambiado a negro para Apple
-        textColor: Colors.white,
-        onPressed: _loginWithApple, // ← CORREGIDO: faltaban los paréntesis
-      ),
+      
+      // Botón de Apple - SOLO en iOS
+      if (isIOS) ...[
+        _buildSocialButton(
+          assetName: 'assets/images/appell.png',
+          text: l10n.signInWithApple,
+          Iconcolor: Colors.white,
+            backgroundColor: Colors.blueGrey,
+          textColor: Colors.white,
+          onPressed: _isLoading ? null : () => _loginWithApple(),
+        ),
+        const SizedBox(height: 12),
+      ],
     ],
   );
 }
+
+
+  
  Future<void> _loginWithApple() async {
   final l10n = AppLocalizations.of(context);
   
@@ -345,14 +366,15 @@ Widget _buildSocialLogins() {
   Widget _buildSocialButton({
     required String assetName,
     required String text,
-    required VoidCallback onPressed,
+  required VoidCallback? onPressed, // ✅ Cambiar a VoidCallback?
     Color? backgroundColor,
     Color? textColor,
+    Color? Iconcolor,
   }) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
-        icon: Image.asset(assetName, height: 22, width: 22),
+        icon: Image.asset(assetName, height: 22, width: 22, color: Iconcolor,),
         label: Text(
           text,
           style: TextStyle(

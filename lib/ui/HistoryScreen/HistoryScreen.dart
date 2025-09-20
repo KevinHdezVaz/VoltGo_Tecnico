@@ -319,20 +319,12 @@ padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).padding.bottom +
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                trailing: item.finalCost != null
-                    ? Text(
-                        '\$${item.finalCost!.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          color: AppColors.textPrimary,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.chevron_right,
-                        color: AppColors.textSecondary,
-                        size: 24,
-                      ),
+             trailing: const Icon(
+  Icons.chevron_right,
+  color: AppColors.textSecondary,
+  size: 24,
+),
+
               ),
             ),
           ),
@@ -402,24 +394,7 @@ padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).padding.bottom +
             ),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              HapticFeedback.lightImpact();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textOnPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: Text(
-              AppLocalizations.of(context).requestService,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
+         ],
       ),
     );
   }

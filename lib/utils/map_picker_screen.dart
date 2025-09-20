@@ -14,7 +14,7 @@ class MapPickerScreen extends StatefulWidget {
 }
 
 class _MapPickerScreenState extends State<MapPickerScreen> {
-  // Posición inicial del mapa (Ciudad de México por defecto)
+  // Initial map position (Mexico City by default)
   static const _initialCameraPosition = CameraPosition(
     target: LatLng(19.432608, -99.133209),
     zoom: 13.0,
@@ -22,48 +22,84 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   GoogleMapController? _mapController;
   LatLng? _pickedLocation;
-  bool _isLoading = false;
+  bool _isLoadingConfirm = false; // For the confirm button
+  bool _isCenteringLocation = false; // For the GPS button
 
-  @override
-  void initState() {
-    super.initState();
+ @override
+void initState() {
+  super.initState();
+  // No llamar _centerMapOnUserLocation() inmediatamente
+  // Esperar a que el widget esté completamente construido
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     _centerMapOnUserLocation();
-  }
+  });
+}
 
-  Future<void> _centerMapOnUserLocation() async {
+ Future<void> _centerMapOnUserLocation() async {
+  setState(() => _isCenteringLocation = true);
+
+  try {
     final location = loc.Location();
-    bool serviceEnabled;
-    loc.PermissionStatus permissionGranted;
-
-    serviceEnabled = await location.serviceEnabled();
+    
+    // Verificar si el servicio está habilitado
+    bool serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
-      if (!serviceEnabled) return;
+      if (!serviceEnabled) {
+        throw Exception('Location service not enabled');
+      }
     }
 
-    permissionGranted = await location.hasPermission();
+    // Verificar permisos de forma más robusta
+    loc.PermissionStatus permissionGranted = await location.hasPermission();
     if (permissionGranted == loc.PermissionStatus.denied) {
       permissionGranted = await location.requestPermission();
-      if (permissionGranted != loc.PermissionStatus.granted) return;
+      if (permissionGranted == loc.PermissionStatus.denied) {
+        throw Exception('Location permission denied');
+      }
+      if (permissionGranted == loc.PermissionStatus.deniedForever) {
+        throw Exception('Location permission permanently denied');
+      }
     }
 
-    final locationData = await location.getLocation();
-    if (locationData.latitude != null && locationData.longitude != null) {
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(locationData.latitude!, locationData.longitude!),
-          15.0,
+    // Solo obtener ubicación si tenemos permisos
+    if (permissionGranted == loc.PermissionStatus.granted) {
+      final locationData = await location.getLocation();
+      if (locationData.latitude != null && locationData.longitude != null) {
+        if (_mapController != null && mounted) {
+          await _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(locationData.latitude!, locationData.longitude!),
+              15.0,
+            ),
+          );
+        }
+      }
+    }
+  } catch (e) {
+    debugPrint('Error al obtener la ubicación: $e');
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo obtener tu ubicación: ${e.toString()}'),
+          backgroundColor: Colors.orange,
         ),
       );
     }
+  } finally {
+    if (mounted) {
+      setState(() => _isCenteringLocation = false);
+    }
   }
+}
 
   void _onConfirmLocation() async {
     if (_pickedLocation == null) return;
-    setState(() => _isLoading = true);
+    setState(() => _isLoadingConfirm = true);
 
     try {
-      // Convertir coordenadas a una dirección legible
+      // Convert coordinates to a readable address
       List<Placemark> placemarks = await placemarkFromCoordinates(
         _pickedLocation!.latitude,
         _pickedLocation!.longitude,
@@ -71,7 +107,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
       if (placemarks.isNotEmpty) {
         final place = placemarks[0];
-        // Formateamos la dirección para que sea clara
+        // We format the address to be clear
         final address =
             '${place.street}, ${place.locality}, ${place.administrativeArea}, ${place.postalCode}';
         if (mounted) {
@@ -79,14 +115,13 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         }
       }
     } catch (e) {
-      // Manejo de errores
+      // Error handling
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content:
-                Text('No se pudo obtener la dirección. Intenta de nuevo.')),
+            content: Text('Could not get the address. Please try again.')),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoadingConfirm = false);
     }
   }
 
@@ -94,7 +129,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Selecciona tu ubicación de base'),
+        title: const Text('Select Your Base Location'),
       ),
       body: Stack(
         alignment: Alignment.center,
@@ -108,26 +143,34 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               });
             },
             myLocationEnabled: true,
-            // Controles nativos desactivados
+            // Native controls disabled to use custom ones
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
           ),
 
           // =======================================================
-          // NUEVOS BOTONES PERSONALIZADOS
+          // CUSTOM MAP CONTROL BUTTONS
           // =======================================================
           Positioned(
             top: 16.0,
             right: 16.0,
             child: Column(
               children: [
+                // GPS Center Button
                 FloatingActionButton.small(
                   heroTag: "btn_gps",
-                  onPressed: _centerMapOnUserLocation,
+                  onPressed: _isCenteringLocation ? null : _centerMapOnUserLocation,
                   backgroundColor: Colors.white,
-                  child: const Icon(Icons.gps_fixed, color: Colors.black54),
+                  child: _isCenteringLocation
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : const Icon(Icons.gps_fixed, color: Colors.black54),
                 ),
                 const SizedBox(height: 16),
+                // Zoom In Button
                 FloatingActionButton.small(
                   heroTag: "btn_zoom_in",
                   onPressed: () {
@@ -137,6 +180,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   child: const Icon(Icons.add, color: Colors.black54),
                 ),
                 const SizedBox(height: 8),
+                // Zoom Out Button
                 FloatingActionButton.small(
                   heroTag: "btn_zoom_out",
                   onPressed: () {
@@ -150,26 +194,25 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           ),
           // =======================================================
 
-          // Pin/Marcador en el centro
+          // Pin/Marker in the center
           const Icon(Icons.location_pin, size: 50, color: Colors.red),
 
-          // Botón de confirmar en la parte inferior
+          // Confirm button at the bottom
           Positioned(
             bottom: 40,
             left: 24,
             right: 24,
             child: ElevatedButton.icon(
-              // ... (tu botón de confirmar se queda igual)
-              icon: _isLoading
+              icon: _isLoadingConfirm
                   ? const SizedBox.shrink()
                   : const Icon(Icons.check, color: Colors.white),
-              label: _isLoading
+              label: _isLoadingConfirm
                   ? const CircularProgressIndicator(color: Colors.white)
                   : const Text(
-                      'Confirmar Ubicación',
+                      'Confirm Location',
                       style: TextStyle(color: Colors.white),
                     ),
-              onPressed: _pickedLocation == null || _isLoading
+              onPressed: _pickedLocation == null || _isLoadingConfirm
                   ? null
                   : _onConfirmLocation,
               style: ElevatedButton.styleFrom(

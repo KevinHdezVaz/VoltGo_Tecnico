@@ -19,7 +19,7 @@ static final Map<String, Map<String, String>> localizedValues = {
       'appTitle': 'VoltGo',
       'searchingTechnician': 'Searching for technician',
       'technicianArriving': 'Technician arriving in',
-      'voltgoTechnician': 'VoltGo Technician',
+      'voltgoTechnician': 'VoltGo Driver',
       'tyc' : 'Terms and Conditions',
     'newRequest': 'NEW REQUEST',
     'earnings': 'EARNINGS',

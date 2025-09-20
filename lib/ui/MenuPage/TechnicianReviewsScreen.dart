@@ -96,126 +96,135 @@ class _TechnicianReviewsScreenState extends State<TechnicianReviewsScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-         l10n.myRatings,
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.brandBlue.withOpacity(0.9)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            Navigator.of(context).pop();
-          },
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-          tabs:   [
-            Tab(text: l10n.summary),
-            Tab(text: l10n.allReviews),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+Widget build(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
+  return Scaffold( // Puedes mantener un Scaffold base SIN AppBar si lo necesitas para el background color
+    backgroundColor: AppColors.background,
+    // El RefreshIndicator ahora envuelve todo el cuerpo de la pantalla
+    body: RefreshIndicator(
+      onRefresh: _loadData,
+      color: AppColors.primary,
+      backgroundColor: AppColors.white,
+      child: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          // Estos son los slivers que aparecen en la parte superior (tu AppBar)
+          return <Widget>[
+            SliverAppBar(
+              title: Text(
+                l10n.myRatings,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
               ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildSummaryTab(),
-                _buildAllReviewsTab(),
-              ],
+              centerTitle: true,
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.brandBlue.withOpacity(0.9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).pop();
+                },
+              ),
+              // Pinned mantiene la AppBar visible
+              pinned: true,
+              // Floating hace que la AppBar reaparezca al hacer scroll hacia arriba
+              floating: true,
+              // La TabBar va en el 'bottom' de la SliverAppBar
+              bottom: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                indicatorWeight: 3,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                labelStyle: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+                tabs: [
+                  Tab(text: l10n.summary),
+                  Tab(text: l10n.allReviews),
+                ],
+              ),
             ),
-    );
-  }
-
-  Widget _buildSummaryTab() {
-    if (_ratingSummary == null) {
-      return _buildEmptyState();
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      color: AppColors.primary,
-      backgroundColor: AppColors.white,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildRatingOverview(),
-            const SizedBox(height: 20),
-            _buildRatingDistribution(),
-            const SizedBox(height: 20),
-            _buildRecentReviews(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAllReviewsTab() {
-    if (_allReviews.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      color: AppColors.primary,
-      backgroundColor: AppColors.white,
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        itemCount: _allReviews.length + (_isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _allReviews.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
+          ];
+        },
+        // El cuerpo del NestedScrollView es tu TabBarView
+        body: _isLoading
+            ? const Center(
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
+              )
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildSummaryTab(),
+                  _buildAllReviewsTab(),
+                ],
               ),
-            );
-          }
-          
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildReviewCard(_allReviews[index]),
-          );
-        },
       ),
-    );
+    ),
+  );
+}
+ 
+Widget _buildSummaryTab() {
+  if (_ratingSummary == null) {
+    return _buildEmptyState();
   }
+  // Se quita el RefreshIndicator de aquí
+  return SingleChildScrollView(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+      children: [
+        _buildRatingOverview(),
+        const SizedBox(height: 20),
+        _buildRatingDistribution(),
+        const SizedBox(height: 20),
+        _buildRecentReviews(),
+      ],
+    ),
+  );
+}
+
+ Widget _buildAllReviewsTab() {
+  if (_allReviews.isEmpty) {
+    return _buildEmptyState();
+  }
+  // Se quita el RefreshIndicator de aquí
+  return ListView.builder(
+    controller: _scrollController,
+    padding: const EdgeInsets.all(16),
+    itemCount: _allReviews.length + (_isLoadingMore ? 1 : 0),
+    itemBuilder: (context, index) {
+      if (index == _allReviews.length) {
+        return const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+          ),
+        );
+      }
+      
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _buildReviewCard(_allReviews[index]),
+      );
+    },
+  );
+}
 
   Widget _buildRatingOverview() {
     return Container(

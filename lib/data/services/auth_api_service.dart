@@ -635,57 +635,140 @@ static Future<AppleSignInResult> registerWithApple() async {
 }
 
 
-    static Future<RegisterResponse> registerTechnician({
-      required String name,
-      required String email,
-      required String password,
-      String? licenseNumber,
-      File? idDocument,
-      required String phone,
-      required String baseLocation,
-      required List<String> servicesOffered,
-    }) async {
+// ✅ MÉTODO CORREGIDO: registerTechnician
+  static Future<RegisterResponse> registerTechnician({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+    required String baseLocation,
+    required List<String> servicesOffered,
+    String? licenseNumber,
+    File? idDocument, // ✅ NUEVO: Archivo opcional
+  }) async {
+    try {
       final url = Uri.parse('${Constants.baseUrl}/register');
+      
+      // ✅ USAR MULTIPART REQUEST PARA ARCHIVOS
       var request = http.MultipartRequest('POST', url);
 
-      request.headers['Accept'] = 'application/json';
-      request.fields['name'] = name;
-      request.fields['email'] = email;
-      request.fields['password'] = password;
-      request.fields['phone'] = phone;
-      request.fields['user_type'] = 'technician';
-      request.fields['base_location'] = baseLocation;
+      // ✅ AGREGAR HEADERS
+      request.headers.addAll({
+        'Accept': 'application/json',
+      });
 
+      // ✅ AGREGAR CAMPOS OBLIGATORIOS
+      request.fields.addAll({
+        'name': name.trim(),
+        'email': email.trim(),
+        'password': password,
+        'phone': phone.trim(),
+        'user_type': 'technician',
+        'base_location': baseLocation.trim(),
+      });
+
+      // ✅ AGREGAR SERVICIOS COMO ARRAY
       for (int i = 0; i < servicesOffered.length; i++) {
-        request.fields['services_offered[$i]'] = servicesOffered[i];
+        request.fields['services_offered[$i]'] = servicesOffered[i].trim();
       }
 
-      if (licenseNumber != null && licenseNumber.isNotEmpty) {
-        request.fields['license_number'] = licenseNumber;
+      // ✅ AGREGAR LICENCIA SI NO ESTÁ VACÍA
+      if (licenseNumber != null && licenseNumber.trim().isNotEmpty) {
+        request.fields['license_number'] = licenseNumber.trim();
       }
 
-      if (idDocument != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath('id_document', idDocument.path),
-        );
-      }
-
-      try {
-        final streamedResponse = await request.send();
-        final response = await http.Response.fromStream(streamedResponse);
-
-        if (response.statusCode == 201) {
-          return RegisterResponse.fromJson(jsonDecode(response.body));
-        } else {
-          developer.log('Error en el registro: ${response.body}');
-          throw Exception('Error en el registro: ${response.body}');
+      // ✅ AGREGAR ARCHIVO SI EXISTE
+      if (idDocument != null && await idDocument.exists()) {
+        String fileName = idDocument.path.split('/').last;
+        String extension = fileName.split('.').last.toLowerCase();
+        
+        // Determinar content type según extensión
+        MediaType contentType;
+        switch (extension) {
+          case 'png':
+            contentType = MediaType('image', 'png');
+            break;
+          case 'jpg':
+          case 'jpeg':
+            contentType = MediaType('image', 'jpeg');
+            break;
+          case 'pdf':
+            contentType = MediaType('application', 'pdf');
+            break;
+          default:
+            contentType = MediaType('image', 'jpeg');
         }
-      } catch (e) {
-        developer.log('Excepción en registerTechnician: $e');
-        return RegisterResponse(success: false, error: 'Error de conexión: $e');
-      }
-    }
 
+        var multipartFile = await http.MultipartFile.fromPath(
+          'id_document', // Nombre del campo en el backend
+          idDocument.path,
+          filename: fileName,
+          contentType: contentType,
+        );
+        
+        request.files.add(multipartFile);
+        
+        developer.log('Archivo agregado: $fileName (${extension})');
+      }
+
+      developer.log('AuthService: Enviando registro de técnico...');
+      developer.log('AuthService: Campos: ${request.fields}');
+      developer.log('AuthService: Archivos: ${request.files.length}');
+
+      // ✅ ENVIAR REQUEST
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      developer.log('AuthService: Código de respuesta: ${response.statusCode}');
+      developer.log('AuthService: Cuerpo de respuesta: ${response.body}');
+
+      if (response.statusCode == 201) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        // Guardar token si se proporciona
+        final token = jsonResponse['token'] as String?;
+        if (token != null && token.isNotEmpty) {
+          await TokenStorage.saveToken(token);
+          developer.log('Token de registro guardado exitosamente');
+        }
+        
+        return RegisterResponse.fromJson(jsonResponse);
+      } else {
+        // Manejar errores
+        String errorMessage = 'Error en el registro';
+        
+        try {
+          final jsonResponse = jsonDecode(response.body);
+          
+          // Prioridad de mensajes de error
+          if (jsonResponse['errors'] != null) {
+            final errors = jsonResponse['errors'] as Map<String, dynamic>;
+            final firstError = errors.values.first;
+            if (firstError is List && firstError.isNotEmpty) {
+              errorMessage = firstError.first.toString();
+            }
+          } else if (jsonResponse['message'] != null) {
+            errorMessage = jsonResponse['message'];
+          }
+        } catch (e) {
+          developer.log('Error parseando respuesta de error: $e');
+          errorMessage = response.body;
+        }
+
+        developer.log('Error en el registro: $errorMessage');
+        return RegisterResponse(success: false, error: errorMessage);
+      }
+
+    } catch (e) {
+      developer.log('Excepción en registerTechnician: $e');
+      return RegisterResponse(
+        success: false, 
+        error: 'Error de conexión: ${e.toString()}'
+      );
+    }
+  }
+
+  
     static Future<RegisterResponse> register({
       required String name,
       required String email,
@@ -966,28 +1049,57 @@ static Future<AppleSignInResult> registerWithApple() async {
     });
   }
 
+ // ✅ CLASE REGISTERRESPONSE CORREGIDA
   class RegisterResponse {
     final bool success;
     final String? token;
     final UserModel? user;
     final String? error;
+    final Map<String, dynamic>? userData; // Para casos donde no uses UserModel
 
     RegisterResponse({
       required this.success,
       this.token,
       this.user,
       this.error,
+      this.userData,
     });
 
+    // ✅ CONSTRUCTOR PARA CASOS DE ÉXITO
     factory RegisterResponse.fromJson(Map<String, dynamic> json) {
+      try {
+        return RegisterResponse(
+          success: true,
+          token: json['token'],
+          user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
+          userData: json['user'], // Respaldo si UserModel falla
+        );
+      } catch (e) {
+        // Si falla el parsing de UserModel, retornar con datos básicos
+        return RegisterResponse(
+          success: true,
+          token: json['token'],
+          userData: json['user'],
+        );
+      }
+    }
+
+    // ✅ CONSTRUCTOR PARA CASOS DE ERROR
+    factory RegisterResponse.error(String errorMessage) {
       return RegisterResponse(
-        success: true,
-        token: json['token'],
-        user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
+        success: false,
+        error: errorMessage,
       );
     }
-  }
 
+    // ✅ HELPER PARA OBTENER DATOS DEL USUARIO
+    Map<String, dynamic>? get userAsMap {
+      if (user != null) {
+        return user!.toJson();
+      }
+      return userData;
+    }
+  }
   class LoginResult {
     final bool success;
     final String? error;
