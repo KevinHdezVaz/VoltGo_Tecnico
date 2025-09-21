@@ -11,6 +11,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:permission_handler/permission_handler.dart'; // ✅ Agregar esta importación
+import 'package:path/path.dart' as path;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ServiceWorkScreen extends StatefulWidget {
   final ServiceRequestModel serviceRequest;
@@ -41,6 +45,7 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
   bool _isLoading = false;
   bool _serviceStarted = false;
   DateTime? _serviceStartTime;
+  bool _cameraPermissionGranted = false; // ✅ Nueva variable para permisos
 
   // Controladores de texto
   final TextEditingController _notesController = TextEditingController();
@@ -54,8 +59,171 @@ class _ServiceWorkScreenState extends State<ServiceWorkScreen> {
     _batteryLevelController.addListener(_onTextFieldChanged);
     _chargeTimeController.addListener(_onTextFieldChanged);
     _notesController.addListener(_onTextFieldChanged);
+    
+    // ✅ Solicitar permisos de cámara al inicializar
+    _requestCameraPermissions();
   }
   
+// ✅ Método mejorado para solicitar permisos de cámara
+Future<void> _requestCameraPermissions() async {
+  try {
+    // Verificar estado actual del permiso
+    final currentStatus = await Permission.camera.status;
+    print('Estado actual del permiso de cámara: $currentStatus');
+    
+    // Si ya está concedido, no hacer nada más
+    if (currentStatus == PermissionStatus.granted) {
+      setState(() {
+        _cameraPermissionGranted = true;
+      });
+      return;
+    }
+    
+    // Si está denegado permanentemente, ir directo a configuración
+    if (currentStatus == PermissionStatus.permanentlyDenied) {
+      setState(() {
+        _cameraPermissionGranted = false;
+      });
+      _showPermissionPermanentlyDeniedDialog();
+      return;
+    }
+    
+    // Solicitar el permiso
+    final status = await Permission.camera.request();
+    print('Nuevo estado del permiso después de solicitar: $status');
+    
+    setState(() {
+      _cameraPermissionGranted = status == PermissionStatus.granted;
+    });
+
+    // Manejar diferentes respuestas
+    switch (status) {
+      case PermissionStatus.granted:
+        print('✅ Permiso de cámara concedido');
+        break;
+      case PermissionStatus.denied:
+        print('❌ Permiso de cámara denegado');
+        _showPermissionDeniedDialog();
+        break;
+      case PermissionStatus.permanentlyDenied:
+        print('❌ Permiso de cámara denegado permanentemente');
+        _showPermissionPermanentlyDeniedDialog();
+        break;
+      case PermissionStatus.limited:
+        print('⚠️ Permiso de cámara limitado');
+        setState(() {
+          _cameraPermissionGranted = true; // En iOS, limited generalmente funciona
+        });
+        break;
+      default:
+        print('❓ Estado de permiso desconocido: $status');
+        break;
+    }
+  } catch (e) {
+    print('Error solicitando permisos de cámara: $e');
+    setState(() {
+      _cameraPermissionGranted = false;
+    });
+    
+    // Mostrar error específico para debug
+    _showErrorSnackbar('Error verificando permisos: $e');
+  }
+}
+
+  // ✅ Diálogo cuando se niegan los permisos
+  void _showPermissionDeniedDialog() {
+    final localizations = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.camera_alt, color: AppColors.warning, size: 30),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+'Camera Permission',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'To document the service properly, we need camera access. Do you want to allow it?',
+          style: GoogleFonts.inter(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _requestCameraPermissions(); // Solicitar nuevamente
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: Text(
+              'Permitir',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Diálogo cuando se niegan permanentemente los permisos
+  void _showPermissionPermanentlyDeniedDialog() {
+    final localizations = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.settings, color: AppColors.error, size: 30),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+'Set Up Permissions',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'The permissions for camera access have been permanently denied. Please enable them in the app settings to take photos.',
+          style: GoogleFonts.inter(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              openAppSettings(); // Abrir configuración de la app
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: Text(
+              'Go to Settings',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 // DESPUÉS
 @override
 void didChangeDependencies() {
@@ -157,6 +325,7 @@ void didChangeDependencies() {
 
   Widget _buildClientInfoCard(AppLocalizations localizations) {
     return Card(
+      color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -232,6 +401,7 @@ void didChangeDependencies() {
 
   Widget _buildServiceProgressCard(AppLocalizations localizations) {
     return Card(
+      color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -344,6 +514,7 @@ void didChangeDependencies() {
 
   Widget _buildPhotoSection(AppLocalizations localizations) {
     return Card(
+      color: Colors.white,  
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -364,6 +535,45 @@ void didChangeDependencies() {
                 ),
               ],
             ),
+            
+            // ✅ Mostrar estado de permisos si no están concedidos
+            if (!_cameraPermissionGranted) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: AppColors.warning, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Cammera permissions are required to take photos.',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _requestCameraPermissions,
+                      child: Text(
+                        'Allow',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            
             const SizedBox(height: 16),
 
             // Foto del vehículo
@@ -375,6 +585,7 @@ void didChangeDependencies() {
               icon: Icons.directions_car,
               color: AppColors.info,
               uploaded: _vehiclePhotoUploaded,
+              enabled: _cameraPermissionGranted, // ✅ Habilitar solo si hay permisos
             ),
 
             const SizedBox(height: 12),
@@ -388,6 +599,7 @@ void didChangeDependencies() {
               icon: Icons.battery_0_bar,
               color: AppColors.warning,
               uploaded: _beforePhotoUploaded,
+              enabled: _cameraPermissionGranted, // ✅ Habilitar solo si hay permisos
             ),
 
             const SizedBox(height: 12),
@@ -400,7 +612,7 @@ void didChangeDependencies() {
               onTap: () => _takePhoto('after'),
               icon: Icons.battery_full,
               color: AppColors.success,
-              enabled: _serviceStarted,
+              enabled: _serviceStarted && _cameraPermissionGranted, // ✅ Ambas condiciones
               uploaded: _afterPhotoUploaded,
             ),
           ],
@@ -467,7 +679,9 @@ void didChangeDependencies() {
                   Text(
                     uploaded && photo == null
                         ? localizations.vehicleRegisteredSuccess
-                        : subtitle,
+                        : (!enabled && !_cameraPermissionGranted 
+                            ? 'Camera permission required'
+                            : subtitle),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: uploaded && photo == null
@@ -516,8 +730,53 @@ void didChangeDependencies() {
     );
   }
 
+
+ Future<File?> _compressImage(File imageFile) async {
+    try {
+      // Obtener directorio temporal
+      final tempDir = await getTemporaryDirectory();
+      final fileName = path.basenameWithoutExtension(imageFile.path);
+      final fileExtension = path.extension(imageFile.path);
+      final targetPath = path.join(
+        tempDir.path, 
+        '${fileName}_compressed$fileExtension'
+      );
+
+      // Comprimir la imagen
+      final compressedFile = await FlutterImageCompress.compressAndGetFile(
+        imageFile.absolute.path,
+        targetPath,
+        quality: 70,           // 70% de calidad (ajustable: 0-100)
+        minWidth: 800,         // Ancho máximo 800px
+        minHeight: 600,        // Alto máximo 600px
+        format: CompressFormat.jpeg, // Forzar formato JPEG
+        keepExif: false,       // Remover metadatos EXIF para ahorrar espacio
+      );
+
+      if (compressedFile != null) {
+        // Verificar tamaño de archivos para debug
+        final originalSize = await imageFile.length();
+        final compressedSize = await compressedFile.length();
+        final compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toStringAsFixed(1);
+        
+        print('🗜️ Compresión exitosa:');
+        print('   Original: ${(originalSize / 1024).toStringAsFixed(1)} KB');
+        print('   Comprimida: ${(compressedSize / 1024).toStringAsFixed(1)} KB');
+        print('   Reducción: $compressionRatio%');
+        
+        return File(compressedFile.path);
+      }
+      
+      return imageFile; // Si falla la compresión, usar original
+    } catch (e) {
+      print('❌ Error comprimiendo imagen: $e');
+      return imageFile; // Si hay error, usar imagen original
+    }
+  }
+
   Widget _buildServiceDetailsSection(AppLocalizations localizations) {
     return Card(
+      color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -751,60 +1010,182 @@ void didChangeDependencies() {
     }
   }
 
-  Future<void> _takePhoto(String type) async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 80,
-        maxWidth: 1024,
-        maxHeight: 1024,
-      );
+  // ✅ Método modificado para verificar permisos antes de tomar foto
+Future<void> _takePhoto(String type) async {
+  // Verificar permisos antes de proceder
+  if (!_cameraPermissionGranted) {
+    _showPermissionRequiredDialog();
+    return;
+  }
 
-      if (image != null) {
+  // Mostrar indicador de carga
+  setState(() => _isLoading = true);
+
+  try {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 1200,
+      maxHeight: 1200,
+    );
+
+    if (image != null) {
+      final originalFile = File(image.path);
+      
+      // Comprimir la imagen
+      final compressedFile = await _compressImage(originalFile);
+      
+      if (compressedFile != null) {
         setState(() {
           switch (type) {
             case 'vehicle':
-              _vehiclePhoto = File(image.path);
+              _vehiclePhoto = compressedFile;
               break;
             case 'before':
-              _beforePhoto = File(image.path);
+              _beforePhoto = compressedFile;
               break;
             case 'after':
-              _afterPhoto = File(image.path);
+              _afterPhoto = compressedFile;
               break;
           }
         });
 
+        // Subir la imagen comprimida
         try {
           final success = await TechnicianService.uploadServicePhotos(
             serviceId: widget.serviceRequest.id,
-            photos: [File(image.path)],
+            photos: [compressedFile],
             photoTypes: [type],
           );
 
           if (success) {
             print('✅ Foto $type subida exitosamente');
+            
+            // ✅ MARCAR COMO SUBIDA PERO NO BORRAR EL ARCHIVO AÚN
+            setState(() {
+              switch (type) {
+                case 'vehicle':
+                  _vehiclePhotoUploaded = true;
+                  break;
+                case 'before':
+                  _beforePhotoUploaded = true;
+                  break;
+                case 'after':
+                  _afterPhotoUploaded = true;
+                  break;
+              }
+            });
+            
           } else {
             print('❌ Error subiendo foto $type');
             _showErrorSnackbar(AppLocalizations.of(context).errorLoadingData);
           }
         } catch (e) {
           print('❌ Error en upload de foto: $e');
-          _showErrorSnackbar(
-              '${AppLocalizations.of(context).errorLoadingData}: $e');
+          _showErrorSnackbar('${AppLocalizations.of(context).errorLoadingData}: $e');
         }
 
         await _saveProgress();
-
         HapticFeedback.lightImpact();
         _showSuccessSnackbar(AppLocalizations.of(context).vehicleRegisteredSuccess);
+        
+        // ✅ SOLO borrar el archivo original (no el comprimido que mantenemos)
+        if (compressedFile.path != originalFile.path) {
+          await originalFile.delete().catchError((_) {});
+        }
       }
-    } catch (e) {
-      _showErrorSnackbar('${AppLocalizations.of(context).errorLoadingData}: $e');
     }
+  } catch (e) {
+    _showErrorSnackbar('${AppLocalizations.of(context).errorLoadingData}: $e');
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
+   Future<List<File>> _compressMultiplePhotos(List<File> photos) async {
+    final compressedPhotos = <File>[];
+    
+    for (final photo in photos) {
+      final compressed = await _compressImage(photo);
+      if (compressed != null) {
+        compressedPhotos.add(compressed);
+      }
+    }
+    
+    return compressedPhotos;
   }
 
-  Future<void> _completeService() async {
+
+Future<void> _cleanupTempFiles() async {
+  try {
+    // Limpiar archivos después de completar el servicio exitosamente
+    final filesToClean = [_vehiclePhoto, _beforePhoto, _afterPhoto]
+        .where((file) => file != null)
+        .cast<File>();
+    
+    for (final file in filesToClean) {
+      if (await file.exists()) {
+        await file.delete().catchError((e) {
+          print('Error eliminando archivo temporal: $e');
+        });
+      }
+    }
+    
+    print('Archivos temporales limpiados');
+  } catch (e) {
+    print('Error en limpieza de archivos: $e');
+  }
+}
+
+
+
+
+  // ✅ Nuevo diálogo para cuando se intenta tomar foto sin permisos
+  void _showPermissionRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.camera_alt, color: AppColors.warning, size: 30),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Permission Required',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'To take photos, you need to grant camera access permission.',
+          style: GoogleFonts.inter(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _requestCameraPermissions();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: Text(
+              'Allw permissions',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+Future<void> _completeService() async {
     setState(() => _isLoading = true);
 
     try {
@@ -812,6 +1193,7 @@ void didChangeDependencies() {
       final photos = <File>[];
       final photoTypes = <String>[];
 
+      // Recopilar fotos existentes
       if (_vehiclePhoto != null) {
         photos.add(_vehiclePhoto!);
         photoTypes.add('vehicle');
@@ -825,13 +1207,32 @@ void didChangeDependencies() {
         photoTypes.add('after');
       }
 
+      // Comprimir fotos si es necesario (para fotos que no se comprimieron antes)
+      List<File> finalPhotos = photos;
+      if (photos.isNotEmpty) {
+        // Solo comprimir si detectamos que las fotos son muy grandes
+        bool needsCompression = false;
+        for (final photo in photos) {
+          final size = await photo.length();
+          if (size > 500 * 1024) { // Si es mayor a 500KB
+            needsCompression = true;
+            break;
+          }
+        }
+        
+        if (needsCompression) {
+          print('🗜️ Comprimiendo fotos para completar servicio...');
+          finalPhotos = await _compressMultiplePhotos(photos);
+        }
+      }
+
       await TechnicianService.saveServiceDetails(
         serviceId: widget.serviceRequest.id,
         initialBatteryLevel: int.tryParse(_batteryLevelController.text),
         chargeTimeMinutes: int.tryParse(_chargeTimeController.text),
         serviceNotes:
             _notesController.text.isNotEmpty ? _notesController.text : null,
-        photos: photos.isNotEmpty ? photos : null,
+        photos: finalPhotos.isNotEmpty ? finalPhotos : null,
         photoTypes: photoTypes.isNotEmpty ? photoTypes : null,
       );
 
@@ -842,8 +1243,8 @@ void didChangeDependencies() {
       );
 
       HapticFeedback.heavyImpact();
-
       _showCompletionDialog(localizations);
+      
     } catch (e) {
       _showErrorSnackbar(
           '${AppLocalizations.of(context).serviceCompleted}: $e');
@@ -852,6 +1253,7 @@ void didChangeDependencies() {
     }
   }
 
+  
   String _buildServiceNotes(AppLocalizations localizations) {
     final buffer = StringBuffer();
     buffer.writeln(localizations.serviceCompletedSuccessfully);
@@ -879,9 +1281,11 @@ void didChangeDependencies() {
   void _showCompletionDialog(AppLocalizations localizations) {
     showDialog(
       context: context,
-      barrierDismissible: false,
+       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              backgroundColor: Colors.white
+
+       , shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
@@ -1002,6 +1406,7 @@ void didChangeDependencies() {
     _batteryLevelController.removeListener(_onTextFieldChanged);
     _chargeTimeController.removeListener(_onTextFieldChanged);
     _notesController.removeListener(_onTextFieldChanged);
+  _cleanupTempFiles(); // Limpiar archivos al salir de la pantalla
 
     _notesController.dispose();
     _batteryLevelController.dispose();

@@ -44,6 +44,17 @@
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+<array>
+	<dict>
+		<key>CFBundleURLName</key>
+		<string>cl.Voltgo.driver-us</string>
+		<key>CFBundleURLSchemes</key>
+		<array>
+			<string>com.googleusercontent.apps.990048158694-9uchr70b1hv2btiktv8rsir541fplcvo</string>
+		</array>
+	</dict>
+</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 

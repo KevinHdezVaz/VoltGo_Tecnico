@@ -21,7 +21,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui' as ui;
- 
+
 class RealTimeTrackingScreen extends StatefulWidget {
   final ServiceRequestModel serviceRequest;
   final VoidCallback? onServiceComplete;
@@ -45,6 +45,9 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
 
   ServiceRequestModel? _currentRequest;
   ServiceRequestModel? _activeServiceRequest;
+  bool _locationPermissionGranted = false; // ✅ NUEVO
+  bool _mapReady = false; // ✅ NUEVO
+
 
   // Ubicaciones
   LatLng? _currentLocation;
@@ -59,7 +62,8 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   // Información de navegación
   double _distanceToDestination = 0.0;
   int _estimatedTimeMinutes = 0;
-  String _currentInstruction = ''; // ✅ Inicializar vacío, se asignará desde AppLocalizations
+  String _currentInstruction =
+      ''; // ✅ Inicializar vacío, se asignará desde AppLocalizations
   double _currentSpeed = 0.0;
 
   // Animaciones
@@ -71,41 +75,87 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   bool _isLoading = true;
   bool _hasArrivedAtDestination = false;
 
- @override
+    @override
   void initState() {
     super.initState();
-    
-    // Solo inicializar lo que NO depende del contexto
+
+    // Solo inicializar lo básico
     _currentRequest = widget.serviceRequest;
     _activeServiceRequest = widget.serviceRequest;
-    
+
     _destinationLocation = LatLng(
       widget.serviceRequest.requestLat,
       widget.serviceRequest.requestLng,
     );
-    
-    // NO usar AppLocalizations aquí
-    _currentInstruction = ''; // Inicializar vacío temporalmente
-    
-    _getVehicleColor();
-    _initializeAnimations();
-  }
 
- @override
+    _initializeAnimations();
+    
+    // ✅ INICIALIZAR CON TIMEOUT
+    _initializeWithTimeout();
+  }
+ 
+ 
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
-    // Inicializar solo una vez cuando las dependencias estén listas
+
+    // ✅ SOLO asignar localización aquí, no inicializar de nuevo
     if (!_hasInitialized) {
       _hasInitialized = true;
-      
-      // Ahora SÍ puedes usar AppLocalizations
       _currentInstruction = AppLocalizations.of(context).navigateToClient;
-      
-      // Inicializar el tracking
-      _initializeTracking();
     }
   }
+
+
+
+Future<void> _initializeWithTimeout() async {
+    try {
+      await Future.wait([
+        _initializeTracking(),
+        Future.delayed(const Duration(seconds: 8)) // ✅ Timeout máximo de 8 segundos
+      ]).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('⏰ Timeout en inicialización, continuando con valores por defecto');
+          _handleInitializationTimeout();
+          return [null, null];
+        },
+      );
+    } catch (e) {
+      print('❌ Error en inicialización: $e');
+      _handleInitializationError(e);
+    }
+  }
+
+
+ void _handleInitializationTimeout() {
+    if (!mounted) return;
+    
+    print('⚠️ Inicialización tardó demasiado, usando configuración básica');
+    
+    setState(() {
+      _isLoading = false;
+      _currentInstruction = 'Navigate to client location';
+      // Configurar marcadores básicos sin location
+      _setupBasicMarkers();
+    });
+  }
+
+
+void _handleInitializationError(dynamic error) {
+    if (!mounted) return;
+    
+    print('❌ Error fatal en inicialización: $error');
+    
+    setState(() {
+      _isLoading = false;
+      _currentInstruction = 'Error loading navigation';
+    });
+    
+    _showErrorSnackbar('Error setting up navigation. Please try again.');
+  }
+
+
 
   void _initializeAnimations() {
     _pulseController = AnimationController(
@@ -125,13 +175,12 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   Future<void> _getVehicleColor() async {
     try {
       final profile = await TechnicianService.getProfile();
-      
-      if (profile['technician_profile'] != null && 
+
+      if (profile['technician_profile'] != null &&
           profile['technician_profile']['vehicle_details'] != null) {
-        
         final vehicleDetails = profile['technician_profile']['vehicle_details'];
         String? colorName;
-        
+
         if (vehicleDetails is String) {
           try {
             final decoded = jsonDecode(vehicleDetails);
@@ -142,7 +191,7 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
         } else if (vehicleDetails is Map) {
           colorName = vehicleDetails['color'];
         }
-        
+
         if (colorName != null && colorName.isNotEmpty) {
           // ✅ VERIFICAR SI EL WIDGET ESTÁ MONTADO ANTES DE setState
           if (mounted) {
@@ -199,37 +248,175 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     }
   }
 
-  Future<void> _initializeTracking() async {
-    // ✅ VERIFICAR SI EL WIDGET ESTÁ MONTADO ANTES DE setState
-    if (mounted) {
-      setState(() => _isLoading = true);
-    }
+Future<void> _initializeTracking() async {
+    print('🚀 Iniciando _initializeTracking...');
+    
+    if (!mounted) return;
+    
+    setState(() => _isLoading = true);
 
     try {
-      final locationData = await _location.getLocation();
-      if (locationData.latitude != null && locationData.longitude != null) {
-        _currentLocation =
-            LatLng(locationData.latitude!, locationData.longitude!);
+      // ✅ PASO 1: Verificar permisos de ubicación (con timeout corto)
+      final bool permissionGranted = await _checkLocationPermission().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          print('⏰ Timeout en permisos de ubicación');
+          return false;
+        },
+      );
 
-        await _setupMarkers();
-        await _getRoute();
+      if (!permissionGranted) {
+        print('❌ Permisos de ubicación no concedidos');
+        _handleLocationPermissionDenied();
+        return;
+      }
+
+      // ✅ PASO 2: Obtener ubicación actual (con timeout)
+      LocationData? locationData;
+      try {
+  locationData = await _location.getLocation().timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => throw TimeoutException('Location timeout', const Duration(seconds: 5)),
+  );
+} on TimeoutException {
+  print('⏰ Timeout obteniendo ubicación');
+  locationData = null;
+} 
+catch (e) {
+        print('❌ Error obteniendo ubicación: $e');
+        locationData = null;
+      }
+
+      if (locationData?.latitude != null && locationData?.longitude != null) {
+        _currentLocation = LatLng(locationData!.latitude!, locationData.longitude!);
+        print('📍 Ubicación obtenida: $_currentLocation');
+      } else {
+        print('⚠️ No se pudo obtener ubicación, usando ubicación de destino');
+        _currentLocation = _destinationLocation;
+      }
+
+      // ✅ PASO 3: Configurar marcadores (no esperar)
+      _setupMarkersAsync();
+
+      // ✅ PASO 4: Obtener color del vehículo (en background)
+      _getVehicleColorAsync();
+
+      // ✅ PASO 5: Calcular ruta
+      await _getRoute();
+
+      // ✅ PASO 6: Iniciar servicios
+      if (_currentLocation != null) {
         _startLocationTracking();
         _startRouteUpdates();
       }
+
+      print('✅ _initializeTracking completado exitosamente');
+
     } catch (e) {
-      print('❌ Error initializing tracking: $e');
-      if (mounted) {
-        _showErrorSnackbar(AppLocalizations.of(context).errorLoadingData);
-      }
+      print('❌ Error en _initializeTracking: $e');
+      _handleInitializationError(e);
     } finally {
-      // ✅ VERIFICAR SI EL WIDGET ESTÁ MONTADO ANTES DE setState
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
+  
 
-  Future<void> _setupMarkers() async {
+    // ✅ NUEVO: Verificar permisos de ubicación de forma robusta
+  Future<bool> _checkLocationPermission() async {
+    try {
+      // Verificar si el servicio está habilitado
+      bool serviceEnabled = await _location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await _location.requestService();
+        if (!serviceEnabled) {
+          print('❌ Servicio de ubicación no habilitado');
+          return false;
+        }
+      }
+
+      // Verificar permisos
+      PermissionStatus permission = await _location.hasPermission();
+      if (permission == PermissionStatus.denied) {
+        permission = await _location.requestPermission();
+        if (permission != PermissionStatus.granted) {
+          print('❌ Permisos de ubicación denegados');
+          return false;
+        }
+      }
+
+      _locationPermissionGranted = true;
+      return true;
+    } catch (e) {
+      print('❌ Error verificando permisos: $e');
+      return false;
+    }
+  }
+
+   void _handleLocationPermissionDenied() {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = false;
+      _currentInstruction = 'Location permission required';
+    });
+    
+    _showErrorSnackbar('Location permission is required for navigation');
+    
+    // Configurar marcadores básicos sin ubicación
+    _setupBasicMarkers();
+  }
+
+
+  void _setupMarkersAsync() {
+    _setupMarkers().catchError((e) {
+      print('⚠️ Error configurando marcadores: $e');
+      _setupBasicMarkers();
+    });
+  }
+
+
+
+ void _setupBasicMarkers() {
+    _markers = {
+      Marker(
+        markerId: const MarkerId('client'),
+        position: _destinationLocation,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        infoWindow: InfoWindow(
+          title: widget.serviceRequest.user?.name ?? 'Client',
+          snippet: 'Destination',
+        ),
+      ),
+    };
+
+    if (_currentLocation != null) {
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('technician'),
+          position: _currentLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: const InfoWindow(title: 'Your location'),
+        ),
+      );
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+
+void _getVehicleColorAsync() {
+    _getVehicleColor().catchError((e) {
+      print('⚠️ Error obteniendo color del vehículo: $e');
+      // Continuar con color por defecto
+    });
+  }
+
+
+    Future<void> _setupMarkers() async {
     if (_currentLocation == null) return;
 
     _markers = {
@@ -244,7 +431,8 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
         position: _destinationLocation,
         icon: await _createCarIcon(Colors.red),
         infoWindow: InfoWindow(
-          title: '${widget.serviceRequest.user?.name ?? AppLocalizations.of(context).client}',
+          title:
+              '${widget.serviceRequest.user?.name ?? AppLocalizations.of(context).client}',
           snippet: AppLocalizations.of(context).chargeServiceRequested,
         ),
       ),
@@ -273,8 +461,9 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     if (color == Colors.orange) return BitmapDescriptor.hueOrange;
     if (color == Colors.purple) return BitmapDescriptor.hueViolet;
     if (color == Colors.pink) return BitmapDescriptor.hueRose;
-    if (color == Colors.grey || color == Colors.black87) return BitmapDescriptor.hueBlue;
-    
+    if (color == Colors.grey || color == Colors.black87)
+      return BitmapDescriptor.hueBlue;
+
     HSVColor hsv = HSVColor.fromColor(color);
     return hsv.hue;
   }
@@ -364,7 +553,6 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   void _startLocationTracking() {
     _locationTimer?.cancel();
     _locationTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      // ✅ VERIFICAR SI EL WIDGET ESTÁ MONTADO ANTES DE CONTINUAR
       if (!mounted) {
         timer.cancel();
         return;
@@ -402,19 +590,20 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     setState(() {
       _markers.removeWhere((marker) => marker.markerId.value == 'technician');
     });
-    
+
     final technicianCarIcon = await _createCarIcon(Colors.blue);
-    
+
     // ✅ VERIFICAR NUEVAMENTE SI EL WIDGET ESTÁ MONTADO DESPUÉS DE LA OPERACIÓN ASYNC
     if (!mounted) return;
-    
+
     setState(() {
       _markers.add(
         Marker(
           markerId: const MarkerId('technician'),
           position: newLocation,
           icon: technicianCarIcon,
-          infoWindow: InfoWindow(title: AppLocalizations.of(context).technician),
+          infoWindow:
+              InfoWindow(title: AppLocalizations.of(context).technician),
         ),
       );
     });
@@ -459,10 +648,9 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
   void _showArrivalDialog() {
     // ✅ VERIFICAR SI EL WIDGET ESTÁ MONTADO ANTES DE MOSTRAR EL DIÁLOGO
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
-
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
@@ -478,7 +666,9 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
               child: Icon(Icons.location_on, color: Colors.green, size: 30),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(AppLocalizations.of(context).technicianArrivedTitle)),
+            Expanded(
+                child:
+                    Text(AppLocalizations.of(context).technicianArrivedTitle)),
           ],
         ),
         content: Column(
@@ -533,30 +723,34 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     );
   }
 
+  // ✅ MÉTODO MEJORADO: dispose
   @override
   void dispose() {
-    // ✅ CANCELAR TODOS LOS TIMERS Y ANIMACIONES ANTES DE HACER DISPOSE
+    print('🗑️ Disposing RealTimeTrackingScreen...');
+    
+    // Cancelar timers
     _locationTimer?.cancel();
     _routeTimer?.cancel();
+    
+    // Dispose animations
     _pulseController.dispose();
+    
+    // Limpiar controller
+    _mapController = null;
+    
     super.dispose();
   }
 
-  @override
+
+
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          // ✅ GOOGLE MAP CON MANEJO DE ERRORES
           GoogleMap(
-            onMapCreated: (GoogleMapController controller) async {
-              _mapController = controller;
-              if (_currentLocation != null) {
-                _centerMapOnCurrentLocation();
-              }
-              String mapStyle =
-                  await rootBundle.loadString('assets/map_style.json');
-              controller.setMapStyle(mapStyle);
-            },
+            onMapCreated: _onMapCreated,
             initialCameraPosition: CameraPosition(
               target: _currentLocation ?? _destinationLocation,
               zoom: 14.0,
@@ -566,18 +760,87 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
             myLocationEnabled: false,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
+            // ✅ CONFIGURACIÓN ROBUSTA
+            compassEnabled: true,
+            mapToolbarEnabled: false,
+            rotateGesturesEnabled: true,
+            scrollGesturesEnabled: true,
+            tiltGesturesEnabled: true,
+            zoomGesturesEnabled: true,
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 120,
-              bottom: 200,
+              bottom: 120,
             ),
           ),
+          
           _buildNavigationHeader(),
           _buildBottomPanel(),
+          
+          // ✅ LOADING OVERLAY MEJORADO
           if (_isLoading) _buildLoadingOverlay(),
         ],
       ),
     );
   }
+
+ Widget _buildLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.7),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Setting up navigation...',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This may take a few seconds',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              
+              // ✅ BOTÓN DE ESCAPE DESPUÉS DE 5 SEGUNDOS
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                  _setupBasicMarkers();
+                },
+                child: Text(
+                  'Continue without full setup',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
 
   Widget _buildNavigationHeader() {
     return Positioned(
@@ -634,7 +897,8 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
                 _buildNavInfo(
                   icon: Icons.access_time,
                   label: AppLocalizations.of(context).time,
-                  value: '$_estimatedTimeMinutes ${AppLocalizations.of(context).min}',
+                  value:
+                      '$_estimatedTimeMinutes ${AppLocalizations.of(context).min}',
                 ),
                 _buildNavInfo(
                   icon: Icons.social_distance,
@@ -643,7 +907,8 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
                 ),
                 _buildNavInfo(
                   icon: Icons.speed,
-                  label: 'Velocidad', // ✅ Fallback ya que no está en AppLocalizations
+                  label:
+                      'Velocidad', // ✅ Fallback ya que no está en AppLocalizations
                   value: '${(_currentSpeed * 3.6).toStringAsFixed(0)} km/h',
                 ),
               ],
@@ -682,13 +947,43 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     );
   }
 
-  Widget _buildBottomPanel() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.all(20),
+
+Future<void> _onMapCreated(GoogleMapController controller) async {
+    try {
+      _mapController = controller;
+      _mapReady = true;
+      
+      if (_currentLocation != null) {
+        _centerMapOnCurrentLocation();
+      }
+      
+      // Cargar estilo del mapa
+      try {
+        String mapStyle = await rootBundle.loadString('assets/map_style.json');
+        await controller.setMapStyle(mapStyle);
+        print('✅ Estilo del mapa aplicado');
+      } catch (e) {
+        print('⚠️ No se pudo cargar el estilo del mapa: $e');
+        // Continuar sin estilo personalizado
+      }
+      
+      print('✅ Google Maps inicializado correctamente');
+    } catch (e) {
+      print('❌ Error en onMapCreated: $e');
+    }
+  }
+
+
+// ✅ REEMPLAZA tu _buildBottomPanel actual con esta versión arrastrable
+Widget _buildBottomPanel() {
+  return DraggableScrollableSheet(
+    initialChildSize: 0.5, // ✅ Inicia al 35% de la pantalla
+    minChildSize: 0.15, // ✅ Mínimo 15% (solo instrucción visible)
+    maxChildSize: 0.6, // ✅ Máximo 70% para ver bien el mapa
+    snap: true, // ✅ Se pega a posiciones específicas
+    snapSizes: [0.15, 0.35, 0.6], // ✅ Posiciones donde se "pega"
+    builder: (context, scrollController) {
+      return Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -700,104 +995,234 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
             ),
           ],
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    AnimatedBuilder(
-                      animation: _pulseAnimation,
-                      builder: (context, child) => Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(
-                            0.2 + (_pulseAnimation.value * 0.3),
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.navigation,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _currentInstruction,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
+        child: Column(
+          children: [
+            // ✅ HANDLE PARA ARRASTRAR
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.gray300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+            ),
+            
+            // ✅ CONTENIDO SCROLLABLE
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppColors.primary.withOpacity(0.1),
-                      child: Text(
-                        widget.serviceRequest.user?.name.isNotEmpty == true
-                            ? widget.serviceRequest.user!.name[0].toUpperCase()
-                            : 'C',
-                        style: GoogleFonts.inter(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    // ✅ INSTRUCCIÓN ACTUAL (siempre visible)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            widget.serviceRequest.user?.name ?? AppLocalizations.of(context).client,
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                          AnimatedBuilder(
+                            animation: _pulseAnimation,
+                            builder: (context, child) => Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(
+                                  0.2 + (_pulseAnimation.value * 0.3),
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.navigation,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
                             ),
                           ),
-                          Text(
-                            AppLocalizations.of(context).chargeServiceRequested,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _currentInstruction,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // ✅ INFORMACIÓN ADICIONAL (visible al expandir)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade700),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.route,
+                            color: Colors.black,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Head to the customer, follow these routes to arrive faster.',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    
+                    // ✅ BOTÓN DE NAVEGACIÓN
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.navigation, size: 16),
+                        label: Text(
+                          AppLocalizations.of(context).openInMaps,
+                          style: GoogleFonts.inter(
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                        onPressed: _showNavigationOptions,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                          side: BorderSide(color: Colors.blue),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // ✅ CARD DEL CLIENTE
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.gray300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppColors.primary.withOpacity(0.1),
+                            child: Text(
+                              widget.serviceRequest.user?.name.isNotEmpty == true
+                                  ? widget.serviceRequest.user!.name[0].toUpperCase()
+                                  : 'C',
+                              style: GoogleFonts.inter(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.serviceRequest.user?.name ?? AppLocalizations.of(context).client,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  AppLocalizations.of(context).chargeServiceRequested,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // ✅ BOTONES DE ACCIÓN
+                    _buildActionButtons(),
+                    
+                    // ✅ ESPACIO FINAL PARA SCROLL
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              _buildActionButtons(),
-            ],
-          ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+ 
+// ✅ WIDGET HELPER PARA INFORMACIÓN DEL VIAJE
+Widget _buildTripInfo({
+  required IconData icon,
+  required String label,
+  required String value,
+}) {
+  return Column(
+    children: [
+      Icon(icon, color: AppColors.primary, size: 16),
+      const SizedBox(height: 4),
+      Text(
+        value,
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
         ),
       ),
-    );
-  }
+      Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          color: AppColors.textSecondary,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    ],
+  );
+}
 
   Widget _buildActionButtons() {
     return Row(
@@ -823,8 +1248,9 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
         const SizedBox(width: 12),
         Consumer<ChatNotificationProvider>(
           builder: (context, chatProvider, child) {
-            final unreadCount = chatProvider.getUnreadForService(widget.serviceRequest.id);
-            
+            final unreadCount =
+                chatProvider.getUnreadForService(widget.serviceRequest.id);
+
             return Expanded(
               child: Stack(
                 clipBehavior: Clip.none,
@@ -890,11 +1316,216 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     );
   }
 
+// ✅ SOLUCIÓN 3: Usar DraggableScrollableSheet (más avanzado)
+  void _showNavigationOptions() {
+    if (_currentRequest == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5, // ✅ Inicia al 50% de la pantalla
+        minChildSize: 0.3, // ✅ Mínimo 30%
+        maxChildSize: 0.8, // ✅ Máximo 80%
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 20,
+                offset: const Offset(0, -8),
+              ),
+            ],
+          ),
+          child: _buildScrollableNavigationContent(scrollController),
+        ),
+      ),
+    );
+  }
+
+// ✅ Contenido scrollable para el DraggableScrollableSheet
+  Widget _buildScrollableNavigationContent(ScrollController scrollController) {
+    final localizations = AppLocalizations.of(context);
+
+    final clientName = _currentRequest?.user?.name ?? 'Cliente';
+    final lat = _currentRequest!.requestLat;
+    final lng = _currentRequest!.requestLng;
+
+    return ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      children: [
+        // Handle visual
+        Center(
+          child: Container(
+            margin: const EdgeInsets.only(top: 8, bottom: 16),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+
+        // Resto del contenido igual que antes pero en ListView
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.navigation, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${localizations.navigateToClient} $clientName',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        // Opciones de navegación
+        ...[
+          // Usar spread operator para agregar múltiples widgets
+          _buildCompactNavigationOption(
+            icon: Icons.map,
+            title: 'Google Maps',
+            subtitle: localizations.navigationWithTraffic,
+            color: Colors.blue,
+            onTap: () async {
+              Navigator.pop(context);
+              await _launchGoogleMaps(lat, lng, clientName);
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildCompactNavigationOption(
+            icon: Icons.directions_car,
+            title: 'Waze',
+            subtitle: localizations.optimizedRoutes,
+            color: Colors.purple,
+            onTap: () async {
+              Navigator.pop(context);
+              await _launchWaze(lat, lng);
+            },
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        const SizedBox(height: 20),
+
+        // Botón cancelar
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              localizations.cancel,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+
+        // Espacio final
+        SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+      ],
+    );
+  }
+
+// ✅ NUEVO: Widget de opción de navegación más compacto
+  Widget _buildCompactNavigationOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10), // ✅ REDUCIDO
+      child: Container(
+        padding: const EdgeInsets.all(12), // ✅ REDUCIDO de 16 a 12
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.gray300),
+          borderRadius: BorderRadius.circular(10), // ✅ REDUCIDO
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8), // ✅ REDUCIDO de 12 a 8
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8), // ✅ REDUCIDO
+              ),
+              child:
+                  Icon(icon, color: color, size: 20), // ✅ REDUCIDO de 24 a 20
+            ),
+            const SizedBox(width: 12), // ✅ REDUCIDO de 16 a 12
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontSize: 14, // ✅ REDUCIDO de 16 a 14
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2), // ✅ REDUCIDO de 4 a 2
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 11, // ✅ REDUCIDO de 12 a 11
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: AppColors.textSecondary,
+              size: 18, // ✅ REDUCIDO de 20 a 18
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _refreshServiceData() async {
     try {
       final updatedRequest = await ServiceRequestService.getRequestStatus(
           widget.serviceRequest.id);
-      
+
       // ✅ VERIFICAR SI EL WIDGET ESTÁ MONTADO ANTES DE setState
       if (mounted) {
         setState(() {
@@ -905,7 +1536,8 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     } catch (e) {
       print('Error refreshing service data: $e');
       if (mounted) {
-        _showErrorSnackbar(AppLocalizations.of(context).errorRefreshingServiceData);
+        _showErrorSnackbar(
+            AppLocalizations.of(context).errorRefreshingServiceData);
       }
     }
   }
@@ -914,9 +1546,11 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     HapticFeedback.lightImpact();
 
     print('🔍 Abriendo chat para servicio: ${widget.serviceRequest.id}');
-    print('📱 Usuario: ${widget.serviceRequest.user?.name ?? AppLocalizations.of(context).client}');
+    print(
+        '📱 Usuario: ${widget.serviceRequest.user?.name ?? AppLocalizations.of(context).client}');
 
-    final chatProvider = Provider.of<ChatNotificationProvider>(context, listen: false);
+    final chatProvider =
+        Provider.of<ChatNotificationProvider>(context, listen: false);
     await chatProvider.markServiceAsRead(widget.serviceRequest.id);
 
     // ✅ VERIFICAR SI EL WIDGET ESTÁ MONTADO ANTES DE NAVEGAR
@@ -946,7 +1580,8 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
           await launchUrl(phoneUri);
         } else {
           if (mounted) {
-            _showErrorSnackbar(AppLocalizations.of(context).couldNotOpenPhoneApp);
+            _showErrorSnackbar(
+                AppLocalizations.of(context).couldNotOpenPhoneApp);
           }
         }
       } catch (e) {
@@ -961,33 +1596,48 @@ class _RealTimeTrackingScreenState extends State<RealTimeTrackingScreen>
     }
   }
 
-  Widget _buildLoadingOverlay() {
-    return Container(
-      color: Colors.black.withOpacity(0.3),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                AppLocalizations.of(context).pleaseWaitMoment,
-                style: GoogleFonts.inter(fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _launchGoogleMaps(
+      double lat, double lng, String destination) async {
+    try {
+      // URL para abrir Google Maps con navegación
+      final String googleMapsUrl =
+          'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+
+      // URL alternativa más específica
+      // final String googleMapsUrl = 'google.navigation:q=$lat,$lng&mode=d';
+
+      final Uri uri = Uri.parse(googleMapsUrl);
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        print('✅ Google Maps abierto exitosamente');
+      } else {
+        _showErrorSnackbar('Google Maps no está disponible');
+      }
+    } catch (e) {
+      print('❌ Error abriendo Google Maps: $e');
+      _showErrorSnackbar('No se pudo abrir Google Maps: $e');
+    }
   }
+
+  Future<void> _launchWaze(double lat, double lng) async {
+    try {
+      final wazeUrl = 'https://waze.com/ul?ll=$lat,$lng&navigate=yes';
+      final uri = Uri.parse(wazeUrl);
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        print('✅ Waze abierto exitosamente');
+      } else {
+        _showErrorSnackbar('Waze no está instalado en tu dispositivo');
+      }
+    } catch (e) {
+      print('❌ Error abriendo Waze: $e');
+      _showErrorSnackbar('No se pudo abrir Waze');
+    }
+  }
+
+ 
 
   void _showErrorSnackbar(String message) {
     if (mounted) {
@@ -1006,13 +1656,15 @@ Future<BitmapDescriptor> _createCarIcon(Color color) async {
   final paint = Paint()
     ..color = Colors.white
     ..style = PaintingStyle.fill;
-  canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width / 2, paint);
+  canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2), size.width / 2, paint);
 
   final borderPaint = Paint()
     ..color = Colors.grey.shade300
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
-  canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width / 2 - 1, borderPaint);
+  canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2), size.width / 2 - 1, borderPaint);
 
   final textPainter = TextPainter(
     text: TextSpan(
@@ -1025,7 +1677,7 @@ Future<BitmapDescriptor> _createCarIcon(Color color) async {
     ),
     textDirection: TextDirection.ltr,
   );
-  
+
   textPainter.layout();
   textPainter.paint(
     canvas,

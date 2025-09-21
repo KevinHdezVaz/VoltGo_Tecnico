@@ -132,10 +132,12 @@ Future<void> _registerWithGoogle() async {
     if (loginResult.success) {
       // ✅ CORRECCIÓN: Verificar si el perfil ya está completo
       final user = loginResult.user;
-      final needsCompletion = user?['phone'] == null || 
-                              user?['base_location'] == null || 
-                              user?['services_offered'] == null ||
-                              (user?['services_offered'] is List && (user?['services_offered'] as List).isEmpty);
+     final needsCompletion = user?['phone'] == null || 
+                        user?['technician_profile'] == null ||
+                        user?['technician_profile']['base_location'] == null || 
+                        user?['technician_profile']['services_offered'] == null ||
+                        (user?['technician_profile']['services_offered'] is List && 
+                         (user?['technician_profile']['services_offered'] as List).isEmpty);
       
       if (needsCompletion) {
         // Navegar a completar perfil (caso normal para registro)
@@ -550,10 +552,12 @@ Future<void> _registerWithApple() async {
 
     if (loginResult.success) {
       final user = loginResult.user;
-      final needsCompletion = user?['phone'] == null || 
-                              user?['base_location'] == null || 
-                              user?['services_offered'] == null ||
-                              (user?['services_offered'] is List && (user?['services_offered'] as List).isEmpty);
+    final needsCompletion = user?['phone'] == null || 
+                        user?['technician_profile'] == null ||
+                        user?['technician_profile']['base_location'] == null || 
+                        user?['technician_profile']['services_offered'] == null ||
+                        (user?['technician_profile']['services_offered'] is List && 
+                         (user?['technician_profile']['services_offered'] as List).isEmpty);
       
       if (needsCompletion) {
         Navigator.pushReplacement(

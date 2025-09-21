@@ -1,9 +1,7 @@
 # Define plataforma mínima (recomendado 13.0+ para Firebase)
 platform :ios, '14.0'
-
 # Deshabilita estadísticas para mejorar velocidad
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
-
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -15,7 +13,6 @@ def flutter_root
   unless File.exist?(generated_xcode_build_settings_path)
     raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
   end
-
   File.foreach(generated_xcode_build_settings_path) do |line|
     matches = line.match(/FLUTTER_ROOT\=(.*)/)
     return matches[1].strip if matches
@@ -24,16 +21,13 @@ def flutter_root
 end
 
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
-
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  # ✅ OBLIGATORIO para file_picker desde versión 1.7.0+
+  # OBLIGATORIO para file_picker desde versión 1.7.0+
   use_frameworks! :linkage => :static
-  
   # Configuración modular requerida para Firebase y file_picker
   use_modular_headers!
-  
   # Versión explícita de Firebase
   $FirebaseSDKVersion = '10.22.0'
   
@@ -42,7 +36,7 @@ target 'Runner' do
   pod 'FirebaseCore', :modular_headers => true
   pod 'GoogleUtilities', :modular_headers => true
   
-  # Instalar todos los pods de Flutter (incluye file_picker)
+  # Instalar todos los pods de Flutter (incluye permission_handler automáticamente)
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   
   target 'RunnerTests' do
@@ -53,27 +47,23 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-    
     target.build_configurations.each do |config|
-      # Configuración de permisos para Google Maps
+      # Configuración de permisos
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
-        # Permisos esenciales para Google Maps
+        'PERMISSION_CAMERA=1',
         'PERMISSION_LOCATION=1',
         'PERMISSION_LOCATION_WHENINUSE=1',
       ]
-      
       # Configuración para Firebase y Xcode 15+
       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
       config.build_settings['OTHER_CFLAGS'] = '-DFIREBASE_USE_MODULAR_FRAMEWORKS=1'
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-      
       # Solución para problemas de caché de permisos
       config.build_settings['SWIFT_VERSION'] = '5.0'
       config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
     end
   end
-  
   # Solución adicional para problemas de permisos
   installer.pods_project.build_configurations.each do |config|
     config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'

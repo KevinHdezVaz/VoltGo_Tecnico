@@ -485,8 +485,7 @@ static final Map<String, Map<String, String>> localizedValues = {
 
       'driverLicenseNumber': 'Driver License Number',
       'enterLicenseNumber': 'Enter your license number',
-      'idPhotoOrCertification':
-          'ID Photo or Certification (NOT WORKING YET, LEAVE THIS FIELD EMPTY)',
+      'idPhotoOrCertification':'ID Photo or Certification',
       'selectFile': 'Select file (JPG, PNG, PDF)',
 
       // Services Section
@@ -1287,8 +1286,7 @@ static final Map<String, Map<String, String>> localizedValues = {
       'optionalDocumentation': 'Documentación (Opcional)',
       'driverLicenseNumber': 'Número de licencia de conducir',
       'enterLicenseNumber': 'Ingresa tu número de licencia',
-      'idPhotoOrCertification':
-          'Foto de ID o certificación (AUN NO FUNCIONA, DEJAR ESTE CAMPO VACIO)',
+      'idPhotoOrCertification':   'Foto de ID o certificación',
       'selectFile': 'Seleccionar archivo (JPG, PNG, PDF)',
 
       'noServiceHistory': 'No tienes servicios en tu historial.',

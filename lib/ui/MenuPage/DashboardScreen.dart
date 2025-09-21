@@ -58,19 +58,31 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
 // En _DriverDashboardScreenState, agregar estas variables:
 
+
+   bool _isDialogShowing = false;
+  static bool _globalDialogLock = false; // ✅ NUEVO: Lock global para evitar múltiples diálogos
+  int? _lastProcessedRequestId;
+  DateTime? _lastRequestProcessTime;
+  String? _currentProcessingSource; // ✅ NUEVO: Rastrear fuente actual
+
+
 bool _hasArrivedAtDestination = false;
 Timer? _arrivalDetectionTimer;
 
   Timer?
       _statusCheckTimer; // NUEVO: Timer para verificar el estado de la solicitud actual
-  bool _isDialogShowing = false;
-  ServiceRequestModel? _currentRequest;
+   ServiceRequestModel? _currentRequest;
   Timer? _locationUpdateTimer;
   Map<String, dynamic>? _earningsSummary;
 
   List<int> _unavailableRequestIds = [];
   String? _lastActiveServiceStatus;
   ServiceRequestModel? _activeServiceRequest;
+
+   DateTime? _lastRequestCheckTime; // ✅ NUEVO: Control de tiempo
+   Timer? _cooldownTimer; // ✅ NUEVO: Cooldown entre procesamiento
+
+
 
   @override
   void initState() {
@@ -119,6 +131,7 @@ Timer? _arrivalDetectionTimer;
       NotificationService.dispose();
     });
 
+
     _newRequestSubscription?.cancel();
     _serviceCancelledSubscription?.cancel();
     _statusUpdateSubscription?.cancel();
@@ -137,6 +150,11 @@ Timer? _arrivalDetectionTimer;
     _stopActiveServiceMonitoring();
     _stopStatusChecker();
 
+    _cooldownTimer?.cancel();
+    _lastRequestCheckTime = null;
+    _lastProcessedRequestId = null;
+ _globalDialogLock = false;
+    _currentProcessingSource = null;
     // Cancelar cualquier timer adicional que puedas tener
     _requestCheckTimer?.cancel();
     _statusCheckTimer?.cancel();
@@ -162,6 +180,12 @@ Timer? _arrivalDetectionTimer;
       ),
     );
   }
+
+   Future<void> _processNewRequests({required bool playSound}) async {
+    // Redirigir al nuevo método
+    await _processNewRequestsWithSource(playSound ? 'timer' : 'onesignal');
+  }
+
 
   Future<void> _initializeApp() async {
     setState(() => _isLoading = true);
@@ -389,228 +413,108 @@ Future<void> _checkIfAlreadyArrived() async {
   }
 
   // Reemplaza tu método _startRequestChecker con este:
-
- void _startRequestChecker() {
+void _startRequestChecker() {
     _stopRequestChecker();
     _requestCheckTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      // ✅ VERIFICAR MÚLTIPLES CONDICIONES
+      // ✅ VERIFICACIONES MÁS ESTRICTAS
       if (_isDialogShowing || 
-          _isProcessingRequest || // ✅ NUEVO
-          _driverStatus != DriverStatus.online) {
+          _isProcessingRequest || 
+          _driverStatus != DriverStatus.online ||
+          _globalDialogLock ||
+          _currentProcessingSource != null) {
         return;
       }
 
-      print("🔄 Buscando nuevas solicitudes...");
-
-      try {
-        await _processNewRequests(playSound: true); // ✅ EXTRAER LÓGICA COMÚN
-      } catch (e) {
-        print("❌ Error en _startRequestChecker: $e");
-        if (e.toString().contains('No autorizado')) {
-          _cleanupUnavailableRequests();
-        }
-      }
+      print("🔄 Timer: Buscando nuevas solicitudes...");
+      await _processNewRequestsWithSource('timer');
     });
   }
 
+   bool _isInCooldown() {
+    if (_lastRequestCheckTime == null) return false;
+    
+    final now = DateTime.now();
+    final timeSinceLastCheck = now.difference(_lastRequestCheckTime!);
+    
+    // Cooldown de 2 segundos entre procesamiento de solicitudes
+    return timeSinceLastCheck.inSeconds < 2;
+  }
 
-  /// ✅ NUEVO: Lógica común para procesar solicitudes
-  Future<void> _processNewRequests({required bool playSound}) async {
-    if (_isProcessingRequest || _isDialogShowing) {
-      print("⚠️ Ya se está procesando una solicitud, ignorando...");
-      return;
+
+
+  
+  Future<void> _acceptRequest(int requestId) async {
+    final localizations = AppLocalizations.of(context);
+
+    print('🚀 Aceptando solicitud: $requestId');
+
+    try {
+      await NotificationService.stop();
+      NotificationService.vibrateOnly(VibrationPattern.gentle);
+      print('🔇 Notificación detenida y feedback de aceptación enviado');
+    } catch (e) {
+      print('⚠️ Error al detener notificación: $e');
     }
 
-    // ✅ MARCAR COMO PROCESANDO INMEDIATAMENTE
+    // ✅ NO LIMPIAR ESTADO AQUÍ - DEJAR QUE _cleanupProcessingState LO HAGA
     setState(() {
-      _isProcessingRequest = true;
+      _driverStatus = DriverStatus.enRouteToUser;
     });
 
     try {
-      final List<Map<String, dynamic>> rawRequests =
-          await TechnicianService.checkForNewRequests();
+      final success = await TechnicianService.acceptRequest(requestId);
+      if (success) {
+        _showSuccessSnackbar(localizations.requestAccepted);
+        await NotificationService.playGentleNotification();
 
-      final availableRequests = rawRequests
-          .where((request) => !_unavailableRequestIds.contains(request['id']))
-          .toList();
+        _activeServiceRequest = _currentRequest;
+        _lastActiveServiceStatus = 'accepted';
+        _startActiveServiceMonitoring();
+        _unavailableRequestIds.clear();
+        _startArrivalDetection();
 
-      if (availableRequests.isNotEmpty && mounted) {
-        final rawRequest = availableRequests.first;
-
-        // ✅ REPRODUCIR SONIDO SOLO SI SE SOLICITA
-        if (playSound) {
-          try {
-            await NotificationService.playIncomingRequestNotification();
-            print('🎵📳 Notificación de solicitud entrante iniciada');
-          } catch (e) {
-            print('⚠️ No se pudo reproducir la notificación: $e');
-          }
-        }
-
-        print("🎯 Nueva solicitud encontrada: ID ${rawRequest['id']}");
-
-        // Verificar que la solicitud sigue siendo válida
-        final status = await TechnicianService.getRequestStatus(rawRequest['id']);
-
-        if (status == null || status.status != 'pending') {
-          print("⚠️ Solicitud ${rawRequest['id']} ya no está pendiente");
-          _unavailableRequestIds.add(rawRequest['id']);
-          return;
-        }
-
-        // Verificar que no estemos ya mostrando esta solicitud
-        if (_currentRequest != null && _currentRequest!.id == rawRequest['id']) {
-          print("⚠️ Ya se está mostrando esta solicitud, ignorando...");
-          return;
-        }
-
-        // ✅ DETENER POLLING TEMPORALMENTE
-        _stopRequestChecker();
-
-        final newRequest = _createServiceRequestFromRawData(rawRequest, status);
-
-        // ✅ ACTUALIZAR ESTADOS DE FORMA ATÓMICA
-        setState(() {
-          _isDialogShowing = true;
-          _currentRequest = newRequest;
-          _driverStatus = DriverStatus.incomingRequest;
-        });
-
-        _startStatusChecker();
-
-        try {
-          final bool? accepted = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => IncomingRequestDialog(serviceRequest: newRequest),
-          );
-
-          // ✅ DETENER SONIDO INDEPENDIENTEMENTE DEL RESULTADO
-          if (playSound) {
-            try {
-              await NotificationService.stop();
-              print('🔇 Sonido detenido después de cerrar diálogo');
-            } catch (e) {
-              print('⚠️ Error deteniendo sonido después de diálogo: $e');
-            }
-          }
-
-          _stopStatusChecker();
-
-          // Procesar la respuesta
-          if (accepted == true) {
-            await _acceptRequest(newRequest.id);
-          } else {
-            await _rejectRequest(newRequest.id);
-          }
-
-        } catch (e) {
-          print("❌ Error en showDialog: $e");
-          if (playSound) {
-            try {
-              await NotificationService.stop();
-            } catch (stopError) {
-              print('⚠️ Error deteniendo sonido después de error: $stopError');
-            }
-          }
-        } finally {
-          // ✅ LIMPIAR ESTADOS AL FINAL
-          setState(() {
-            _isDialogShowing = false;
-            _isProcessingRequest = false;
-          });
-          
-          // ✅ REINICIAR POLLING SOLO SI SEGUIMOS ONLINE
-          if (_driverStatus == DriverStatus.online) {
-            _startRequestChecker();
-          }
-        }
+        print("✅ Solicitud aceptada - _currentRequest: ${_currentRequest?.id}");
+      } else {
+        throw Exception('Accept request returned false');
       }
-    } finally {
-      // ✅ GARANTIZAR QUE SIEMPRE SE LIMPIA EL ESTADO
-      if (mounted) {
-        setState(() {
-          _isProcessingRequest = false;
-        });
-      }
+    } catch (e) {
+      print("❌ Error aceptando solicitud: $e");
+      setState(() {
+        _driverStatus = DriverStatus.online;
+        _currentRequest = null;
+      });
+      _showErrorSnackbar('Error al aceptar la solicitud: $e');
     }
   }
 
-
-
-// Cambiar de void a Future<void>
-Future<void> _acceptRequest(int requestId) async {
-  final localizations = AppLocalizations.of(context);
-
-  try {
-    await NotificationService.stop();
-    NotificationService.vibrateOnly(VibrationPattern.gentle);
-    print('🔇 Notificación detenida y feedback de aceptación enviado');
-  } catch (e) {
-    print('⚠️ Error al detener notificación: $e');
-  }
-
-  _stopRequestChecker();
-
-  setState(() {
-    _driverStatus = DriverStatus.enRouteToUser;
-    _isDialogShowing = false;
-    _isProcessingRequest = false;
-  });
-
-  try {
-    final success = await TechnicianService.acceptRequest(requestId);
-    if (success) {
-      _showSuccessSnackbar(localizations.requestAccepted);
-      await NotificationService.playGentleNotification();
-
-      _activeServiceRequest = _currentRequest;
-      _lastActiveServiceStatus = 'accepted';
-      _startActiveServiceMonitoring();
-      _unavailableRequestIds.clear();
-            _startArrivalDetection();
-
-      print("✅ Solicitud aceptada - _currentRequest: ${_currentRequest?.id}");
-    }
-  } catch (e) {
-    print("❌ Error aceptando solicitud: $e");
-    setState(() {
-      _driverStatus = DriverStatus.online;
-      _currentRequest = null;
-      _isProcessingRequest = false;
-    });
-    _startRequestChecker();
-    _showErrorSnackbar('Error al aceptar la solicitud: $e');
-  }
-}
-
-Future<void> _rejectRequest(int requestId) async {
-  try {
-    await NotificationService.stop();
-    print('🔇 Notificación detenida al rechazar solicitud');
-  } catch (e) {
-    print('⚠️ Error al detener notificación: $e');
-  }
-
-  try {
-    final success = await TechnicianService.rejectRequest(requestId);
-    if (success) {
-      print("✅ Solicitud $requestId rechazada exitosamente");
-    }
-  } catch (e) {
-    print("❌ Error al rechazar en el servidor: $e");
-    _unavailableRequestIds.add(requestId);
-  } finally {
-    setState(() {
-      _driverStatus = DriverStatus.online;
-      _currentRequest = null;
-      _isDialogShowing = false;
-      _isProcessingRequest = false;
-    });
+  // ✅ MÉTODO MEJORADO: _rejectRequest
+  Future<void> _rejectRequest(int requestId) async {
+    print('🚀 Rechazando solicitud: $requestId');
     
-    _startRequestChecker();
+    try {
+      await NotificationService.stop();
+      print('🔇 Notificación detenida al rechazar solicitud');
+    } catch (e) {
+      print('⚠️ Error al detener notificación: $e');
+    }
+
+    try {
+      final success = await TechnicianService.rejectRequest(requestId);
+      if (success) {
+        print("✅ Solicitud $requestId rechazada exitosamente");
+      }
+    } catch (e) {
+      print("❌ Error al rechazar en el servidor: $e");
+      _unavailableRequestIds.add(requestId);
+    }
+    
+    // ✅ ACTUALIZAR ESTADO A ONLINE
+    setState(() {
+      _driverStatus = DriverStatus.online;
+      _currentRequest = null;
+    });
   }
-}
+
 
 // ✅ SOLUCIÓN 3: Usar DraggableScrollableSheet (más avanzado)
   void _showNavigationOptions() {
@@ -837,14 +741,19 @@ void _markServiceAsOnSite() {
 }
 
 
-  void _setupOneSignalListeners() {
+void _setupOneSignalListeners() {
     print('Configurando listeners de OneSignal...');
 
-    // Escuchar nuevas solicitudes de servicio
+    // ✅ CANCELAR LISTENERS PREVIOS PARA EVITAR DUPLICADOS
+    _newRequestSubscription?.cancel();
+    _serviceCancelledSubscription?.cancel();
+    _statusUpdateSubscription?.cancel();
+
+    // Escuchar nuevas solicitudes de servicio con protección
     _newRequestSubscription =
         OneSignalService.eventBus.on<NewServiceRequestEvent>().listen((event) {
       print('Evento OneSignal - Nueva solicitud: ${event.clientName}');
-      _handleOneSignalNewRequest(event);
+      _handleOneSignalNewRequestProtected(event);
     });
 
     // Escuchar cancelaciones de servicio
@@ -865,8 +774,184 @@ void _markServiceAsOnSite() {
     print('Listeners OneSignal configurados');
   }
 
+void _handleOneSignalNewRequestProtected(NewServiceRequestEvent event) {
+  print('🛡️ PROTECCIÓN OneSignal - RequestID: ${event.serviceRequestId}');
+  
+  // ✅ VERIFICAR SOLO ESTADOS CRÍTICOS
+  if (_driverStatus != DriverStatus.online) {
+    print('❌ No está online, ignorando OneSignal');
+    return;
+  }
+
+  if (_isDialogShowing) {
+    print('❌ Diálogo ya está mostrando, ignorando OneSignal');
+    return;
+  }
+
+  // ✅ REMOVER: Verificación de lock global demasiado agresiva
+  // ✅ REMOVER: Verificación de última solicitud procesada
+  // ✅ REMOVER: Verificación de tiempo desde último procesamiento
+
+  print('✅ OneSignal verificado, procesando solicitud ${event.serviceRequestId}');
+  
+  // ✅ PROCESAR INMEDIATAMENTE
+  _processNewRequestsWithSource('onesignal');
+}
+  
+Future<void> _processNewRequestsWithSource(String source) async {
+  print("🔄 === INICIANDO _processNewRequests desde: $source ===");
+  
+  // ✅ VERIFICACIÓN SIMPLE
+  if (_isProcessingRequest || _isDialogShowing) {
+    print("⚠️ Ya procesando/mostrando, abortando desde: $source");
+    return;
+  }
+
+  // ✅ MARCAR COMO PROCESANDO
+  setState(() {
+    _isProcessingRequest = true;
+  });
+
+  try {
+    final List<Map<String, dynamic>> rawRequests =
+        await TechnicianService.checkForNewRequests();
+
+    final availableRequests = rawRequests
+        .where((request) => !_unavailableRequestIds.contains(request['id']))
+        .toList();
+
+    if (availableRequests.isNotEmpty && mounted) {
+      final rawRequest = availableRequests.first;
+      final requestId = rawRequest['id'];
+
+      print("🎯 Nueva solicitud encontrada desde $source: ID $requestId");
+
+      // Verificar que la solicitud sigue siendo válida
+      final status = await TechnicianService.getRequestStatus(requestId);
+
+      if (status == null || status.status != 'pending') {
+        print("⚠️ Solicitud $requestId ya no está pendiente");
+        _unavailableRequestIds.add(requestId);
+        return;
+      }
+
+      // ✅ REPRODUCIR SONIDO SOLO SI VIENE DEL TIMER
+      final bool shouldPlaySound = source == 'timer';
+      
+      if (shouldPlaySound) {
+        try {
+          await NotificationService.playIncomingRequestNotification();
+          print('🎵 Sonido reproducido (fuente: $source)');
+        } catch (e) {
+          print('⚠️ Error reproduciendo sonido: $e');
+        }
+      }
+
+      final newRequest = _createServiceRequestFromRawData(rawRequest, status);
+
+      // ✅ ACTUALIZAR ESTADOS
+      setState(() {
+        _isDialogShowing = true;
+        _currentRequest = newRequest;
+        _driverStatus = DriverStatus.incomingRequest;
+      });
+
+      _startStatusChecker();
+
+      try {
+        print('📱 Mostrando diálogo para solicitud: $requestId');
+        
+        final bool? accepted = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => IncomingRequestDialog(serviceRequest: newRequest),
+        );
+
+        print('📱 Resultado del diálogo: $accepted');
+
+        // ✅ DETENER SONIDO
+        if (shouldPlaySound) {
+          try {
+            await NotificationService.stop();
+          } catch (e) {
+            print('⚠️ Error deteniendo sonido: $e');
+          }
+        }
+
+        _stopStatusChecker();
+
+        // ✅ PROCESAR RESPUESTA
+        if (accepted == true) {
+          await _acceptRequest(newRequest.id);
+        } else {
+          await _rejectRequest(newRequest.id);
+        }
+
+      } catch (e) {
+        print("❌ Error en showDialog: $e");
+      }
+    } else {
+      print("ℹ️ No hay solicitudes nuevas desde: $source");
+    }
+  } catch (e) {
+    print("❌ Error en _processNewRequests desde $source: $e");
+  } finally {
+    // ✅ LIMPIAR ESTADOS SIEMPRE
+    if (mounted) {
+      setState(() {
+        _isDialogShowing = false;
+        _isProcessingRequest = false;
+      });
+    }
+
+    // ✅ REINICIAR POLLING
+    if (_driverStatus == DriverStatus.online) {
+      Timer(const Duration(seconds: 2), () {
+        if (_driverStatus == DriverStatus.online && !_isProcessingRequest) {
+          _startRequestChecker();
+        }
+      });
+    }
+  }
+}
+
+  void _cleanupProcessingState(String source) {
+    if (mounted) {
+      setState(() {
+        _isDialogShowing = false;
+        _isProcessingRequest = false;
+      });
+    }
+
+    // ✅ LIBERAR LOCK GLOBAL Y FUENTE
+    if (_currentProcessingSource == source) {
+      _globalDialogLock = false;
+      _currentProcessingSource = null;
+      print('🧹 Estado limpiado para fuente: $source');
+    }
+
+    // ✅ REINICIAR POLLING SEGÚN LA FUENTE
+    if (_driverStatus == DriverStatus.online) {
+      if (source == 'timer') {
+        Timer(const Duration(seconds: 1), () {
+          if (_driverStatus == DriverStatus.online && !_isProcessingRequest) {
+            _startRequestChecker();
+          }
+        });
+      } else if (source == 'onesignal') {
+        Timer(const Duration(seconds: 3), () {
+          if (_driverStatus == DriverStatus.online && !_isProcessingRequest) {
+            _startRequestChecker();
+          }
+        });
+      }
+    }
+  }
+
+
+
  void _handleOneSignalNewRequest(NewServiceRequestEvent event) {
-    print('Manejando nueva solicitud OneSignal: ${event.serviceRequestId}');
+    print('OneSignal: Nueva solicitud recibida - ${event.serviceRequestId}');
 
     // ✅ VERIFICACIONES MÁS ESTRICTAS
     if (_driverStatus != DriverStatus.online) {
@@ -874,21 +959,27 @@ void _markServiceAsOnSite() {
       return;
     }
 
-    if (_isDialogShowing || _isProcessingRequest) {
-      print('Ya hay un diálogo abierto o se está procesando, ignorando push');
+    if (_isDialogShowing || _isProcessingRequest || _isInCooldown()) {
+      print('Ya hay procesamiento activo o en cooldown, ignorando push');
       return;
     }
 
-    // ✅ DELAY PEQUEÑO PARA EVITAR CONDICIONES DE CARRERA
-    Timer(const Duration(milliseconds: 500), () {
-      if (mounted && 
-          _driverStatus == DriverStatus.online && 
-          !_isDialogShowing && 
-          !_isProcessingRequest) {
-        _checkForImmediateRequestsFromPush();
-      }
+    // ✅ DETENER TIMER INMEDIATAMENTE para evitar conflictos
+    _stopRequestChecker();
+
+    // ✅ PROCESAR INMEDIATAMENTE SIN DELAY
+    print('OneSignal: Procesando solicitud inmediatamente...');
+    _processNewRequestsWithSource('onesignal');
+  }
+
+ void _activateCooldown() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer(const Duration(seconds: 3), () {
+      print("⏰ Cooldown terminado, listo para nueva solicitud");
     });
   }
+
+
 
   /// ✅ NUEVO: Búsqueda inmediata sin sonido (activada por push notification)
 Future<void> _checkForImmediateRequestsFromPush() async {
@@ -1613,6 +1704,7 @@ _showSuccessSnackbar('Charging service started');
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -2793,26 +2885,7 @@ Widget _buildTopHeaderPanel() {
                 ],
               ),
               const SizedBox(height: 12),
-
-              // Botón para navegación
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.navigation, size: 16),
-                  label: Text(
-                    localizations.openInMaps,
-                    style: GoogleFonts.inter(
-                        fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: _showNavigationOptions,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
+ 
             ] else ...[
               // Botones para cuando está en servicio
               Row(

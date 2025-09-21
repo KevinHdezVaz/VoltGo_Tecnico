@@ -8,6 +8,7 @@ import 'package:Voltgo_app/utils/map_picker_screen.dart';
 import 'package:Voltgo_app/utils/AnimatedTruckProgress.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
 import 'package:Voltgo_app/data/services/auth_api_service.dart';
+import 'package:Voltgo_app/utils/PermissionHelper.dart'; // Añadir import
 import 'dart:developer' as developer;
 
 class GoogleProfileCompletionScreen extends StatefulWidget {
@@ -102,13 +103,12 @@ class _GoogleProfileCompletionScreenState
   Future<void> _completeProfile() async {
     if (!_isButtonEnabled || _isLoading) return;
 
-
-// ✅ AGREGAR ESTE DEBUG
-  developer.log('=== PROFILE COMPLETION DEBUG ===');
-  developer.log('_fullPhoneNumber: "$_fullPhoneNumber"');
-  developer.log('_baseLocationController.text: "${_baseLocationController.text}"');
-  developer.log('_baseLocationController.text.trim(): "${_baseLocationController.text.trim()}"');
-  developer.log('_selectedServices: $_selectedServices');
+    // ✅ AGREGAR ESTE DEBUG
+    developer.log('=== PROFILE COMPLETION DEBUG ===');
+    developer.log('_fullPhoneNumber: "$_fullPhoneNumber"');
+    developer.log('_baseLocationController.text: "${_baseLocationController.text}"');
+    developer.log('_baseLocationController.text.trim(): "${_baseLocationController.text.trim()}"');
+    developer.log('_selectedServices: $_selectedServices');
  
     final localizations = AppLocalizations.of(context);
 
@@ -174,27 +174,120 @@ class _GoogleProfileCompletionScreenState
     }
   }
 
+  // ✅ NUEVA IMPLEMENTACIÓN DE _pickIdFile CON LA LÓGICA MEJORADA
   Future<void> _pickIdFile() async {
     setState(() => _isPickingFile = true);
     final localizations = AppLocalizations.of(context);
 
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-      );
+      // Para Android: verificar permisos
+      if (Platform.isAndroid) {
+        final hasPermission = await PermissionHelper.hasStoragePermissions();
+        
+        if (!hasPermission) {
+          final granted = await PermissionHelper.requestStoragePermissions();
+          
+          if (!granted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Se necesitan permisos para acceder a archivos'),
+                action: SnackBarAction(
+                  label: 'Configuración',
+                  onPressed: () => PermissionHelper.openSettings(),
+                ),
+              ),
+            );
+            return;
+          }
+        }
+      }
 
-      if (result != null) {
-        setState(() {
-          _pickedIdFile = File(result.files.single.path!);
-        });
+      // Para iOS: usar directamente FilePicker sin verificar permisos
+      FilePickerResult? result;
+      
+      if (Platform.isIOS) {
+        // En iOS, usar el picker directamente
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.any, // Usar FileType.any en iOS
+          allowMultiple: false,
+          withData: false, // No cargar datos en memoria
+          withReadStream: false,
+        );
+      } else {
+        // En Android, usar extensiones específicas
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+          allowMultiple: false,
+        );
+      }
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        
+        // Verificar que el archivo tenga un path válido
+        if (file.path != null && file.path!.isNotEmpty) {
+          // En iOS, verificar que sea un tipo de archivo válido
+          if (Platform.isIOS) {
+            final fileName = file.name.toLowerCase();
+            final validExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+            final hasValidExtension = validExtensions.any((ext) => fileName.endsWith('.$ext'));
+            
+            if (!hasValidExtension) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Por favor selecciona un archivo JPG, PNG o PDF'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              return;
+            }
+          }
+          
+          setState(() {
+            _pickedIdFile = File(file.path!);
+          });
+          
+          // Mostrar confirmación
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Archivo seleccionado: ${file.name}'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          throw Exception('No se pudo obtener la ruta del archivo');
+        }
       }
     } catch (e) {
+      print('Error seleccionando archivo: $e');
+      
+      // No mostrar error si el usuario canceló
+      if (e.toString().contains('User canceled') || 
+          e.toString().contains('cancelled') ||
+          e.toString().contains('canceled')) {
+        return;
+      }
+      
+      String errorMessage;
+      
+      if (Platform.isIOS) {
+        errorMessage = 'Error al seleccionar archivo. Asegúrate de seleccionar un archivo JPG, PNG o PDF.';
+      } else {
+        errorMessage = 'Error al seleccionar archivo: ${e.toString()}';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error seleccionando archivo: $e')),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
-      setState(() => _isPickingFile = false);
+      if (mounted) {
+        setState(() => _isPickingFile = false);
+      }
     }
   }
 
@@ -211,25 +304,35 @@ class _GoogleProfileCompletionScreenState
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
-    
-    return Scaffold(
+// Reemplaza tu método build() con esta versión que incluye GestureDetector:
+
+@override
+Widget build(BuildContext context) {
+  final localizations = AppLocalizations.of(context);
+  
+  return Scaffold(
+    backgroundColor: AppColors.white,
+    appBar: AppBar(
       backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        title: Text(
-          'Complete Profile',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+      elevation: 0,
+      title: Text(
+        'Complete Profile',
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
         ),
-        centerTitle: true,
       ),
-      body: Stack(
+      centerTitle: true,
+    ),
+    body: GestureDetector(
+      // ✅ SOLUCIÓN: Detectar taps en cualquier parte de la pantalla
+      onTap: () {
+        // Quitar el foco de todos los campos de texto para ocultar el teclado
+        FocusScope.of(context).unfocus();
+      },
+      // ✅ Permitir que los taps atraviesen a los widgets hijos cuando sea necesario
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
         children: [
           SafeArea(
             child: SingleChildScrollView(
@@ -328,7 +431,9 @@ class _GoogleProfileCompletionScreenState
                   const SizedBox(height: 20),
                   
                   _buildFileUploadField(),
-                  const SizedBox(height: 40),
+                  
+                  // ✅ AÑADIR ESPACIO EXTRA AL FINAL para que el botón no quede oculto
+                  const SizedBox(height: 120), // Espacio adicional
                   
                   // Botón de completar
                   SizedBox(
@@ -356,6 +461,9 @@ class _GoogleProfileCompletionScreenState
                       ),
                     ),
                   ),
+                  
+                  // ✅ ESPACIO FINAL PARA ASEGURAR QUE EL BOTÓN SEA VISIBLE
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -368,8 +476,9 @@ class _GoogleProfileCompletionScreenState
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // Métodos helper (copiados del RegisterScreen)
   Widget _buildPhoneField() {
