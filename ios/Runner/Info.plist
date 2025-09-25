@@ -2,7 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Tu configuración existente -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -45,49 +44,42 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleURLTypes</key>
-<array>
-	<dict>
-		<key>CFBundleURLName</key>
-		<string>cl.Voltgo.driver-us</string>
-		<key>CFBundleURLSchemes</key>
-		<array>
-			<string>com.googleusercontent.apps.990048158694-9uchr70b1hv2btiktv8rsir541fplcvo</string>
-		</array>
-	</dict>
-</array>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>cl.Voltgo.driver-us</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.990048158694-9uchr70b1hv2btiktv8rsir541fplcvo</string>
+			</array>
+		</dict>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-	<!-- ✅ PERMISOS PARA ARCHIVOS Y FOTOS -->
+	<!-- PERMISOS EN INGLÉS -->
 	
-	<!-- Permiso para acceder a la galería de fotos -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Esta aplicación necesita acceso a tu galería de fotos para subir documentos de identificación y fotos de servicios.</string>
+	<string>This app needs access to your photo gallery to upload identification documents and service photos</string>
 	
-	<!-- Permiso para agregar fotos a la galería -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Esta aplicación necesita permiso para guardar fotos en tu galería.</string>
+	<string>This app needs permission to save photos to your gallery</string>
 	
-	<!-- Permiso para usar la cámara -->
 	<key>NSCameraUsageDescription</key>
-	<string>Esta aplicación necesita acceso a la cámara para tomar fotos de documentos de identificación y servicios.</string>
+	<string>This app needs camera access to take photos of identification documents and services</string>
 	
-	<!-- ✅ CORRECCIÓN 1: Permisos de ubicación requeridos por Apple -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Esta aplicación necesita acceso a tu ubicación para mostrar tu posición en el mapa y encontrar servicios cercanos.</string>
+	<string>This app needs access to your location to show your position on the map and find nearby services</string>
 	
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Esta aplicación necesita acceso a tu ubicación para mostrar tu posición en el mapa, encontrar servicios cercanos y proporcionar navegación precisa durante los servicios.</string>
+	<string>This app needs access to your location to show your position on the map, find nearby services and provide precise navigation during services</string>
 	
-	<!-- Permiso para acceder a archivos (iOS 14+) -->
 	<key>NSDocumentReadUsageDescription</key>
-	<string>Esta aplicación necesita acceso a tus archivos para subir documentos PDF de identificación.</string>
+	<string>This app needs access to your files to upload PDF identification documents</string>
 	
-	<!-- Permiso para escribir archivos (iOS 14+) -->
 	<key>NSDocumentWriteUsageDescription</key>
-	<string>Esta aplicación necesita permiso para guardar documentos.</string>
+	<string>This app needs permission to save documents</string>
 	
-	<!-- ✅ CORRECCIÓN 2: Tipos de archivos con LSHandlerRank -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -118,11 +110,9 @@
 		</dict>
 	</array>
 	
-	<!-- Permitir acceso a archivos externos -->
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	
-	<!-- Permitir compartir archivos con otras apps -->
 	<key>UIFileSharingEnabled</key>
 	<true/>
 
