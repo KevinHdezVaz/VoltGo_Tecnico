@@ -23,8 +23,16 @@ static final Map<String, Map<String, String>> localizedValues = {
       'tyc' : 'Terms and Conditions',
     'newRequest': 'NEW REQUEST',
     'earnings': 'EARNINGS',
+      "reviews": "Reviews",
+
     'distance': 'DISTANCE',
+      "chats": "Chats",
+
     'estimatedTime': 'EST. TIME',
+    "language": "Language",
+  "selectLanguage": "Select Language",
+  "yourRating": "Your Rating",
+  "averageRating": "Average rating from all your services",
     'client': 'Client',
     'verified': 'Verified',
     'serviceLocation': 'Service location',
@@ -275,7 +283,17 @@ static final Map<String, Map<String, String>> localizedValues = {
       // ===== Service Panel States (FALTANTES) =====
       'arrivedAtSite': 'I HAVE ARRIVED AT SITE',
       'finishService': 'FINISH SERVICE',
- 
+   
+    'chat': 'Chat',
+    
+    'errorLoadingPage': 'Error loading page',
+    'refreshChats': 'Refresh chats',
+    'loadingChats': 'Loading chats...',
+    'errorLoadingChats': 'Error loading chats',
+     'noChatsAvailable': 'No chats available',
+    'chatHistoryDescription': 'The chat history will appear here once you have conversations with technicians regarding your service requests.',
+    'noMessages': 'No messages',
+    
       // ===== Success & Error Messages (FALTANTES) =====
       'requestAccepted': 'Request accepted! Head to the client.',
       'errorAcceptingRequest': 'Error accepting request',
@@ -785,6 +803,8 @@ static final Map<String, Map<String, String>> localizedValues = {
       'addComment': 'Agregar comentario (opcional)',
       'skip': 'Omitir',
       'send': 'Enviar',
+        "reviews": "Reseñas",
+
       'locationRequired': 'Ubicación Necesaria',
       'locationNeeded':
           'Para solicitar un servicio necesitamos acceder a tu ubicación. Por favor, activa los servicios de ubicación.',
@@ -1298,6 +1318,10 @@ static final Map<String, Map<String, String>> localizedValues = {
       'lockout': 'Apertura de Vehículo',
       'fuelDelivery': 'Entrega de Combustible',
       'other': 'Otro',
+      "language": "Idioma",
+  "selectLanguage": "Seleccionar Idioma",
+  "yourRating": "Tu Calificación",
+  "averageRating": "Calificación promedio de todos tus servicios",
       'otherService': 'Otro servicio',
       'describeService': 'Describe el servicio que ofreces',
             'hoy': 'Hoy',
@@ -1375,12 +1399,20 @@ static final Map<String, Map<String, String>> localizedValues = {
     'errorLoadingReviews': 'Error al cargar las reseñas: {error}',
     'reviewsCount': '{count} reseñas',
 'loading': 'Cargando',
+ 
+    'chats': 'Chats',
+    'errorLoadingPage': 'Error al cargar la página',
+    'refreshChats': 'Actualizar chats',
+    'loadingChats': 'Cargando chats...',
+    'errorLoadingChats': 'Error al cargar chats',
+     'noChatsAvailable': 'No hay chats disponibles',
+    'chatHistoryDescription': 'El historial de chats aparecerá aquí una vez que tengas conversaciones con técnicos sobre tus solicitudes de servicio.',
+    'noMessages': 'Sin mensajes',
+    
 'errorLoadingImage': 'Error al cargar la imagen',
 'paymentInformation': 'Información de Pago',
 'totalCost': 'Costo Total:',
-                        'otros': 'Otros',
-'yourRating': 'Tu Calificación',
-    'averageRating': 'Promedio de todas tus calificaciones',
+                        'otros': 'Otros', 
       'blue': 'Azul',
       'green': 'Verde',
       'writeBrandHint': 'Escribe una marca si no está en la lista',
@@ -1427,6 +1459,7 @@ static final Map<String, Map<String, String>> localizedValues = {
 
       'welcomeSuccessfulRegistration': '¡Bienvenido! Registro exitoso.',
       'errorOccurred': 'Ocurrió un error',
+  "chats": "Chats",
 
       'register': 'Registrar',
       'onboardingTitle1': '¿Emergencia en el camino?',
@@ -1434,6 +1467,34 @@ static final Map<String, Map<String, String>> localizedValues = {
           'Solicita un técnico y sigue su trayecto en tiempo real',
     }
   };
+
+
+// Getters para las nuevas traducciones
+
+String get language => localizedValues[locale.languageCode]!['language']!;
+String get selectLanguage => localizedValues[locale.languageCode]!['selectLanguage']!;
+String get yourRating => localizedValues[locale.languageCode]!['yourRating']!;
+String get averageRating => localizedValues[locale.languageCode]!['averageRating']!;
+String get reviews => localizedValues[locale.languageCode]!['reviews']!;
+String get history => localizedValues[locale.languageCode]!['history']!;
+String get chat => localizedValues[locale.languageCode]!['chat']!;
+String get chats => localizedValues[locale.languageCode]!['chats']!;
+String get errorLoadingPage => localizedValues[locale.languageCode]!['errorLoadingPage']!;
+String get refreshChats => localizedValues[locale.languageCode]!['refreshChats']!;
+String get loadingChats => localizedValues[locale.languageCode]!['loadingChats']!;
+String get errorLoadingChats => localizedValues[locale.languageCode]!['errorLoadingChats']!;
+String get tryAgain => localizedValues[locale.languageCode]!['tryAgain']!;
+String get noChatsAvailable => localizedValues[locale.languageCode]!['noChatsAvailable']!;
+String get chatHistoryDescription => localizedValues[locale.languageCode]!['chatHistoryDescription']!;
+String get noMessages => localizedValues[locale.languageCode]!['noMessages']!;
+String get statusPending => localizedValues[locale.languageCode]!['statusPending']!;
+String get statusAccepted => localizedValues[locale.languageCode]!['statusAccepted']!;
+String get statusEnRoute => localizedValues[locale.languageCode]!['statusEnRoute']!;
+String get statusOnSite => localizedValues[locale.languageCode]!['statusOnSite']!;
+String get statusCharging => localizedValues[locale.languageCode]!['statusCharging']!;
+String get statusCompleted => localizedValues[locale.languageCode]!['statusCompleted']!;
+String get statusCancelled => localizedValues[locale.languageCode]!['statusCancelled']!;
+
 
   String get onboardingTitle2 =>
       localizedValues[locale.languageCode]!['onboardingTitle2']!;
@@ -1443,7 +1504,7 @@ static final Map<String, Map<String, String>> localizedValues = {
       localizedValues[locale.languageCode]!['onboardingTitle3']!;
   String get onboardingSubtitle3 =>
       localizedValues[locale.languageCode]!['onboardingSubtitle3']!;
-
+ 
   String get voltgoTechnician =>
       localizedValues[locale.languageCode]!['voltgoTechnician']!;
   String get searchingRequestsText =>
@@ -1483,8 +1544,7 @@ static final Map<String, Map<String, String>> localizedValues = {
       localizedValues[locale.languageCode]!['myEarnings']!;
   String get today => localizedValues[locale.languageCode]!['today']!;
   String get week => localizedValues[locale.languageCode]!['week']!;
-  String get history => localizedValues[locale.languageCode]!['history']!;
-  String get withdrawFunds =>
+   String get withdrawFunds =>
       localizedValues[locale.languageCode]!['withdrawFunds']!;
   String get availableBalance =>
       localizedValues[locale.languageCode]!['availableBalance']!;
@@ -1882,8 +1942,7 @@ String reviewsCount(String count) =>
       localizedValues[locale.languageCode]!['technicianPreparingEquipment']!;
   String get viewTechnicianOnSite =>
       localizedValues[locale.languageCode]!['viewTechnicianOnSite']!;
-  String get chat => localizedValues[locale.languageCode]!['chat']!;
-  String get thankYouForRating =>
+   String get thankYouForRating =>
       localizedValues[locale.languageCode]!['thankYouForRating']!;
 // Add these getter methods to your AppLocalizations class after the existing ones:
 
@@ -1908,9 +1967,8 @@ String reviewsCount(String count) =>
       localizedValues[locale.languageCode]!['couldNotVerifyVehicle']!;
   String get goToRegistration =>
       localizedValues[locale.languageCode]!['goToRegistration']!;
-
-// ▼▼▼ AGREGAR ESTOS GETTERS AL FINAL DE TU CLASE ▼▼▼
  
+
 // Getters para agregar a la clase AppLocalizations:
 String get serviceDetails => localizedValues[locale.languageCode]!['serviceDetails']!;
 String get completed => localizedValues[locale.languageCode]!['completed']!;
@@ -1935,10 +1993,7 @@ String get after => localizedValues[locale.languageCode]!['after']!;
 String get errorLoadingImage => localizedValues[locale.languageCode]!['errorLoadingImage']!;
 String get paymentInformation => localizedValues[locale.languageCode]!['paymentInformation']!;
 String get totalCost => localizedValues[locale.languageCode]!['totalCost']!;
-
- String get yourRating => localizedValues[locale.languageCode]!['yourRating']!;
-String get averageRating => localizedValues[locale.languageCode]!['averageRating']!;
-
+ 
 // TÉRMINOS Y CONDICIONES - GETTERS
 String get termsAndConditions => 
     localizedValues[locale.languageCode]!['termsAndConditions']!;
@@ -1992,8 +2047,7 @@ String serviceNumber(String id) =>
   localizedValues[locale.languageCode]!['serviceNumber']!.replaceAll('{id}', id);
 String get loadingMessages => localizedValues[locale.languageCode]!['loadingMessages']!;
 String get errorLoadingChat => localizedValues[locale.languageCode]!['errorLoadingChat']!;
-String get tryAgain => localizedValues[locale.languageCode]!['tryAgain']!;
-String get startConversation => localizedValues[locale.languageCode]!['startConversation']!;
+ String get startConversation => localizedValues[locale.languageCode]!['startConversation']!;
 String get communicateWithTechnician => localizedValues[locale.languageCode]!['communicateWithTechnician']!;
 String get communicateWithClient => localizedValues[locale.languageCode]!['communicateWithClient']!;
 String get writeMessage => localizedValues[locale.languageCode]!['writeMessage']!;
@@ -2001,13 +2055,7 @@ String get sending => localizedValues[locale.languageCode]!['sending']!;
 String errorSendingMessage(String error) => 
   localizedValues[locale.languageCode]!['errorSendingMessage']!.replaceAll('{error}', error);
 String get updateMessages => localizedValues[locale.languageCode]!['updateMessages']!;
-String get statusPending => localizedValues[locale.languageCode]!['statusPending']!;
-String get statusAccepted => localizedValues[locale.languageCode]!['statusAccepted']!;
-String get statusEnRoute => localizedValues[locale.languageCode]!['statusEnRoute']!;
-String get statusOnSite => localizedValues[locale.languageCode]!['statusOnSite']!;
-String get statusCharging => localizedValues[locale.languageCode]!['statusCharging']!;
-String get statusCompleted => localizedValues[locale.languageCode]!['statusCompleted']!;
-String get statusCancelled => localizedValues[locale.languageCode]!['statusCancelled']!;
+ 
 
 // POLÍTICA DE PRIVACIDAD - GETTERS
 String get privacyPolicy => 
@@ -2275,7 +2323,7 @@ String get discard =>
       localizedValues[locale.languageCode]!['statusUpdated']!;
   String get serviceStatusChanged =>
       localizedValues[locale.languageCode]!['serviceStatusChanged']!;
-
+ 
 // Status change titles and messages
   String get technicianConfirmedTitle =>
       localizedValues[locale.languageCode]!['technicianConfirmedTitle']!;

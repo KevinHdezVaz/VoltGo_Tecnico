@@ -1,4 +1,4 @@
-// ✅ PANTALLA DE HISTORIAL DE CHATS - CON NOTIFICACIONES INTEGRADAS
+// ✅ PANTALLA DE HISTORIAL DE CHATS - CON NOTIFICACIONES INTEGRADAS Y LOCALIZACIÓN
 // Archivo: lib/ui/chat/ChatHistoryScreen.dart
 
 import 'package:Voltgo_app/data/models/User/ServiceRequestModel.dart';
@@ -6,8 +6,9 @@ import 'package:Voltgo_app/data/services/ChatNotificationProvider.dart';
 import 'package:Voltgo_app/data/services/ChatService.dart';
 import 'package:Voltgo_app/data/services/NotificationBadge.dart';
 import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
- import 'package:Voltgo_app/ui/color/app_colors.dart';
- import 'package:flutter/material.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart'; // ✅ AGREGAR
+import 'package:Voltgo_app/ui/color/app_colors.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -127,11 +128,13 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'Chats',
+          l10n.chats, // ✅ LOCALIZADO
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w700,
             fontSize: 22,
@@ -161,7 +164,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                   child: IconButton(
                     icon: Icon(Icons.refresh, color: Colors.white),
                     onPressed: _refreshHistory,
-                    tooltip: 'Actualizar chats',
+                    tooltip: l10n.refreshChats, // ✅ LOCALIZADO
                   ),
                 ),
               );
@@ -206,6 +209,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
   }
 
   Widget _buildLoadingState() {
+    final l10n = AppLocalizations.of(context);
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -215,7 +220,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Loading chats...',
+            l10n.loadingChats, // ✅ LOCALIZADO
             style: GoogleFonts.inter(
               color: AppColors.textSecondary,
               fontSize: 14,
@@ -227,6 +232,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
   }
 
   Widget _buildErrorState() {
+    final l10n = AppLocalizations.of(context);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -247,7 +254,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'Error to loading chats',
+              l10n.errorLoadingChats, // ✅ LOCALIZADO
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -273,7 +280,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                 ),
               ),
               child: Text(
-                'Try Again',
+                l10n.tryAgain, // ✅ LOCALIZADO
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -287,6 +294,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -307,7 +316,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
             ),
             const SizedBox(height: 24),
             Text(
-              'No chats available',
+              l10n.noChatsAvailable, // ✅ LOCALIZADO
               style: GoogleFonts.inter(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -316,7 +325,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'The chat history will appear here once you have conversations with technicians regarding your service requests.',
+              l10n.chatHistoryDescription, // ✅ LOCALIZADO
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
@@ -325,7 +334,6 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
               ),
             ),
             const SizedBox(height: 24),
-         
           ],
         ),
       ),
@@ -334,6 +342,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
 
   // ✅ ACTUALIZADO: Incluir badge de notificaciones
   Widget _buildChatItem(ChatHistory chatItem, int unreadCount) {
+    final l10n = AppLocalizations.of(context);
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -343,7 +353,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
           borderRadius: BorderRadius.circular(16),
           side: unreadCount > 0 
               ? BorderSide(color: AppColors.primary.withOpacity(0.3), width: 1)
-              : BorderSide.none, // ✅ Borde si hay no leídos
+              : BorderSide.none,
         ),
         child: InkWell(
           onTap: () => _openChat(chatItem),
@@ -407,7 +417,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                       Text(
                         chatItem.lastMessageText.isNotEmpty 
                             ? chatItem.lastMessageText 
-                            : 'Sin mensajes',
+                            : l10n.noMessages, // ✅ LOCALIZADO
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           color: unreadCount > 0 
@@ -422,8 +432,6 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                       // Información del servicio
                       Row(
                         children: [
-                        
-                          
                           const Spacer(),
                           // ✅ INDICADOR DE ESTADO DEL SERVICIO
                           Container(
@@ -433,7 +441,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              _getStatusText(chatItem.serviceStatus),
+                              _getStatusText(chatItem.serviceStatus, l10n),
                               style: GoogleFonts.inter(
                                 fontSize: 10,
                                 color: _getStatusColor(chatItem.serviceStatus),
@@ -500,24 +508,25 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen>
         return AppColors.textSecondary;
     }
   }
-String _getStatusText(String status) {
-  switch (status) {
-    case 'pending':
-      return 'Pending';
-    case 'accepted':
-      return 'Accepted';
-    case 'en_route':
-      return 'On the way';
-    case 'on_site':
-      return 'On site';
-    case 'charging':
-      return 'Charging';
-    case 'completed':
-      return 'Completed';
-    case 'cancelled':
-      return 'Cancelled';
-    default:
-      return status;
+
+  String _getStatusText(String status, AppLocalizations l10n) {
+    switch (status) {
+      case 'pending':
+        return l10n.statusPending;
+      case 'accepted':
+        return l10n.statusAccepted;
+      case 'en_route':
+        return l10n.statusEnRoute;
+      case 'on_site':
+        return l10n.statusOnSite;
+      case 'charging':
+        return l10n.statusCharging;
+      case 'completed':
+        return l10n.statusCompleted;
+      case 'cancelled':
+        return l10n.statusCancelled;
+      default:
+        return status;
+    }
   }
-}
 }

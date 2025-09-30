@@ -7,22 +7,23 @@
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
-    <!-- ✅ NUEVOS PERMISOS PARA ARCHIVOS Y DOCUMENTOS -->
-    <!-- Para acceso a archivos externos (Android 12 y anteriores) -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- ✅ PERMISOS CORREGIDOS PARA GOOGLE PLAY -->
+    <!-- Solo para Android 12 y anteriores (necesario para compatibilidad) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
         android:maxSdkVersion="28" />
     
-    <!-- Para acceso a fotos/media específicas (Android 13+) -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- ❌ REMOVIDO: READ_MEDIA_IMAGES (este causaba el rechazo) -->
+    <!-- <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> -->
     
-    <!-- Para acceso a documentos específicos (Android 13+) -->
+    <!-- ✅ MANTENER: Para documentos (facturas, reportes, etc.) -->
     <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
     
-    <!-- Para cámara (tomar fotos de documentos) -->
+    <!-- ✅ ESENCIAL: Para cámara (tomar fotos de evidencia) -->
     <uses-permission android:name="android.permission.CAMERA" />
     
-    <!-- Para abrir selector de archivos -->
+    <!-- ✅ OPCIONAL: Solo si necesitas selector de documentos -->
     <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
 
     <application
@@ -71,7 +72,7 @@
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
 
-        <!-- ✅ ACTUALIZADO: File Provider con configuración mejorada -->
+        <!-- ✅ File Provider para compartir fotos tomadas por la app -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileProvider"
@@ -84,57 +85,40 @@
 
     </application>
 
-    <!-- ✅ ACTUALIZADAS: Queries con soporte para documentos -->
+    <!-- ✅ Queries optimizadas para el caso de uso -->
     <queries>
-        <!-- Para abrir PDFs -->
+        <!-- Para abrir PDFs (reportes generados) -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="application/pdf" />
         </intent>
         
-        <!-- Para procesar texto -->
-        <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
-        </intent>
-        
-        <!-- Para abrir links web -->
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" />
-        </intent>
-        
-        <!-- Para navegación -->
+        <!-- Para navegación a ubicaciones -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
         
-        <!-- Para llamadas -->
+        <!-- Para llamadas a clientes -->
         <intent>
             <action android:name="android.intent.action.DIAL" />
         </intent>
         
-        <!-- ✅ NUEVOS: Para selección de archivos -->
-        <intent>
-            <action android:name="android.intent.action.GET_CONTENT" />
-            <data android:mimeType="*/*" />
-        </intent>
-        
-        <intent>
-            <action android:name="android.intent.action.OPEN_DOCUMENT" />
-            <data android:mimeType="*/*" />
-        </intent>
-        
-        <!-- Para imágenes específicamente -->
-        <intent>
-            <action android:name="android.intent.action.GET_CONTENT" />
-            <data android:mimeType="image/*" />
-        </intent>
-        
-        <!-- Para capturar imágenes con cámara -->
+        <!-- ✅ ESENCIAL: Para capturar fotos de evidencia -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        
+        <!-- ✅ OPCIONAL: Solo si permites subir documentos existentes -->
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+            <data android:mimeType="application/pdf" />
+        </intent>
+        
+        <!-- Para compartir reportes -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="*/*" />
         </intent>
     </queries>
 </manifest>

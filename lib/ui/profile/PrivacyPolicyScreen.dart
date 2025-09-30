@@ -188,6 +188,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             
             // Contact Information
             Card(
+              color: Colors.white,
               elevation: 4,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),

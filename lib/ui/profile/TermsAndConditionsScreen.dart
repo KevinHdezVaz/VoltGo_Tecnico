@@ -164,6 +164,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
             
             // Contact Information
             Card(
+              color: Colors.white,
               elevation: 4,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -197,7 +198,17 @@ class TermsAndConditionsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'legal@voltgo.com',
+                      'privacy@voltgo.us',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                     const SizedBox(height: 8),
+                    Text(
+                      'support@voltgo.us',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.primary,

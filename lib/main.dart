@@ -3,9 +3,10 @@ import 'dart:io';
 import 'package:Voltgo_app/data/services/ChatNotificationProvider.dart';
 import 'package:Voltgo_app/data/services/ServiceChatScreen.dart';
 import 'package:Voltgo_app/l10n/app_localizations.dart';
+ import 'package:Voltgo_app/utils/LocaleProvider.dart';
 import 'package:Voltgo_app/utils/OneSignalService.dart';
 import 'package:Voltgo_app/utils/bottom_nav.dart';
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,7 +15,7 @@ import 'package:Voltgo_app/firebase_options.dart';
 import 'package:Voltgo_app/ui/SplashScreen.dart';
 import 'package:Voltgo_app/utils/AuthWrapper.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart'; // ✅ NUEVO
+import 'package:provider/provider.dart';
 
 // Importa tus pantallas
 import 'package:Voltgo_app/ui/login/LoginScreen.dart';
@@ -189,90 +190,97 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider( // ✅ ENVOLVER EN MULTIPROVIDER
+    return MultiProvider(
       providers: [
-        // ✅ AGREGAR CHAT NOTIFICATION PROVIDER
         ChangeNotifierProvider(
           create: (context) => ChatNotificationProvider(),
         ),
-        // Aquí puedes agregar otros providers que tengas
-      ],
-      child: MaterialApp(
-        title: 'Voltgo',
-        debugShowCheckedModeBanner: false,
-
-        // GlobalKey para navegación
-        navigatorKey: navigatorKey,
-        
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
-          useMaterial3: true,
-          scaffoldBackgroundColor: Colors.grey[100],
+        // ✅ AGREGAR LOCALE PROVIDER
+        ChangeNotifierProvider(
+          create: (context) => LocaleProvider(),
         ),
+      ],
+      child: Consumer<LocaleProvider>( // ✅ ENVOLVER EN CONSUMER
+        builder: (context, localeProvider, child) {
+          return MaterialApp(
+            title: 'Voltgo',
+            debugShowCheckedModeBanner: false,
 
-        locale: const Locale('en', ''),
+            // GlobalKey para navegación
+            navigatorKey: navigatorKey,
+            
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
+              useMaterial3: true,
+              scaffoldBackgroundColor: Colors.grey[100],
+            ),
 
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('en', ''), // English
-          Locale('es', ''), // Spanish
-        ],
+            // ✅ USAR EL LOCALE DEL PROVIDER
+            locale: localeProvider.locale,
 
-        home: const SplashScreen(),
-        
-        onGenerateRoute: (settings) {
-          print('Navegando a ruta: ${settings.name}');
-          
-          switch (settings.name) {
-            case '/auth_wrapper':
-              return MaterialPageRoute(builder: (_) => const AuthWrapper());
-            case '/login':
-              return MaterialPageRoute(builder: (_) => const LoginScreen());
-            case '/home':
-              return MaterialPageRoute(builder: (_) => BottomNavBar());
-            case '/dashboard':
-              return MaterialPageRoute(
-                  builder: (_) => const DriverDashboardScreen());
-            case '/dashboard_combined':
-              return MaterialPageRoute(
-                  builder: (_) => const CombinedDashboardScreen());
-            case '/mobiles':
-              return MaterialPageRoute(builder: (_) => MobilesScreen());
-            case '/settings':
-              return MaterialPageRoute(builder: (_) => const SettingsScreen());
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', ''), // English
+              Locale('es', ''), // Spanish
+            ],
 
-            // ✅ NUEVA RUTA PARA CHAT
-            case '/chat':
-              final args = settings.arguments as Map<String, dynamic>?;
-              if (args != null && args['serviceRequest'] != null) {
-                return MaterialPageRoute(
-                  builder: (_) => ServiceChatScreen(
-                    serviceRequest: args['serviceRequest'],
-                    userType: args['userType'] ?? 'user',
-                  ),
-                );
+            home: const SplashScreen(),
+            
+            onGenerateRoute: (settings) {
+              print('Navegando a ruta: ${settings.name}');
+              
+              switch (settings.name) {
+                case '/auth_wrapper':
+                  return MaterialPageRoute(builder: (_) => const AuthWrapper());
+                case '/login':
+                  return MaterialPageRoute(builder: (_) => const LoginScreen());
+                case '/home':
+                  return MaterialPageRoute(builder: (_) => BottomNavBar());
+                case '/dashboard':
+                  return MaterialPageRoute(
+                      builder: (_) => const DriverDashboardScreen());
+                case '/dashboard_combined':
+                  return MaterialPageRoute(
+                      builder: (_) => const CombinedDashboardScreen());
+                case '/mobiles':
+                  return MaterialPageRoute(builder: (_) => MobilesScreen());
+                case '/settings':
+                  return MaterialPageRoute(builder: (_) => const SettingsScreen());
+
+                // ✅ RUTA PARA CHAT
+                case '/chat':
+                  final args = settings.arguments as Map<String, dynamic>?;
+                  if (args != null && args['serviceRequest'] != null) {
+                    return MaterialPageRoute(
+                      builder: (_) => ServiceChatScreen(
+                        serviceRequest: args['serviceRequest'],
+                        userType: args['userType'] ?? 'user',
+                      ),
+                    );
+                  }
+                  return MaterialPageRoute(builder: (_) => const SplashScreen());
+
+                default:
+                  print('Ruta no encontrada: ${settings.name}');
+                  return MaterialPageRoute(builder: (_) => const SplashScreen());
               }
-              return MaterialPageRoute(builder: (_) => const SplashScreen());
-
-            default:
-              print('Ruta no encontrada: ${settings.name}');
-              return MaterialPageRoute(builder: (_) => const SplashScreen());
-          }
-        },
-        
-        // Builder para configurar UI global y OneSignal context
-        builder: (context, child) {
-          // ✅ CONFIGURAR CONTEXTO PARA ONESIGNAL
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            OneSignalService.setContext(context);
-          });
-          
-          return child ?? Container();
+            },
+            
+            // Builder para configurar UI global y OneSignal context
+            builder: (context, child) {
+              // ✅ CONFIGURAR CONTEXTO PARA ONESIGNAL
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                OneSignalService.setContext(context);
+              });
+              
+              return child ?? Container();
+            },
+          );
         },
       ),
     );

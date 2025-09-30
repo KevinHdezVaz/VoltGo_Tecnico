@@ -1,4 +1,5 @@
 import 'package:Voltgo_app/data/services/ChatHistoryScreen.dart';
+import 'package:Voltgo_app/l10n/app_localizations.dart'; // ✅ AGREGAR
 import 'package:Voltgo_app/ui/MenuPage/TechnicianReviewsScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,7 +26,7 @@ class _BottomNavBarState extends State<BottomNavBar>
     const DriverDashboardScreen(),
     const TechnicianReviewsScreen(),
     const HistoryScreen(),
-    const ChatHistoryScreen(), // Placeholder for Chat page
+    const ChatHistoryScreen(),
     const SettingsScreen(),
   ];
 
@@ -70,7 +71,7 @@ class _BottomNavBarState extends State<BottomNavBar>
           print('Error rendering widget: $e\n$stackTrace');
           return Center(
             child: Text(
-              'Error al cargar la página',
+            "Error loading page", // ✅ LOCALIZADO
               style: GoogleFonts.inter(
                 fontSize: 18,
                 color: AppColors.error,
@@ -119,6 +120,8 @@ class _BottomNavBarState extends State<BottomNavBar>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context); // ✅ AGREGAR
+
     return Scaffold(
       extendBody: true,
       body: FadeTransition(
@@ -150,23 +153,23 @@ class _BottomNavBarState extends State<BottomNavBar>
           children: <Widget>[
             _buildNavItem(
               icon: Icons.star_border,
-              label: 'Reviews',
+              label: l10n.reviews, // ✅ LOCALIZADO
               index: 1,
             ),
             _buildNavItem(
               icon: Icons.history,
-              label: 'History',
+              label: l10n.history, // ✅ LOCALIZADO
               index: 2,
             ),
             const SizedBox(width: 80),
             _buildNavItem(
               icon: Icons.chat_bubble_outline,
-              label: 'Chat',
+              label: l10n.chat, // ✅ LOCALIZADO
               index: 3,
             ),
             _buildNavItem(
               icon: Icons.settings_outlined,
-              label: 'Settings',
+              label: l10n.settings, // ✅ LOCALIZADO
               index: 4,
             ),
           ],
